@@ -1,21 +1,10 @@
 import { LeaderboardEntry, Category, DifficultyLevel, GameSession, ShortcutChallenge } from '@/types/game';
+import { apiService } from './apiService';
 
 const LEADERBOARD_KEY = 'shortcut-leaderboard';
 const SESSIONS_KEY = 'shortcut-game-sessions';
 const PROFILES_KEY = 'shortcut-user-profiles';
 const ANSWER_HISTORY_KEY = 'shortcut-answer-history';
-
-// Server data file paths - these are read from public and synced to localStorage
-const LEADERBOARD_FILE = '/data/leaderboard.json';
-const PROFILES_FILE = '/data/profiles.json';
-const SESSIONS_FILE = '/data/sessions.json';
-const HISTORY_FILE = '/data/history.json';
-
-// Export file paths (for syncing back to server)
-const EXPORT_LEADERBOARD_KEY = 'shortcut-export-leaderboard';
-const EXPORT_PROFILES_KEY = 'shortcut-export-profiles';
-const EXPORT_SESSIONS_KEY = 'shortcut-export-sessions';
-const EXPORT_HISTORY_KEY = 'shortcut-export-history';
 
 const MAX_ENTRIES = 100;
 const MAX_SESSIONS = 50;
@@ -47,122 +36,48 @@ export interface UserProfileData {
   lastActive: string;
 }
 
-interface LeaderboardData {
-  entries: LeaderboardEntry[];
-  lastUpdated: string | null;
-}
-
-interface ProfilesData {
-  profiles: Record<string, UserProfileData>;
-  lastUpdated: string | null;
-}
-
-interface SessionsData {
-  sessions: GameSession[];
-  lastUpdated: string | null;
-}
-
-interface HistoryData {
-  records: AnswerRecord[];
-  lastUpdated: string | null;
-}
-
 // In-memory cache
 let cachedLeaderboard: LeaderboardEntry[] | null = null;
 let cachedProfiles: Record<string, UserProfileData> | null = null;
 let cachedSessions: GameSession[] | null = null;
 let cachedHistory: AnswerRecord[] | null = null;
 let isInitialized = false;
+let useApi = false;
 
 export const leaderboardService = {
-  // Initialize by loading from JSON files
+  // Initialize by loading from API or localStorage
   init: async (): Promise<void> => {
     if (isInitialized) return;
     
     console.group('📊 LeaderboardService Init');
-    console.log('Starting data sync...');
     
-    try {
-      // Load leaderboard
-      console.log('📥 Fetching leaderboard from', LEADERBOARD_FILE);
-      const leaderboardRes = await fetch(LEADERBOARD_FILE);
-      console.log('  Response:', leaderboardRes.status, leaderboardRes.statusText);
-      if (leaderboardRes.ok) {
-        const data: LeaderboardData = await leaderboardRes.json();
-        console.log('  Server entries:', data.entries?.length || 0);
-        const localData = leaderboardService.getFromLocalStorage(LEADERBOARD_KEY, []);
-        console.log('  Local entries:', localData.length);
-        cachedLeaderboard = leaderboardService.mergeEntries(data.entries || [], localData);
-        console.log('  Merged entries:', cachedLeaderboard.length);
-        localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(cachedLeaderboard));
-      }
-    } catch (err) {
-      console.warn('⚠️ Leaderboard fetch failed:', err);
-      cachedLeaderboard = leaderboardService.getFromLocalStorage(LEADERBOARD_KEY, []);
-      console.log('  Using localStorage only:', cachedLeaderboard.length, 'entries');
-    }
-
-    try {
-      // Load profiles
-      console.log('📥 Fetching profiles from', PROFILES_FILE);
-      const profilesRes = await fetch(PROFILES_FILE);
-      console.log('  Response:', profilesRes.status, profilesRes.statusText);
-      if (profilesRes.ok) {
-        const data: ProfilesData = await profilesRes.json();
-        console.log('  Server profiles:', Object.keys(data.profiles || {}).length);
-        const localProfiles = leaderboardService.getFromLocalStorage(PROFILES_KEY, {});
-        console.log('  Local profiles:', Object.keys(localProfiles).length);
-        cachedProfiles = { ...data.profiles, ...localProfiles };
-        console.log('  Merged profiles:', Object.keys(cachedProfiles).length);
-        localStorage.setItem(PROFILES_KEY, JSON.stringify(cachedProfiles));
-      }
-    } catch (err) {
-      console.warn('⚠️ Profiles fetch failed:', err);
-      cachedProfiles = leaderboardService.getFromLocalStorage(PROFILES_KEY, {});
-      console.log('  Using localStorage only:', Object.keys(cachedProfiles).length, 'profiles');
-    }
-
-    try {
-      // Load sessions
-      console.log('📥 Fetching sessions from', SESSIONS_FILE);
-      const sessionsRes = await fetch(SESSIONS_FILE);
-      console.log('  Response:', sessionsRes.status, sessionsRes.statusText);
-      if (sessionsRes.ok) {
-        const data: SessionsData = await sessionsRes.json();
-        console.log('  Server sessions:', data.sessions?.length || 0);
-        const localSessions = leaderboardService.getFromLocalStorage(SESSIONS_KEY, []);
-        console.log('  Local sessions:', localSessions.length);
-        cachedSessions = leaderboardService.mergeSessions(data.sessions || [], localSessions);
-        console.log('  Merged sessions:', cachedSessions.length);
-        localStorage.setItem(SESSIONS_KEY, JSON.stringify(cachedSessions));
-      }
-    } catch (err) {
-      console.warn('⚠️ Sessions fetch failed:', err);
-      cachedSessions = leaderboardService.getFromLocalStorage(SESSIONS_KEY, []);
-      console.log('  Using localStorage only:', cachedSessions.length, 'sessions');
-    }
-
-    try {
-      // Load history
-      console.log('📥 Fetching history from', HISTORY_FILE);
-      const historyRes = await fetch(HISTORY_FILE);
-      console.log('  Response:', historyRes.status, historyRes.statusText);
-      if (historyRes.ok) {
-        const data: HistoryData = await historyRes.json();
-        console.log('  Server records:', data.records?.length || 0);
-        const localHistory = leaderboardService.getFromLocalStorage(ANSWER_HISTORY_KEY, []);
-        console.log('  Local records:', localHistory.length);
-        cachedHistory = leaderboardService.mergeHistory(data.records || [], localHistory);
-        console.log('  Merged records:', cachedHistory.length);
-        localStorage.setItem(ANSWER_HISTORY_KEY, JSON.stringify(cachedHistory));
-      }
-    } catch (err) {
-      console.warn('⚠️ History fetch failed:', err);
-      cachedHistory = leaderboardService.getFromLocalStorage(ANSWER_HISTORY_KEY, []);
-      console.log('  Using localStorage only:', cachedHistory.length, 'records');
+    // Check if API is available
+    useApi = await apiService.ping();
+    console.log('API available:', useApi);
+    
+    if (useApi) {
+      console.log('Using SQLite API backend');
+      // API is available, we'll fetch on-demand
+      isInitialized = true;
+      console.groupEnd();
+      return;
     }
     
-    console.log('✅ Init complete');
+    console.log('API unavailable, using localStorage fallback');
+    
+    // Fallback to localStorage
+    cachedLeaderboard = leaderboardService.getFromLocalStorage(LEADERBOARD_KEY, []);
+    cachedProfiles = leaderboardService.getFromLocalStorage(PROFILES_KEY, {});
+    cachedSessions = leaderboardService.getFromLocalStorage(SESSIONS_KEY, []);
+    cachedHistory = leaderboardService.getFromLocalStorage(ANSWER_HISTORY_KEY, []);
+    
+    console.log('Loaded from localStorage:', {
+      leaderboard: cachedLeaderboard.length,
+      profiles: Object.keys(cachedProfiles).length,
+      sessions: cachedSessions.length,
+      history: cachedHistory.length
+    });
+    
     console.groupEnd();
     isInitialized = true;
   },
@@ -177,72 +92,37 @@ export const leaderboardService = {
     }
   },
 
-  // Merge entries from two sources, removing duplicates by id
-  mergeEntries: (fileEntries: LeaderboardEntry[], localEntries: LeaderboardEntry[]): LeaderboardEntry[] => {
-    const entryMap = new Map<string, LeaderboardEntry>();
-    fileEntries.forEach(entry => entryMap.set(entry.id, entry));
-    localEntries.forEach(entry => entryMap.set(entry.id, entry));
-    return Array.from(entryMap.values())
-      .sort((a, b) => b.score - a.score)
-      .slice(0, MAX_ENTRIES);
-  },
-
-  mergeSessions: (fileSessions: GameSession[], localSessions: GameSession[]): GameSession[] => {
-    const sessionMap = new Map<string, GameSession>();
-    fileSessions.forEach(s => sessionMap.set(s.id, s));
-    localSessions.forEach(s => sessionMap.set(s.id, s));
-    return Array.from(sessionMap.values())
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, MAX_SESSIONS);
-  },
-
-  mergeHistory: (fileRecords: AnswerRecord[], localRecords: AnswerRecord[]): AnswerRecord[] => {
-    const recordMap = new Map<string, AnswerRecord>();
-    fileRecords.forEach(r => recordMap.set(r.id, r));
-    localRecords.forEach(r => recordMap.set(r.id, r));
-    return Array.from(recordMap.values())
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 500);
-  },
-
-  // Sync all data to export keys (for server sync)
-  syncAllToExport: (): void => {
-    const leaderboardData: LeaderboardData = {
-      entries: cachedLeaderboard || [],
-      lastUpdated: new Date().toISOString()
-    };
-    localStorage.setItem(EXPORT_LEADERBOARD_KEY, JSON.stringify(leaderboardData, null, 2));
-
-    const profilesData: ProfilesData = {
-      profiles: cachedProfiles || {},
-      lastUpdated: new Date().toISOString()
-    };
-    localStorage.setItem(EXPORT_PROFILES_KEY, JSON.stringify(profilesData, null, 2));
-
-    const sessionsData: SessionsData = {
-      sessions: cachedSessions || [],
-      lastUpdated: new Date().toISOString()
-    };
-    localStorage.setItem(EXPORT_SESSIONS_KEY, JSON.stringify(sessionsData, null, 2));
-
-    const historyData: HistoryData = {
-      records: cachedHistory || [],
-      lastUpdated: new Date().toISOString()
-    };
-    localStorage.setItem(EXPORT_HISTORY_KEY, JSON.stringify(historyData, null, 2));
-
-    console.log('All data synced to export keys for server persistence.');
-  },
+  // Check if using API
+  isUsingApi: (): boolean => useApi,
 
   // ============ Leaderboard ============
   
-  getAll: (): LeaderboardEntry[] => {
-    if (cachedLeaderboard) return cachedLeaderboard;
-    return leaderboardService.getFromLocalStorage(LEADERBOARD_KEY, []);
+  getAll: async (): Promise<LeaderboardEntry[]> => {
+    if (useApi) {
+      const result = await apiService.getLeaderboard({ limit: MAX_ENTRIES });
+      if (result.data?.entries) {
+        return result.data.entries.map(e => ({
+          id: String(e.id),
+          name: e.name,
+          score: e.score,
+          accuracy: e.accuracy || 0,
+          category: e.category || 'all',
+          level: e.level || 'all',
+          difficulty: e.difficulty || 'normal',
+          streak: e.streak || 0,
+          date: e.created_at || new Date().toISOString()
+        }));
+      }
+    }
+    return cachedLeaderboard || leaderboardService.getFromLocalStorage(LEADERBOARD_KEY, []);
   },
 
-  getFiltered: (filters?: LeaderboardFilters): LeaderboardEntry[] => {
-    let entries = leaderboardService.getAll();
+  getAllSync: (): LeaderboardEntry[] => {
+    return cachedLeaderboard || leaderboardService.getFromLocalStorage(LEADERBOARD_KEY, []);
+  },
+
+  getFiltered: async (filters?: LeaderboardFilters): Promise<LeaderboardEntry[]> => {
+    let entries = await leaderboardService.getAll();
 
     if (filters?.category) {
       entries = entries.filter(e => e.category === filters.category);
@@ -271,32 +151,66 @@ export const leaderboardService = {
     return entries.sort((a, b) => b.score - a.score);
   },
 
-  getTop: (count: number = 10, filters?: LeaderboardFilters): LeaderboardEntry[] => {
-    return leaderboardService.getFiltered(filters).slice(0, count);
+  getTop: async (count: number = 10, filters?: LeaderboardFilters): Promise<LeaderboardEntry[]> => {
+    const filtered = await leaderboardService.getFiltered(filters);
+    return filtered.slice(0, count);
   },
 
-  addEntry: (entry: Omit<LeaderboardEntry, 'id' | 'date'>): LeaderboardEntry => {
+  addEntry: async (entry: Omit<LeaderboardEntry, 'id' | 'date'>, email?: string): Promise<LeaderboardEntry> => {
     const newEntry: LeaderboardEntry = {
       ...entry,
       id: Date.now().toString(),
       date: new Date().toISOString(),
     };
 
-    const current = leaderboardService.getAll();
+    if (useApi) {
+      const result = await apiService.addLeaderboardEntry({
+        name: entry.name,
+        email,
+        score: entry.score,
+        accuracy: entry.accuracy,
+        category: entry.category,
+        level: entry.level,
+        difficulty: entry.difficulty,
+        streak: entry.streak
+      });
+      if (result.data?.id) {
+        newEntry.id = String(result.data.id);
+      }
+    }
+
+    // Also save to localStorage as backup
+    const current = cachedLeaderboard || leaderboardService.getFromLocalStorage(LEADERBOARD_KEY, []);
     const updated = [...current, newEntry]
       .sort((a, b) => b.score - a.score)
       .slice(0, MAX_ENTRIES);
 
     localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(updated));
     cachedLeaderboard = updated;
-    leaderboardService.syncAllToExport();
 
     return newEntry;
   },
 
-  getPersonalBest: (name: string, category?: Category): LeaderboardEntry | null => {
-    const entries = leaderboardService.getAll()
-      .filter(e => e.name.toLowerCase() === name.toLowerCase());
+  getPersonalBest: async (nameOrEmail: string, category?: Category): Promise<LeaderboardEntry | null> => {
+    if (useApi && nameOrEmail.includes('@')) {
+      const result = await apiService.getPersonalBest(nameOrEmail, category);
+      if (result.data) {
+        return {
+          id: String(result.data.id),
+          name: result.data.name,
+          score: result.data.score,
+          accuracy: result.data.accuracy || 0,
+          category: result.data.category || 'all',
+          level: result.data.level || 'all',
+          difficulty: result.data.difficulty || 'normal',
+          streak: result.data.streak || 0,
+          date: result.data.created_at || new Date().toISOString()
+        };
+      }
+    }
+
+    const entries = (await leaderboardService.getAll())
+      .filter(e => e.name.toLowerCase() === nameOrEmail.toLowerCase());
 
     if (category) {
       const filtered = entries.filter(e => e.category === category);
@@ -309,14 +223,31 @@ export const leaderboardService = {
       : null;
   },
 
-  getRank: (name: string): number | null => {
-    const entries = leaderboardService.getAll().sort((a, b) => b.score - a.score);
-    const index = entries.findIndex(e => e.name.toLowerCase() === name.toLowerCase());
+  getRank: async (nameOrEmail: string): Promise<number | null> => {
+    if (useApi && nameOrEmail.includes('@')) {
+      const result = await apiService.getUserRank(nameOrEmail);
+      return result.data?.rank || null;
+    }
+
+    const entries = (await leaderboardService.getAll()).sort((a, b) => b.score - a.score);
+    const index = entries.findIndex(e => e.name.toLowerCase() === nameOrEmail.toLowerCase());
     return index >= 0 ? index + 1 : null;
   },
 
-  getAggregatedLeaderboard: (count: number = 10): { name: string; totalScore: number; gamesPlayed: number; avgAccuracy: number }[] => {
-    const entries = leaderboardService.getAll();
+  getAggregatedLeaderboard: async (count: number = 10): Promise<{ name: string; totalScore: number; gamesPlayed: number; avgAccuracy: number }[]> => {
+    if (useApi) {
+      const result = await apiService.getAggregatedLeaderboard(count);
+      if (result.data?.entries) {
+        return result.data.entries.map(e => ({
+          name: e.name,
+          totalScore: e.best_score,
+          gamesPlayed: e.games_played,
+          avgAccuracy: Math.round(e.best_accuracy || 0)
+        }));
+      }
+    }
+
+    const entries = await leaderboardService.getAll();
     const userStats = new Map<string, { totalScore: number; gamesPlayed: number; totalAccuracy: number }>();
     
     entries.forEach(entry => {
@@ -340,8 +271,12 @@ export const leaderboardService = {
     return aggregated.sort((a, b) => b.totalScore - a.totalScore).slice(0, count);
   },
 
-  updateEntriesName: (oldName: string, newName: string): void => {
-    const entries = leaderboardService.getAll();
+  updateEntriesName: async (oldName: string, newName: string, email?: string): Promise<void> => {
+    if (useApi && email) {
+      await apiService.updateLeaderboardName(email, newName);
+    }
+
+    const entries = cachedLeaderboard || leaderboardService.getFromLocalStorage(LEADERBOARD_KEY, []);
     const updated = entries.map(entry => {
       if (entry.name.toLowerCase() === oldName.toLowerCase()) {
         return { ...entry, name: newName };
@@ -351,7 +286,6 @@ export const leaderboardService = {
     
     localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(updated));
     cachedLeaderboard = updated;
-    leaderboardService.syncAllToExport();
   },
 
   clear: (): void => {
@@ -361,34 +295,76 @@ export const leaderboardService = {
 
   // ============ User Profiles ============
   
-  getProfile: (email: string): UserProfileData | null => {
+  getProfile: async (email: string): Promise<UserProfileData | null> => {
+    if (useApi) {
+      const result = await apiService.getUser(email);
+      if (result.data) {
+        return {
+          email: result.data.email,
+          displayName: result.data.display_name,
+          createdAt: result.data.created_at,
+          lastActive: result.data.last_active
+        };
+      }
+    }
+    
     if (cachedProfiles) return cachedProfiles[email] || null;
     const profiles = leaderboardService.getFromLocalStorage<Record<string, UserProfileData>>(PROFILES_KEY, {});
     return profiles[email] || null;
   },
 
-  saveProfile: (profile: UserProfileData): void => {
+  saveProfile: async (profile: UserProfileData): Promise<void> => {
+    if (useApi) {
+      await apiService.createOrUpdateUser({
+        email: profile.email,
+        display_name: profile.displayName,
+        organization: undefined
+      });
+    }
+
     const profiles = cachedProfiles || leaderboardService.getFromLocalStorage<Record<string, UserProfileData>>(PROFILES_KEY, {});
     profiles[profile.email] = profile;
     localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
     cachedProfiles = profiles;
-    leaderboardService.syncAllToExport();
   },
 
-  updateDisplayName: (email: string, newName: string, oldName?: string): void => {
-    const profile = leaderboardService.getProfile(email);
+  updateDisplayName: async (email: string, newName: string, oldName?: string): Promise<void> => {
+    const profile = await leaderboardService.getProfile(email);
     if (profile) {
       const previousName = oldName || profile.displayName;
       profile.displayName = newName;
       profile.lastActive = new Date().toISOString();
-      leaderboardService.saveProfile(profile);
-      leaderboardService.updateEntriesName(previousName, newName);
+      await leaderboardService.saveProfile(profile);
+      await leaderboardService.updateEntriesName(previousName, newName, email);
+    }
+
+    if (useApi) {
+      await apiService.updateDisplayName(email, newName);
     }
   },
 
   // ============ Answer History ============
 
-  getAnswerHistory: (email?: string): AnswerRecord[] => {
+  getAnswerHistory: async (email?: string): Promise<AnswerRecord[]> => {
+    if (useApi && email) {
+      const result = await apiService.getAnswerHistory(email);
+      if (result.data?.records) {
+        return result.data.records.map(r => ({
+          id: String(r.id),
+          date: r.created_at,
+          email: r.email,
+          shortcutId: r.shortcut_id,
+          shortcutDescription: r.shortcut_name,
+          category: r.category,
+          level: r.level,
+          isCorrect: Boolean(r.is_correct),
+          userAnswer: r.user_answer ? r.user_answer.split('+') : [],
+          correctAnswer: r.correct_answer ? r.correct_answer.split('+') : [],
+          timeSpent: r.time_spent
+        }));
+      }
+    }
+
     const history = cachedHistory || leaderboardService.getFromLocalStorage<AnswerRecord[]>(ANSWER_HISTORY_KEY, []);
     if (email) {
       return history.filter(h => h.email === email);
@@ -396,7 +372,21 @@ export const leaderboardService = {
     return history;
   },
 
-  addAnswerRecord: (record: Omit<AnswerRecord, 'id' | 'date'>): void => {
+  addAnswerRecord: async (record: Omit<AnswerRecord, 'id' | 'date'>): Promise<void> => {
+    if (useApi) {
+      await apiService.addAnswerRecord({
+        email: record.email,
+        shortcut_id: record.shortcutId,
+        shortcut_name: record.shortcutDescription,
+        category: record.category,
+        level: record.level,
+        is_correct: record.isCorrect,
+        user_answer: record.userAnswer.join('+'),
+        correct_answer: record.correctAnswer.join('+'),
+        time_spent: record.timeSpent
+      });
+    }
+
     const history = cachedHistory || leaderboardService.getFromLocalStorage<AnswerRecord[]>(ANSWER_HISTORY_KEY, []);
     const newRecord: AnswerRecord = {
       ...record,
@@ -407,11 +397,30 @@ export const leaderboardService = {
     const updated = [newRecord, ...history].slice(0, 500);
     localStorage.setItem(ANSWER_HISTORY_KEY, JSON.stringify(updated));
     cachedHistory = updated;
-    leaderboardService.syncAllToExport();
   },
 
-  getCategoryAnalysis: (email?: string): Record<Category, { correct: number; total: number; accuracy: number; weakShortcuts: string[] }> => {
-    const history = leaderboardService.getAnswerHistory(email);
+  getCategoryAnalysis: async (email?: string): Promise<Record<Category, { correct: number; total: number; accuracy: number; weakShortcuts: string[] }>> => {
+    if (useApi && email) {
+      const result = await apiService.getCategoryAnalysis(email);
+      if (result.data?.categories) {
+        const categories: Category[] = ['windows', 'excel', 'powerpoint', 'general'];
+        const analysis = {} as Record<Category, { correct: number; total: number; accuracy: number; weakShortcuts: string[] }>;
+        
+        categories.forEach(cat => {
+          const catData = result.data!.categories.find(c => c.category === cat);
+          analysis[cat] = {
+            correct: catData?.correct || 0,
+            total: catData?.total_attempts || 0,
+            accuracy: catData?.accuracy || 0,
+            weakShortcuts: []
+          };
+        });
+        
+        return analysis;
+      }
+    }
+
+    const history = await leaderboardService.getAnswerHistory(email);
     const categories: Category[] = ['windows', 'excel', 'powerpoint', 'general'];
     
     const analysis = {} as Record<Category, { correct: number; total: number; accuracy: number; weakShortcuts: string[] }>;
@@ -447,8 +456,19 @@ export const leaderboardService = {
     return analysis;
   },
 
-  getWeakShortcuts: (email?: string): { description: string; category: Category; accuracy: number }[] => {
-    const history = leaderboardService.getAnswerHistory(email);
+  getWeakShortcuts: async (email?: string): Promise<{ description: string; category: Category; accuracy: number }[]> => {
+    if (useApi && email) {
+      const result = await apiService.getWeakShortcuts(email);
+      if (result.data?.shortcuts) {
+        return result.data.shortcuts.map(s => ({
+          description: s.shortcut_name,
+          category: s.category,
+          accuracy: s.accuracy
+        }));
+      }
+    }
+
+    const history = await leaderboardService.getAnswerHistory(email);
     const shortcutStats = new Map<string, { correct: number; total: number; description: string; category: Category }>();
     
     history.forEach(a => {
@@ -473,7 +493,27 @@ export const leaderboardService = {
 
   // ============ Game Sessions ============
 
-  getSessions: (email?: string): GameSession[] => {
+  getSessions: async (email?: string): Promise<GameSession[]> => {
+    if (useApi && email) {
+      const result = await apiService.getSessions(email);
+      if (result.data?.sessions) {
+        return result.data.sessions.map(s => ({
+          id: String(s.id),
+          email: s.email,
+          date: s.date,
+          level: s.level,
+          category: s.category,
+          mode: s.mode,
+          score: s.score,
+          correctAnswers: s.correct_answers,
+          totalQuestions: s.total_questions,
+          accuracy: s.accuracy,
+          timeSpent: s.time_spent,
+          streak: s.streak
+        }));
+      }
+    }
+
     const sessions = cachedSessions || leaderboardService.getFromLocalStorage<GameSession[]>(SESSIONS_KEY, []);
     if (email) {
       return sessions.filter(s => s.email === email);
@@ -481,30 +521,62 @@ export const leaderboardService = {
     return sessions;
   },
 
-  addSession: (session: Omit<GameSession, 'id' | 'date'>): GameSession => {
+  addSession: async (session: Omit<GameSession, 'id' | 'date'>): Promise<GameSession> => {
     const newSession: GameSession = {
       ...session,
       id: Date.now().toString(),
       date: new Date().toISOString(),
     };
 
+    if (useApi) {
+      const result = await apiService.addSession({
+        email: session.email,
+        level: session.level,
+        category: session.category,
+        mode: session.mode,
+        score: session.score,
+        correct_answers: session.correctAnswers,
+        total_questions: session.totalQuestions,
+        accuracy: session.accuracy,
+        time_spent: session.timeSpent,
+        streak: session.streak
+      });
+      if (result.data?.id) {
+        newSession.id = String(result.data.id);
+      }
+    }
+
     const current = cachedSessions || leaderboardService.getFromLocalStorage<GameSession[]>(SESSIONS_KEY, []);
     const updated = [newSession, ...current].slice(0, MAX_SESSIONS);
 
     localStorage.setItem(SESSIONS_KEY, JSON.stringify(updated));
     cachedSessions = updated;
-    leaderboardService.syncAllToExport();
 
     return newSession;
   },
 
-  getRecentSessions: (count: number = 10, email?: string): GameSession[] => {
-    return leaderboardService.getSessions(email).slice(0, count);
+  getRecentSessions: async (count: number = 10, email?: string): Promise<GameSession[]> => {
+    const sessions = await leaderboardService.getSessions(email);
+    return sessions.slice(0, count);
   },
 
-  getOverallStats: (email?: string) => {
-    const sessions = leaderboardService.getSessions(email);
-    const history = leaderboardService.getAnswerHistory(email);
+  getOverallStats: async (email?: string) => {
+    if (useApi && email) {
+      const result = await apiService.getSessionStats(email);
+      if (result.data) {
+        return {
+          totalGames: result.data.total_games || 0,
+          totalScore: result.data.total_score || 0,
+          averageAccuracy: Math.round(result.data.avg_accuracy || 0),
+          bestStreak: result.data.best_streak || 0,
+          totalAnswers: result.data.total_questions || 0,
+          correctAnswers: result.data.total_correct || 0,
+        };
+      }
+    }
+
+    const sessions = await leaderboardService.getSessions(email);
+    const history = await leaderboardService.getAnswerHistory(email);
     
     if (sessions.length === 0) {
       return {

@@ -1,0 +1,8 @@
+# Server data files
+server/data/
+*.db
+*.db-wal
+*.db-shm
+
+# Node modules in server
+server/node_modules/

@@ -1,7 +1,7 @@
 import { UserProfile, GameStats, INITIAL_GAME_STATS } from '@/types/game';
+import { apiService } from './apiService';
 
 const USER_KEY = 'elufa-user-profile';
-const STATS_KEY = 'elufa-game-stats';
 
 // Allowed domains for enterprise SSO simulation
 const ENTERPRISE_DOMAINS = ['elufa.com', 'company.com'];
@@ -30,7 +30,7 @@ export const authService = {
   },
 
   // Create new user profile
-  createUserProfile: (email: string, name?: string): UserProfile => {
+  createUserProfile: async (email: string, name?: string): Promise<UserProfile> => {
     const profile: UserProfile = {
       id: Date.now().toString(),
       email,
@@ -40,20 +40,63 @@ export const authService = {
       stats: { ...INITIAL_GAME_STATS },
     };
     
+    // Save to API if available
+    try {
+      const result = await apiService.createOrUpdateUser({
+        email,
+        display_name: profile.name,
+        organization: profile.organization
+      });
+      if (result.data?.id) {
+        profile.id = String(result.data.id);
+      }
+    } catch (e) {
+      console.warn('Failed to save profile to API:', e);
+    }
+    
     localStorage.setItem(USER_KEY, JSON.stringify(profile));
     return profile;
   },
 
   // Login user (create or retrieve profile)
-  login: (email: string): UserProfile | null => {
+  login: async (email: string): Promise<UserProfile | null> => {
     if (!authService.isValidEmail(email)) {
       return null;
     }
 
-    // Check if user already exists
+    // Check if user already exists locally
     const existingUser = authService.getCurrentUser();
     if (existingUser && existingUser.email === email) {
+      // Update API with activity
+      try {
+        await apiService.createOrUpdateUser({
+          email,
+          display_name: existingUser.name,
+          organization: existingUser.organization
+        });
+      } catch (e) {
+        // Ignore API errors for login
+      }
       return existingUser;
+    }
+
+    // Check if user exists in API
+    try {
+      const result = await apiService.getUser(email);
+      if (result.data) {
+        const profile: UserProfile = {
+          id: String(result.data.id),
+          email: result.data.email,
+          name: result.data.display_name,
+          organization: result.data.organization || authService.getOrganizationFromEmail(email),
+          createdAt: result.data.created_at,
+          stats: { ...INITIAL_GAME_STATS },
+        };
+        localStorage.setItem(USER_KEY, JSON.stringify(profile));
+        return profile;
+      }
+    } catch (e) {
+      // API not available, create new
     }
 
     // Create new profile
@@ -61,7 +104,7 @@ export const authService = {
   },
 
   // Guest login
-  loginAsGuest: (): UserProfile => {
+  loginAsGuest: async (): Promise<UserProfile> => {
     const guestId = `guest-${Date.now()}`;
     return authService.createUserProfile(`${guestId}@guest.local`, 'Guest');
   },
@@ -77,12 +120,22 @@ export const authService = {
   },
 
   // Update user profile
-  updateProfile: (updates: Partial<UserProfile>): UserProfile | null => {
+  updateProfile: async (updates: Partial<UserProfile>): Promise<UserProfile | null> => {
     const current = authService.getCurrentUser();
     if (!current) return null;
 
     const updated = { ...current, ...updates };
     localStorage.setItem(USER_KEY, JSON.stringify(updated));
+
+    // Sync to API
+    if (updates.name) {
+      try {
+        await apiService.updateDisplayName(current.email, updates.name);
+      } catch (e) {
+        console.warn('Failed to update name in API:', e);
+      }
+    }
+
     return updated;
   },
 
