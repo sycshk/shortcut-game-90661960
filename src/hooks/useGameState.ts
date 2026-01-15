@@ -57,6 +57,34 @@ export const useGameState = () => {
     setState(prev => ({ ...prev, status: 'analytics' }));
   }, []);
 
+  const goToDailyChallenge = useCallback(() => {
+    setState(prev => ({ ...prev, status: 'dailyChallenge' }));
+  }, []);
+
+  const startDailyChallenge = useCallback((dailyShortcuts: ShortcutChallenge[]) => {
+    const firstOptions = generateMultipleChoiceOptions(dailyShortcuts[0].keys, shortcutChallenges);
+    
+    setState({
+      ...initialState,
+      status: 'playing',
+      category: null,
+      difficulty: 'medium',
+      level: 'essentials',
+      currentShortcutIndex: 0,
+      score: 0,
+      correctAnswers: 0,
+      totalQuestions: dailyShortcuts.length,
+      timeRemaining: 20, // 20 seconds for daily challenge
+      shortcuts: dailyShortcuts,
+      currentStreak: 0,
+      bestStreak: 0,
+      questionType: 'keyboard',
+      lastAnswerCorrect: null,
+      waitingForNext: false,
+      multipleChoiceOptions: firstOptions,
+    });
+  }, []);
+
   const startGame = useCallback((difficulty: Difficulty, level: DifficultyLevel) => {
     const levelConfig = LEVEL_CONFIG[level];
     // Get shortcuts from all categories (mixed)
@@ -295,6 +323,8 @@ export const useGameState = () => {
     getLeaderboard,
     saveToLeaderboard,
     goToAnalytics,
+    goToDailyChallenge,
+    startDailyChallenge,
     setPlayerName,
     handlePause,
   };
