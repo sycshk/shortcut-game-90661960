@@ -83,7 +83,7 @@ export const useGameState = () => {
     });
   }, []);
 
-  const recordAnswer = useCallback((isCorrect: boolean, userAnswer: string[]) => {
+  const recordAnswer = useCallback((isCorrect: boolean, userAnswer: string[], userEmail?: string) => {
     const currentShortcut = state.shortcuts[state.currentShortcutIndex];
     if (!currentShortcut) return;
 
@@ -91,6 +91,7 @@ export const useGameState = () => {
     const timeSpent = config.timePerQuestion - state.timeRemaining;
 
     leaderboardService.addAnswerRecord({
+      email: userEmail || '',
       shortcutId: currentShortcut.id,
       shortcutDescription: currentShortcut.description,
       category: currentShortcut.category,

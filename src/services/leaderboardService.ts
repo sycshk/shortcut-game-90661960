@@ -1,10 +1,22 @@
 import { LeaderboardEntry, Category, DifficultyLevel, GameSession, ShortcutChallenge } from '@/types/game';
 
-const LEADERBOARD_KEY = 'elufa-leaderboard';
-const SESSIONS_KEY = 'elufa-game-sessions';
-const PROFILES_KEY = 'elufa-user-profiles';
-const ANSWER_HISTORY_KEY = 'elufa-answer-history';
-const DATA_FILE_PATH = '/data/leaderboard.json';
+const LEADERBOARD_KEY = 'shortcut-leaderboard';
+const SESSIONS_KEY = 'shortcut-game-sessions';
+const PROFILES_KEY = 'shortcut-user-profiles';
+const ANSWER_HISTORY_KEY = 'shortcut-answer-history';
+
+// Server data file paths - these are read from public and synced to localStorage
+const LEADERBOARD_FILE = '/data/leaderboard.json';
+const PROFILES_FILE = '/data/profiles.json';
+const SESSIONS_FILE = '/data/sessions.json';
+const HISTORY_FILE = '/data/history.json';
+
+// Export file paths (for syncing back to server)
+const EXPORT_LEADERBOARD_KEY = 'shortcut-export-leaderboard';
+const EXPORT_PROFILES_KEY = 'shortcut-export-profiles';
+const EXPORT_SESSIONS_KEY = 'shortcut-export-sessions';
+const EXPORT_HISTORY_KEY = 'shortcut-export-history';
+
 const MAX_ENTRIES = 100;
 const MAX_SESSIONS = 50;
 
@@ -17,6 +29,7 @@ export interface LeaderboardFilters {
 export interface AnswerRecord {
   id: string;
   date: string;
+  email: string;
   shortcutId: string;
   shortcutDescription: string;
   category: Category;
@@ -39,84 +52,178 @@ interface LeaderboardData {
   lastUpdated: string | null;
 }
 
-// In-memory cache for leaderboard data
-let cachedData: LeaderboardData | null = null;
+interface ProfilesData {
+  profiles: Record<string, UserProfileData>;
+  lastUpdated: string | null;
+}
+
+interface SessionsData {
+  sessions: GameSession[];
+  lastUpdated: string | null;
+}
+
+interface HistoryData {
+  records: AnswerRecord[];
+  lastUpdated: string | null;
+}
+
+// In-memory cache
+let cachedLeaderboard: LeaderboardEntry[] | null = null;
+let cachedProfiles: Record<string, UserProfileData> | null = null;
+let cachedSessions: GameSession[] | null = null;
+let cachedHistory: AnswerRecord[] | null = null;
 let isInitialized = false;
 
 export const leaderboardService = {
-  // Initialize by loading from JSON file
+  // Initialize by loading from JSON files
   init: async (): Promise<void> => {
     if (isInitialized) return;
     
     try {
-      const response = await fetch(DATA_FILE_PATH);
-      if (response.ok) {
-        const fileData: LeaderboardData = await response.json();
-        const localData = leaderboardService.getFromLocalStorage();
-        
-        // Merge file data with local storage (local takes priority for newer entries)
-        const merged = leaderboardService.mergeEntries(fileData.entries, localData);
-        cachedData = { entries: merged, lastUpdated: new Date().toISOString() };
-        
-        // Update local storage with merged data
-        localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(merged));
+      // Load leaderboard
+      const leaderboardRes = await fetch(LEADERBOARD_FILE);
+      if (leaderboardRes.ok) {
+        const data: LeaderboardData = await leaderboardRes.json();
+        const localData = leaderboardService.getFromLocalStorage(LEADERBOARD_KEY, []);
+        cachedLeaderboard = leaderboardService.mergeEntries(data.entries || [], localData);
+        localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(cachedLeaderboard));
       }
-    } catch (error) {
-      console.log('Loading from local storage only');
+    } catch {
+      console.log('Loading leaderboard from localStorage only');
+      cachedLeaderboard = leaderboardService.getFromLocalStorage(LEADERBOARD_KEY, []);
+    }
+
+    try {
+      // Load profiles
+      const profilesRes = await fetch(PROFILES_FILE);
+      if (profilesRes.ok) {
+        const data: ProfilesData = await profilesRes.json();
+        const localProfiles = leaderboardService.getFromLocalStorage(PROFILES_KEY, {});
+        cachedProfiles = { ...data.profiles, ...localProfiles };
+        localStorage.setItem(PROFILES_KEY, JSON.stringify(cachedProfiles));
+      }
+    } catch {
+      console.log('Loading profiles from localStorage only');
+      cachedProfiles = leaderboardService.getFromLocalStorage(PROFILES_KEY, {});
+    }
+
+    try {
+      // Load sessions
+      const sessionsRes = await fetch(SESSIONS_FILE);
+      if (sessionsRes.ok) {
+        const data: SessionsData = await sessionsRes.json();
+        const localSessions = leaderboardService.getFromLocalStorage(SESSIONS_KEY, []);
+        cachedSessions = leaderboardService.mergeSessions(data.sessions || [], localSessions);
+        localStorage.setItem(SESSIONS_KEY, JSON.stringify(cachedSessions));
+      }
+    } catch {
+      console.log('Loading sessions from localStorage only');
+      cachedSessions = leaderboardService.getFromLocalStorage(SESSIONS_KEY, []);
+    }
+
+    try {
+      // Load history
+      const historyRes = await fetch(HISTORY_FILE);
+      if (historyRes.ok) {
+        const data: HistoryData = await historyRes.json();
+        const localHistory = leaderboardService.getFromLocalStorage(ANSWER_HISTORY_KEY, []);
+        cachedHistory = leaderboardService.mergeHistory(data.records || [], localHistory);
+        localStorage.setItem(ANSWER_HISTORY_KEY, JSON.stringify(cachedHistory));
+      }
+    } catch {
+      console.log('Loading history from localStorage only');
+      cachedHistory = leaderboardService.getFromLocalStorage(ANSWER_HISTORY_KEY, []);
     }
     
     isInitialized = true;
   },
 
+  // Generic get from localStorage
+  getFromLocalStorage: <T>(key: string, defaultValue: T): T => {
+    try {
+      const stored = localStorage.getItem(key);
+      return stored ? JSON.parse(stored) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  },
+
   // Merge entries from two sources, removing duplicates by id
   mergeEntries: (fileEntries: LeaderboardEntry[], localEntries: LeaderboardEntry[]): LeaderboardEntry[] => {
     const entryMap = new Map<string, LeaderboardEntry>();
-    
-    // Add file entries first
     fileEntries.forEach(entry => entryMap.set(entry.id, entry));
-
-    // Override/add local entries (they're more recent)
     localEntries.forEach(entry => entryMap.set(entry.id, entry));
-
     return Array.from(entryMap.values())
       .sort((a, b) => b.score - a.score)
       .slice(0, MAX_ENTRIES);
   },
 
-  // Get from local storage
-  getFromLocalStorage: (): LeaderboardEntry[] => {
-    try {
-      const stored = localStorage.getItem(LEADERBOARD_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
+  mergeSessions: (fileSessions: GameSession[], localSessions: GameSession[]): GameSession[] => {
+    const sessionMap = new Map<string, GameSession>();
+    fileSessions.forEach(s => sessionMap.set(s.id, s));
+    localSessions.forEach(s => sessionMap.set(s.id, s));
+    return Array.from(sessionMap.values())
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, MAX_SESSIONS);
   },
 
-  // Get all leaderboard entries
+  mergeHistory: (fileRecords: AnswerRecord[], localRecords: AnswerRecord[]): AnswerRecord[] => {
+    const recordMap = new Map<string, AnswerRecord>();
+    fileRecords.forEach(r => recordMap.set(r.id, r));
+    localRecords.forEach(r => recordMap.set(r.id, r));
+    return Array.from(recordMap.values())
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 500);
+  },
+
+  // Sync all data to export keys (for server sync)
+  syncAllToExport: (): void => {
+    const leaderboardData: LeaderboardData = {
+      entries: cachedLeaderboard || [],
+      lastUpdated: new Date().toISOString()
+    };
+    localStorage.setItem(EXPORT_LEADERBOARD_KEY, JSON.stringify(leaderboardData, null, 2));
+
+    const profilesData: ProfilesData = {
+      profiles: cachedProfiles || {},
+      lastUpdated: new Date().toISOString()
+    };
+    localStorage.setItem(EXPORT_PROFILES_KEY, JSON.stringify(profilesData, null, 2));
+
+    const sessionsData: SessionsData = {
+      sessions: cachedSessions || [],
+      lastUpdated: new Date().toISOString()
+    };
+    localStorage.setItem(EXPORT_SESSIONS_KEY, JSON.stringify(sessionsData, null, 2));
+
+    const historyData: HistoryData = {
+      records: cachedHistory || [],
+      lastUpdated: new Date().toISOString()
+    };
+    localStorage.setItem(EXPORT_HISTORY_KEY, JSON.stringify(historyData, null, 2));
+
+    console.log('All data synced to export keys for server persistence.');
+  },
+
+  // ============ Leaderboard ============
+  
   getAll: (): LeaderboardEntry[] => {
-    if (cachedData) {
-      return cachedData.entries;
-    }
-    return leaderboardService.getFromLocalStorage();
+    if (cachedLeaderboard) return cachedLeaderboard;
+    return leaderboardService.getFromLocalStorage(LEADERBOARD_KEY, []);
   },
 
-  // Get filtered and sorted leaderboard
   getFiltered: (filters?: LeaderboardFilters): LeaderboardEntry[] => {
     let entries = leaderboardService.getAll();
 
     if (filters?.category) {
       entries = entries.filter(e => e.category === filters.category);
     }
-
     if (filters?.level) {
       entries = entries.filter(e => e.level === filters.level);
     }
-
     if (filters?.timeframe && filters.timeframe !== 'all') {
       const now = new Date();
       let cutoff: Date;
-
       switch (filters.timeframe) {
         case 'today':
           cutoff = new Date(now.setHours(0, 0, 0, 0));
@@ -130,20 +237,15 @@ export const leaderboardService = {
         default:
           cutoff = new Date(0);
       }
-
       entries = entries.filter(e => new Date(e.date) >= cutoff);
     }
-
-    // Sort by score descending
     return entries.sort((a, b) => b.score - a.score);
   },
 
-  // Get top entries
   getTop: (count: number = 10, filters?: LeaderboardFilters): LeaderboardEntry[] => {
     return leaderboardService.getFiltered(filters).slice(0, count);
   },
 
-  // Add new entry and sync
   addEntry: (entry: Omit<LeaderboardEntry, 'id' | 'date'>): LeaderboardEntry => {
     const newEntry: LeaderboardEntry = {
       ...entry,
@@ -156,48 +258,13 @@ export const leaderboardService = {
       .sort((a, b) => b.score - a.score)
       .slice(0, MAX_ENTRIES);
 
-    // Update local storage
     localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(updated));
-    
-    // Update cache
-    cachedData = { entries: updated, lastUpdated: new Date().toISOString() };
-
-    // Trigger sync to persist
-    leaderboardService.syncToFile();
+    cachedLeaderboard = updated;
+    leaderboardService.syncAllToExport();
 
     return newEntry;
   },
 
-  // Sync data to file
-  syncToFile: (): void => {
-    const data: LeaderboardData = {
-      entries: leaderboardService.getAll(),
-      lastUpdated: new Date().toISOString()
-    };
-    
-    localStorage.setItem('elufa-leaderboard-export', JSON.stringify(data, null, 2));
-    console.log('Leaderboard data synced.');
-  },
-
-  // Export leaderboard as JSON file download
-  exportToFile: (): void => {
-    const data: LeaderboardData = {
-      entries: leaderboardService.getAll(),
-      lastUpdated: new Date().toISOString()
-    };
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'leaderboard.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  },
-
-  // Get personal best for user
   getPersonalBest: (name: string, category?: Category): LeaderboardEntry | null => {
     const entries = leaderboardService.getAll()
       .filter(e => e.name.toLowerCase() === name.toLowerCase());
@@ -208,75 +275,17 @@ export const leaderboardService = {
         ? filtered.reduce((best, e) => e.score > best.score ? e : best)
         : null;
     }
-
     return entries.length > 0
       ? entries.reduce((best, e) => e.score > best.score ? e : best)
       : null;
   },
 
-  // Get user rank
   getRank: (name: string): number | null => {
     const entries = leaderboardService.getAll().sort((a, b) => b.score - a.score);
     const index = entries.findIndex(e => e.name.toLowerCase() === name.toLowerCase());
     return index >= 0 ? index + 1 : null;
   },
 
-  // Clear all entries
-  clear: (): void => {
-    localStorage.removeItem(LEADERBOARD_KEY);
-    cachedData = { entries: [], lastUpdated: new Date().toISOString() };
-  },
-
-  // ============ User Profiles ============
-  
-  getProfile: (email: string): UserProfileData | null => {
-    try {
-      const profiles = JSON.parse(localStorage.getItem(PROFILES_KEY) || '{}');
-      return profiles[email] || null;
-    } catch {
-      return null;
-    }
-  },
-
-  saveProfile: (profile: UserProfileData): void => {
-    try {
-      const profiles = JSON.parse(localStorage.getItem(PROFILES_KEY) || '{}');
-      profiles[profile.email] = profile;
-      localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
-    } catch {
-      console.error('Failed to save profile');
-    }
-  },
-
-  updateDisplayName: (email: string, newName: string, oldName?: string): void => {
-    const profile = leaderboardService.getProfile(email);
-    if (profile) {
-      const previousName = oldName || profile.displayName;
-      profile.displayName = newName;
-      profile.lastActive = new Date().toISOString();
-      leaderboardService.saveProfile(profile);
-      
-      // Update all leaderboard entries with the old name to the new name
-      leaderboardService.updateEntriesName(previousName, newName);
-    }
-  },
-
-  // Update all leaderboard entries from old name to new name
-  updateEntriesName: (oldName: string, newName: string): void => {
-    const entries = leaderboardService.getAll();
-    const updated = entries.map(entry => {
-      if (entry.name.toLowerCase() === oldName.toLowerCase()) {
-        return { ...entry, name: newName };
-      }
-      return entry;
-    });
-    
-    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(updated));
-    cachedData = { entries: updated, lastUpdated: new Date().toISOString() };
-    leaderboardService.syncToFile();
-  },
-
-  // Get aggregated leaderboard (total points per user)
   getAggregatedLeaderboard: (count: number = 10): { name: string; totalScore: number; gamesPlayed: number; avgAccuracy: number }[] => {
     const entries = leaderboardService.getAll();
     const userStats = new Map<string, { totalScore: number; gamesPlayed: number; totalAccuracy: number }>();
@@ -302,48 +311,87 @@ export const leaderboardService = {
     return aggregated.sort((a, b) => b.totalScore - a.totalScore).slice(0, count);
   },
 
+  updateEntriesName: (oldName: string, newName: string): void => {
+    const entries = leaderboardService.getAll();
+    const updated = entries.map(entry => {
+      if (entry.name.toLowerCase() === oldName.toLowerCase()) {
+        return { ...entry, name: newName };
+      }
+      return entry;
+    });
+    
+    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(updated));
+    cachedLeaderboard = updated;
+    leaderboardService.syncAllToExport();
+  },
+
+  clear: (): void => {
+    localStorage.removeItem(LEADERBOARD_KEY);
+    cachedLeaderboard = [];
+  },
+
+  // ============ User Profiles ============
+  
+  getProfile: (email: string): UserProfileData | null => {
+    if (cachedProfiles) return cachedProfiles[email] || null;
+    const profiles = leaderboardService.getFromLocalStorage<Record<string, UserProfileData>>(PROFILES_KEY, {});
+    return profiles[email] || null;
+  },
+
+  saveProfile: (profile: UserProfileData): void => {
+    const profiles = cachedProfiles || leaderboardService.getFromLocalStorage<Record<string, UserProfileData>>(PROFILES_KEY, {});
+    profiles[profile.email] = profile;
+    localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
+    cachedProfiles = profiles;
+    leaderboardService.syncAllToExport();
+  },
+
+  updateDisplayName: (email: string, newName: string, oldName?: string): void => {
+    const profile = leaderboardService.getProfile(email);
+    if (profile) {
+      const previousName = oldName || profile.displayName;
+      profile.displayName = newName;
+      profile.lastActive = new Date().toISOString();
+      leaderboardService.saveProfile(profile);
+      leaderboardService.updateEntriesName(previousName, newName);
+    }
+  },
+
   // ============ Answer History ============
 
   getAnswerHistory: (email?: string): AnswerRecord[] => {
-    try {
-      const stored = localStorage.getItem(ANSWER_HISTORY_KEY);
-      const allHistory: AnswerRecord[] = stored ? JSON.parse(stored) : [];
-      return allHistory;
-    } catch {
-      return [];
+    const history = cachedHistory || leaderboardService.getFromLocalStorage<AnswerRecord[]>(ANSWER_HISTORY_KEY, []);
+    if (email) {
+      return history.filter(h => h.email === email);
     }
+    return history;
   },
 
   addAnswerRecord: (record: Omit<AnswerRecord, 'id' | 'date'>): void => {
-    try {
-      const history = leaderboardService.getAnswerHistory();
-      const newRecord: AnswerRecord = {
-        ...record,
-        id: Date.now().toString(),
-        date: new Date().toISOString(),
-      };
-      
-      // Keep last 500 answers
-      const updated = [newRecord, ...history].slice(0, 500);
-      localStorage.setItem(ANSWER_HISTORY_KEY, JSON.stringify(updated));
-    } catch {
-      console.error('Failed to save answer record');
-    }
+    const history = cachedHistory || leaderboardService.getFromLocalStorage<AnswerRecord[]>(ANSWER_HISTORY_KEY, []);
+    const newRecord: AnswerRecord = {
+      ...record,
+      id: Date.now().toString(),
+      date: new Date().toISOString(),
+    };
+    
+    const updated = [newRecord, ...history].slice(0, 500);
+    localStorage.setItem(ANSWER_HISTORY_KEY, JSON.stringify(updated));
+    cachedHistory = updated;
+    leaderboardService.syncAllToExport();
   },
 
-  // Get category performance analysis
-  getCategoryAnalysis: (): Record<Category, { correct: number; total: number; accuracy: number; weakShortcuts: string[] }> => {
-    const history = leaderboardService.getAnswerHistory();
+  getCategoryAnalysis: (email?: string): Record<Category, { correct: number; total: number; accuracy: number; weakShortcuts: string[] }> => {
+    const history = leaderboardService.getAnswerHistory(email);
     const categories: Category[] = ['windows', 'excel', 'powerpoint', 'general'];
     
-    const analysis: Record<Category, { correct: number; total: number; accuracy: number; weakShortcuts: string[] }> = {} as any;
+    const analysis = {} as Record<Category, { correct: number; total: number; accuracy: number; weakShortcuts: string[] }>;
     
     categories.forEach(cat => {
       const catAnswers = history.filter(h => h.category === cat);
       const correct = catAnswers.filter(h => h.isCorrect).length;
       const total = catAnswers.length;
       
-      // Find weak shortcuts (wrong more than 50% of time)
       const shortcutStats = new Map<string, { correct: number; total: number; description: string }>();
       catAnswers.forEach(a => {
         const stats = shortcutStats.get(a.shortcutId) || { correct: 0, total: 0, description: a.shortcutDescription };
@@ -353,7 +401,7 @@ export const leaderboardService = {
       });
       
       const weakShortcuts: string[] = [];
-      shortcutStats.forEach((stats, id) => {
+      shortcutStats.forEach((stats) => {
         if (stats.total >= 2 && (stats.correct / stats.total) < 0.5) {
           weakShortcuts.push(stats.description);
         }
@@ -370,9 +418,8 @@ export const leaderboardService = {
     return analysis;
   },
 
-  // Get shortcuts that need practice
-  getWeakShortcuts: (): { description: string; category: Category; accuracy: number }[] => {
-    const history = leaderboardService.getAnswerHistory();
+  getWeakShortcuts: (email?: string): { description: string; category: Category; accuracy: number }[] => {
+    const history = leaderboardService.getAnswerHistory(email);
     const shortcutStats = new Map<string, { correct: number; total: number; description: string; category: Category }>();
     
     history.forEach(a => {
@@ -397,13 +444,12 @@ export const leaderboardService = {
 
   // ============ Game Sessions ============
 
-  getSessions: (): GameSession[] => {
-    try {
-      const stored = localStorage.getItem(SESSIONS_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
+  getSessions: (email?: string): GameSession[] => {
+    const sessions = cachedSessions || leaderboardService.getFromLocalStorage<GameSession[]>(SESSIONS_KEY, []);
+    if (email) {
+      return sessions.filter(s => s.email === email);
     }
+    return sessions;
   },
 
   addSession: (session: Omit<GameSession, 'id' | 'date'>): GameSession => {
@@ -413,20 +459,23 @@ export const leaderboardService = {
       date: new Date().toISOString(),
     };
 
-    const current = leaderboardService.getSessions();
+    const current = cachedSessions || leaderboardService.getFromLocalStorage<GameSession[]>(SESSIONS_KEY, []);
     const updated = [newSession, ...current].slice(0, MAX_SESSIONS);
 
     localStorage.setItem(SESSIONS_KEY, JSON.stringify(updated));
+    cachedSessions = updated;
+    leaderboardService.syncAllToExport();
+
     return newSession;
   },
 
-  getRecentSessions: (count: number = 10): GameSession[] => {
-    return leaderboardService.getSessions().slice(0, count);
+  getRecentSessions: (count: number = 10, email?: string): GameSession[] => {
+    return leaderboardService.getSessions(email).slice(0, count);
   },
 
-  getOverallStats: () => {
-    const sessions = leaderboardService.getSessions();
-    const history = leaderboardService.getAnswerHistory();
+  getOverallStats: (email?: string) => {
+    const sessions = leaderboardService.getSessions(email);
+    const history = leaderboardService.getAnswerHistory(email);
     
     if (sessions.length === 0) {
       return {
@@ -449,5 +498,25 @@ export const leaderboardService = {
       totalAnswers: history.length,
       correctAnswers: history.filter(h => h.isCorrect).length,
     };
+  },
+
+  // Export all data as downloadable files
+  exportAllData: (): void => {
+    const data = {
+      leaderboard: { entries: cachedLeaderboard || [], lastUpdated: new Date().toISOString() },
+      profiles: { profiles: cachedProfiles || {}, lastUpdated: new Date().toISOString() },
+      sessions: { sessions: cachedSessions || [], lastUpdated: new Date().toISOString() },
+      history: { records: cachedHistory || [], lastUpdated: new Date().toISOString() },
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `shortcut-game-data-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   },
 };

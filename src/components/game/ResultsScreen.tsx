@@ -36,6 +36,7 @@ export const ResultsScreen = ({ state, onPlayAgain, onHome, onSaveScore, onAnaly
       
       // Also save game session
       leaderboardService.addSession({
+        email: userEmail || '',
         level: state.level || 'essentials',
         category: 'general', // Mixed
         mode: state.mode,
