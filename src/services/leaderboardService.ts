@@ -602,9 +602,9 @@ export const leaderboardService = {
   },
 
   // Get Hall of Fame - Guru level completions
-  getHallOfFame: async (): Promise<{ name: string; email?: string; score: number; accuracy: number; streak: number; date: string }[]> => {
+  getHallOfFame: async (): Promise<{ name: string; email?: string; score: number; accuracy: number; streak: number; date: string; bestLevel?: string }[]> => {
     if (useApi) {
-      const result = await apiService.getHallOfFame(20);
+      const result = await apiService.getHallOfFame(5);
       if (result.data?.entries) {
         return result.data.entries.map(e => ({
           name: e.name,
@@ -612,24 +612,34 @@ export const leaderboardService = {
           score: e.score,
           accuracy: e.accuracy || 0,
           streak: e.streak || 0,
-          date: e.date || new Date().toISOString()
+          date: e.date || new Date().toISOString(),
+          bestLevel: e.best_level
         }));
       }
     }
     
-    // Fallback to localStorage - filter for guru level entries
+    // Fallback to localStorage - aggregate best scores per player across all levels
     const entries = cachedLeaderboard || leaderboardService.getFromLocalStorage(LEADERBOARD_KEY, []);
-    return entries
-      .filter(e => e.level === 'guru')
+    const playerBests = new Map<string, { name: string; email?: string; score: number; accuracy: number; streak: number; date: string }>();
+    
+    entries.forEach(e => {
+      const key = e.email || e.name;
+      const existing = playerBests.get(key);
+      if (!existing || e.score > existing.score) {
+        playerBests.set(key, {
+          name: e.name,
+          email: e.email,
+          score: e.score,
+          accuracy: e.accuracy || 0,
+          streak: e.streak || 0,
+          date: e.date
+        });
+      }
+    });
+    
+    return Array.from(playerBests.values())
       .sort((a, b) => b.score - a.score)
-      .slice(0, 20)
-      .map(e => ({
-        name: e.name,
-        score: e.score,
-        accuracy: e.accuracy,
-        streak: e.streak || 0,
-        date: e.date
-      }));
+      .slice(0, 5);
   },
 
   // Export all data as downloadable files

@@ -171,20 +171,23 @@ router.get('/aggregated', (req, res) => {
 });
 
 // GET Hall of Fame - Guru level completions
+// Hall of Fame - Top 5 players across ALL levels (aggregated by best score per player)
 router.get('/hall-of-fame', (req, res) => {
   try {
-    const { limit = 20 } = req.query;
+    const { limit = 5 } = req.query;
     
+    // Get top players by their best score across all levels
     const entries = db.prepare(`
       SELECT 
         name,
         email,
-        score,
-        accuracy,
-        streak,
-        created_at as date
+        MAX(score) as score,
+        MAX(accuracy) as accuracy,
+        MAX(streak) as streak,
+        MAX(created_at) as date,
+        (SELECT level FROM leaderboard l2 WHERE l2.email = leaderboard.email ORDER BY score DESC LIMIT 1) as best_level
       FROM leaderboard
-      WHERE level = 'guru'
+      GROUP BY email
       ORDER BY score DESC, accuracy DESC, streak DESC
       LIMIT ?
     `).all(parseInt(limit));
