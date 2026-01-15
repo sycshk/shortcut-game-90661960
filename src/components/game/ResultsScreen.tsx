@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { GameState, LEVEL_CONFIG } from '@/types/game';
-import { Trophy, RotateCcw, Home, Star, Target, Zap, BarChart3 } from 'lucide-react';
+import { Trophy, RotateCcw, Home, Star, Target, Zap, BarChart3, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFullscreen } from '@/hooks/useKeyboardCapture';
 import { leaderboardService } from '@/services/leaderboardService';
+import { triggerPerfectGameConfetti, triggerCelebration } from '@/utils/confetti';
 
 interface ResultsScreenProps {
   state: GameState;
@@ -26,7 +27,16 @@ export const ResultsScreen = ({ state, onPlayAgain, onHome, onSaveScore, onAnaly
   // Exit fullscreen when results are shown
   useEffect(() => {
     exitFullscreen();
-  }, [exitFullscreen]);
+    
+    // Trigger confetti based on performance
+    if (accuracy === 100) {
+      // Perfect game!
+      setTimeout(() => triggerPerfectGameConfetti(), 300);
+    } else if (accuracy >= 80) {
+      // Great performance
+      setTimeout(() => triggerCelebration(), 300);
+    }
+  }, [exitFullscreen, accuracy]);
 
   // Auto-save to leaderboard
   useEffect(() => {
@@ -51,10 +61,11 @@ export const ResultsScreen = ({ state, onPlayAgain, onHome, onSaveScore, onAnaly
   }, [saved, displayName, state, accuracy, onSaveScore]);
   
   const getPerformanceMessage = () => {
-    if (accuracy >= 90) return { text: 'Outstanding!', icon: Trophy, color: 'text-yellow-500' };
-    if (accuracy >= 70) return { text: 'Great Job!', icon: Star, color: 'text-success' };
-    if (accuracy >= 50) return { text: 'Good Effort!', icon: Target, color: 'text-primary' };
-    return { text: 'Keep Practicing!', icon: Zap, color: 'text-secondary' };
+    if (accuracy === 100) return { text: 'PERFECT!', icon: Crown, color: 'text-yellow-400', isPerfect: true };
+    if (accuracy >= 90) return { text: 'Outstanding!', icon: Trophy, color: 'text-yellow-500', isPerfect: false };
+    if (accuracy >= 70) return { text: 'Great Job!', icon: Star, color: 'text-success', isPerfect: false };
+    if (accuracy >= 50) return { text: 'Good Effort!', icon: Target, color: 'text-primary', isPerfect: false };
+    return { text: 'Keep Practicing!', icon: Zap, color: 'text-secondary', isPerfect: false };
   };
 
   const performance = getPerformanceMessage();
@@ -64,12 +75,27 @@ export const ResultsScreen = ({ state, onPlayAgain, onHome, onSaveScore, onAnaly
 
   return (
     <div className="flex min-h-screen items-center justify-center animated-bg p-4">
-      <Card className="w-full max-w-lg text-center glass-card animate-fade-in">
+      <Card className={cn(
+        "w-full max-w-lg text-center glass-card animate-fade-in",
+        performance.isPerfect && "ring-4 ring-yellow-400/50"
+      )}>
         <CardHeader className="space-y-4">
-          <div className={cn('mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10', performance.color)}>
-            <PerformanceIcon className="h-10 w-10" />
+          <div className={cn(
+            'mx-auto flex h-20 w-20 items-center justify-center rounded-full',
+            performance.isPerfect ? 'bg-gradient-to-br from-yellow-400 to-orange-500' : 'bg-primary/10',
+            performance.color
+          )}>
+            <PerformanceIcon className={cn("h-10 w-10", performance.isPerfect && "text-white")} />
           </div>
-          <CardTitle className="text-3xl font-bold text-gradient">{performance.text}</CardTitle>
+          <CardTitle className={cn(
+            "text-3xl font-bold",
+            performance.isPerfect ? "text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 animate-pulse" : "text-gradient"
+          )}>
+            {performance.text}
+          </CardTitle>
+          {performance.isPerfect && (
+            <p className="text-yellow-500 font-medium animate-fade-in">🏆 Flawless Victory! 🏆</p>
+          )}
           <CardDescription className="text-lg">
             You completed the <span className="font-medium text-foreground">{levelLabel}</span> challenge
           </CardDescription>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -6,6 +6,7 @@ import { GameState, DIFFICULTY_CONFIG, LEVEL_CONFIG } from '@/types/game';
 import { useKeyboardCapture, useFullscreen } from '@/hooks/useKeyboardCapture';
 import { cn } from '@/lib/utils';
 import { Timer, Target, CheckCircle2, XCircle, Flame, Lightbulb, Minimize2, Clock, AlertTriangle, Play, Zap, Star, Trophy } from 'lucide-react';
+import { triggerStreakConfetti } from '@/utils/confetti';
 
 interface GameplayScreenProps {
   state: GameState;
@@ -19,6 +20,15 @@ interface GameplayScreenProps {
 export const GameplayScreen = ({ state, feedback, onAnswer, onMultipleChoiceAnswer, onToggleHint, onPause }: GameplayScreenProps) => {
   const [isPaused, setIsPaused] = useState(false);
   const [pauseReason, setPauseReason] = useState<'focus' | 'manual' | null>(null);
+  const lastStreakRef = useRef(0);
+
+  // Trigger confetti on 10x streak
+  useEffect(() => {
+    if (state.currentStreak === 10 && lastStreakRef.current < 10) {
+      triggerStreakConfetti();
+    }
+    lastStreakRef.current = state.currentStreak;
+  }, [state.currentStreak]);
   
   const currentShortcut = state.shortcuts[state.currentShortcutIndex];
   const config = state.level ? LEVEL_CONFIG[state.level] : (state.difficulty ? DIFFICULTY_CONFIG[state.difficulty] : DIFFICULTY_CONFIG.easy);
