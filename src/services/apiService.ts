@@ -348,6 +348,65 @@ class ApiService {
     });
   }
 
+  // ============ MINI GAMES ============
+
+  async getMiniGameScores(email: string) {
+    return this.request<{
+      scores: Record<string, {
+        highScore: number;
+        gamesPlayed: number;
+        bestAccuracy: number | null;
+        lastPlayed: string;
+      }>;
+    }>(`/minigames/${encodeURIComponent(email)}`);
+  }
+
+  async saveMiniGameScore(data: {
+    email: string;
+    game_type: 'snake' | 'epm';
+    score: number;
+    accuracy?: number;
+  }) {
+    return this.request<{
+      message: string;
+      highScore: number;
+      gamesPlayed: number;
+      isNewHighScore: boolean;
+    }>('/minigames', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getMiniGameLeaderboard(gameType: 'snake' | 'epm', limit = 50) {
+    return this.request<{
+      entries: Array<{
+        rank: number;
+        email: string;
+        name: string;
+        highScore: number;
+        gamesPlayed: number;
+        bestAccuracy: number | null;
+        lastPlayed: string;
+      }>;
+    }>(`/minigames/leaderboard/${gameType}?limit=${limit}`);
+  }
+
+  async getUnifiedMiniGameLeaderboard(limit = 50) {
+    return this.request<{
+      entries: Array<{
+        rank: number;
+        email: string;
+        name: string;
+        totalScore: number;
+        totalGames: number;
+        snakeScore: number;
+        epmScore: number;
+        epmAccuracy: number | null;
+      }>;
+    }>(`/minigames/unified/all?limit=${limit}`);
+  }
+
   // ============ UTILITY ============
 
   get online() {

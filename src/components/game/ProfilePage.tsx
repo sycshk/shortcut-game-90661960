@@ -66,7 +66,7 @@ export const ProfilePage = ({ onBack, userEmail, displayName, onAvatarChange }: 
         const dailyStreak = dailyData ? JSON.parse(dailyData).currentStreak || 0 : 0;
         
         // Get mini game stats
-        const miniGameStats = getUserMiniGameStats(userEmail);
+        const miniGameStats = await getUserMiniGameStats(userEmail);
         
         setStats({
           gamesPlayed,

@@ -44,8 +44,8 @@ const GAMES: GameCard[] = [
 ];
 
 // Get mini game achievements that are unlocked
-const getUnlockedMiniGameAchievements = (email: string) => {
-  const stats = getUserMiniGameStats(email);
+const getUnlockedMiniGameAchievements = async (email: string) => {
+  const stats = await getUserMiniGameStats(email);
   const miniGameAchievements = ACHIEVEMENTS.filter(a => 
     ['snake_score', 'epm_score', 'epm_games', 'epm_accuracy', 'epm_mastery', 'consolidation_perfect'].includes(a.requirement.type)
   );
@@ -75,14 +75,18 @@ export const GamesHub = ({ onBack, userEmail }: GamesHubProps) => {
   const [unlockedAchievements, setUnlockedAchievements] = useState<typeof ACHIEVEMENTS>([]);
 
   useEffect(() => {
-    if (userEmail) {
-      const stats = getUserMiniGameStats(userEmail);
-      setScores({
-        snake: stats.snake,
-        'epm-quiz': stats.epm
-      });
-      setUnlockedAchievements(getUnlockedMiniGameAchievements(userEmail));
-    }
+    const loadData = async () => {
+      if (userEmail) {
+        const stats = await getUserMiniGameStats(userEmail);
+        setScores({
+          snake: stats.snake,
+          'epm-quiz': stats.epm
+        });
+        const achievements = await getUnlockedMiniGameAchievements(userEmail);
+        setUnlockedAchievements(achievements);
+      }
+    };
+    loadData();
   }, [userEmail, currentGame]);
 
   const handleSnakeScoreSave = (score: number) => {

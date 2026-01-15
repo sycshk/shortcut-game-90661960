@@ -109,6 +109,21 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
 
+  -- Mini game scores
+  CREATE TABLE IF NOT EXISTS mini_games (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    email TEXT NOT NULL,
+    game_type TEXT NOT NULL,
+    high_score INTEGER DEFAULT 0,
+    games_played INTEGER DEFAULT 0,
+    best_accuracy REAL,
+    last_played TEXT DEFAULT (datetime('now')),
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    UNIQUE(email, game_type)
+  );
+
   -- Create indexes for common queries
   CREATE INDEX IF NOT EXISTS idx_leaderboard_score ON leaderboard(score DESC);
   CREATE INDEX IF NOT EXISTS idx_leaderboard_email ON leaderboard(email);
@@ -116,6 +131,8 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_sessions_date ON sessions(date DESC);
   CREATE INDEX IF NOT EXISTS idx_history_email ON answer_history(email);
   CREATE INDEX IF NOT EXISTS idx_daily_email_date ON daily_challenges(email, date);
+  CREATE INDEX IF NOT EXISTS idx_mini_games_email ON mini_games(email);
+  CREATE INDEX IF NOT EXISTS idx_mini_games_score ON mini_games(high_score DESC);
 `);
 
 console.log('📦 Database initialized at:', DB_PATH);
