@@ -15,6 +15,7 @@ export const ShortcutGame = () => {
     startGame, 
     checkAnswer, 
     resetGame, 
+    toggleHint,
     getLeaderboard, 
     saveToLeaderboard 
   } = useGameState();
@@ -50,7 +51,8 @@ export const ShortcutGame = () => {
         <GameplayScreen 
           state={state} 
           feedback={feedback} 
-          onAnswer={checkAnswer} 
+          onAnswer={checkAnswer}
+          onToggleHint={toggleHint}
         />
       );
     
