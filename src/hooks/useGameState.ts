@@ -31,39 +31,23 @@ export const useGameState = () => {
     setState(prev => ({ ...prev, status: 'setup' }));
   }, []);
 
-  const startGame = useCallback((category: ShortcutCategory | Category, difficulty: Difficulty, level?: DifficultyLevel) => {
-    const config = DIFFICULTY_CONFIG[difficulty];
-    
-    // Use new curriculum if level is provided
-    let gameShortcuts: ShortcutChallenge[];
-    if (level) {
-      const levelConfig = LEVEL_CONFIG[level];
-      const available = getShortcutsByLevelAndCategory(level, category as Category);
-      gameShortcuts = shuffleArray(available).slice(0, levelConfig.questionsCount);
-    } else {
-      // Legacy mode - convert old shortcuts to new format
-      const legacyShortcuts = getShortcutsByCategory(category as ShortcutCategory, difficulty);
-      gameShortcuts = legacyShortcuts.map(s => ({
-        id: s.id,
-        level: 'essentials' as DifficultyLevel,
-        category: (s.category === 'os' ? 'windows' : 'general') as Category,
-        description: s.task,
-        keys: s.keys,
-      }));
-      gameShortcuts = shuffleArray(gameShortcuts).slice(0, config.questionsCount);
-    }
+  const startGame = useCallback((difficulty: Difficulty, level: DifficultyLevel) => {
+    const levelConfig = LEVEL_CONFIG[level];
+    // Get shortcuts from all categories (mixed)
+    const available = getShortcutsByLevelAndCategory(level);
+    const gameShortcuts = shuffleArray(available).slice(0, levelConfig.questionsCount);
     
     setState({
       ...initialState,
       status: 'playing',
-      category,
+      category: null, // Mixed categories
       difficulty,
-      level: level || null,
+      level,
       currentShortcutIndex: 0,
       score: 0,
       correctAnswers: 0,
       totalQuestions: gameShortcuts.length,
-      timeRemaining: level ? LEVEL_CONFIG[level].timePerQuestion : config.timePerQuestion,
+      timeRemaining: levelConfig.timePerQuestion,
       shortcuts: gameShortcuts,
       currentStreak: 0,
       bestStreak: 0,
