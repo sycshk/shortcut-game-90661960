@@ -1,5 +1,6 @@
 import { ShortcutChallenge } from '@/types/game';
 import { shortcutChallenges } from '@/data/shortcuts';
+import { apiService } from './apiService';
 
 const DAILY_CHALLENGE_KEY = 'shortcut-daily-challenge';
 const DAILY_STREAK_KEY = 'shortcut-daily-streak';
@@ -48,7 +49,25 @@ export const getTodayString = (): string => {
 };
 
 // Get daily challenge data
-export const getDailyChallengeData = (): DailyChallengeData | null => {
+export const getDailyChallengeData = async (email?: string): Promise<DailyChallengeData | null> => {
+  // Try API first if email provided
+  if (email) {
+    try {
+      const result = await apiService.getDailyStatus(email);
+      if (result.data?.today) {
+        return {
+          date: result.data.today.date,
+          completed: Boolean(result.data.today.completed),
+          score: result.data.today.score || 0,
+          accuracy: result.data.today.accuracy || 0,
+          shortcuts: result.data.today.shortcuts ? JSON.parse(result.data.today.shortcuts) : []
+        };
+      }
+    } catch (e) {
+      // Fall through to localStorage
+    }
+  }
+
   try {
     const stored = localStorage.getItem(DAILY_CHALLENGE_KEY);
     if (!stored) return null;
@@ -64,14 +83,30 @@ export const getDailyChallengeData = (): DailyChallengeData | null => {
   }
 };
 
+// Synchronous version for components that can't await
+export const getDailyChallengeDataSync = (): DailyChallengeData | null => {
+  try {
+    const stored = localStorage.getItem(DAILY_CHALLENGE_KEY);
+    if (!stored) return null;
+    
+    const data: DailyChallengeData = JSON.parse(stored);
+    if (data.date !== getTodayString()) {
+      return null;
+    }
+    return data;
+  } catch {
+    return null;
+  }
+};
+
 // Check if today's challenge is completed
 export const isDailyChallengeCompleted = (): boolean => {
-  const data = getDailyChallengeData();
+  const data = getDailyChallengeDataSync();
   return data?.completed ?? false;
 };
 
 // Save daily challenge completion
-export const saveDailyChallengeCompletion = (score: number, accuracy: number): void => {
+export const saveDailyChallengeCompletion = async (score: number, accuracy: number, email?: string): Promise<void> => {
   const today = getTodayString();
   const shortcuts = getDailyShortcuts().map(s => s.id);
   
@@ -85,12 +120,50 @@ export const saveDailyChallengeCompletion = (score: number, accuracy: number): v
   
   localStorage.setItem(DAILY_CHALLENGE_KEY, JSON.stringify(data));
   
-  // Update streak
-  updateDailyStreak(accuracy >= 80); // Only count as streak if 80%+ accuracy
+  // Save to API if email provided
+  if (email) {
+    try {
+      await apiService.completeDailyChallenge({
+        email,
+        score,
+        accuracy,
+        shortcuts
+      });
+    } catch (e) {
+      console.warn('Failed to save daily challenge to API:', e);
+    }
+  }
+  
+  // Update streak locally
+  updateDailyStreakLocal(accuracy >= 80);
 };
 
 // Get streak data
-export const getDailyStreakData = (): DailyStreakData => {
+export const getDailyStreakData = async (email?: string): Promise<DailyStreakData> => {
+  // Try API first if email provided
+  if (email) {
+    try {
+      const result = await apiService.getDailyStatus(email);
+      if (result.data?.streak) {
+        const streak = result.data.streak;
+        return {
+          currentStreak: streak.current_streak || 0,
+          longestStreak: streak.longest_streak || 0,
+          lastCompletedDate: streak.last_completed_date || null,
+          totalDaysCompleted: streak.total_days || 0,
+          badges: streak.badges ? JSON.parse(streak.badges) : []
+        };
+      }
+    } catch (e) {
+      // Fall through to localStorage
+    }
+  }
+
+  return getDailyStreakDataSync();
+};
+
+// Synchronous version for local use
+export const getDailyStreakDataSync = (): DailyStreakData => {
   try {
     const stored = localStorage.getItem(DAILY_STREAK_KEY);
     if (!stored) {
@@ -114,9 +187,9 @@ export const getDailyStreakData = (): DailyStreakData => {
   }
 };
 
-// Update streak after completing daily challenge
-const updateDailyStreak = (qualifies: boolean): void => {
-  const streak = getDailyStreakData();
+// Update streak after completing daily challenge (local only)
+const updateDailyStreakLocal = (qualifies: boolean): void => {
+  const streak = getDailyStreakDataSync();
   const today = getTodayString();
   
   if (!qualifies) {
