@@ -1,3 +1,12 @@
+// Import per-tool question banks
+import { ORACLE_FCCS_QUESTIONS } from './questions/oracle-fccs';
+import { ORACLE_PBCS_QUESTIONS } from './questions/oracle-pbcs';
+import { JEDOX_QUESTIONS } from './questions/jedox';
+import { NETSUITE_QUESTIONS } from './questions/netsuite';
+import { TAGETIK_QUESTIONS } from './questions/tagetik';
+import { ANAPLAN_QUESTIONS } from './questions/anaplan';
+import { WORKDAY_ADAPTIVE_QUESTIONS } from './questions/workday-adaptive';
+
 export interface QuizQuestion {
   id: string;
   category: 'budget' | 'consolidation' | 'kpi' | 'general';
@@ -7,7 +16,7 @@ export interface QuizQuestion {
   correctIndex: number;
   explanation: string;
   topic: string;
-  tool?: 'oracle_fccs' | 'oracle_pbcs' | 'jedox' | 'netsuite' | 'tagetik' | 'anaplan' | 'workday_adaptive'; // EPM tool-specific questions
+  tool?: 'oracle_fccs' | 'oracle_pbcs' | 'jedox' | 'netsuite' | 'tagetik' | 'anaplan' | 'workday_adaptive';
 }
 
 // Tool-specific configuration
@@ -65,7 +74,8 @@ export const EPM_TOOL_CONFIG = {
 
 export type EPMTool = keyof typeof EPM_TOOL_CONFIG;
 
-export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
+// Core questions (non-tool-specific)
+const CORE_QUESTIONS: QuizQuestion[] = [
   // ==========================================
   // FINANCIAL CONSOLIDATION
   // ==========================================
