@@ -37,19 +37,27 @@ export const useKeyboardCapture = (isActive: boolean, onCombination: (keys: stri
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Prevent ALL default browser behaviors to block system shortcuts
-      // This includes Ctrl+P (print), Ctrl+S (save), Ctrl+O (open), etc.
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
       
-      // Block specific dangerous combinations but still track the keys
-      const blockedCombos = ['Tab', 'F4'];
-      if (e.altKey && blockedCombos.includes(e.key)) {
-        return;
+      // Block Windows/Meta key - don't even track these
+      if (e.key === 'Meta' || e.key === 'OS' || e.metaKey) {
+        return false;
       }
-      if (e.metaKey) return; // Block Windows/Command key combinations
       
+      // Block Alt+Tab and Alt+F4 completely
+      if (e.altKey && (e.key === 'Tab' || e.key === 'F4')) {
+        return false;
+      }
+      
+      // Normalize the key (convert Win/Meta to something we can track but won't trigger OS)
       const normalizedKey = normalizeKey(e.key, e.code);
+      
+      // Skip tracking modifier-only keys that might cause issues
+      if (normalizedKey === 'Win' || normalizedKey === 'Meta' || normalizedKey === 'OS') {
+        return false;
+      }
       
       setState(prev => {
         const newPressedKeys = new Set(prev.pressedKeys);
@@ -87,17 +95,28 @@ export const useKeyboardCapture = (isActive: boolean, onCombination: (keys: stri
     // Block context menu
     const handleContextMenu = (e: Event) => {
       e.preventDefault();
+      e.stopPropagation();
+      return false;
+    };
+
+    // Block Alt key menu activation in browsers
+    const handleAltKey = (e: KeyboardEvent) => {
+      if (e.key === 'Alt' || e.altKey) {
+        e.preventDefault();
+      }
     };
 
     // Use capture phase to intercept events before they bubble
     window.addEventListener('keydown', handleKeyDown, { capture: true });
     window.addEventListener('keyup', handleKeyUp, { capture: true });
-    window.addEventListener('contextmenu', handleContextMenu);
+    window.addEventListener('contextmenu', handleContextMenu, { capture: true });
+    document.addEventListener('keydown', handleAltKey, { capture: true });
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown, { capture: true });
       window.removeEventListener('keyup', handleKeyUp, { capture: true });
-      window.removeEventListener('contextmenu', handleContextMenu);
+      window.removeEventListener('contextmenu', handleContextMenu, { capture: true });
+      document.removeEventListener('keydown', handleAltKey, { capture: true });
     };
   }, [isActive, normalizeKey, onCombination]);
 
