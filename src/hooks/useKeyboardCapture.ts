@@ -36,7 +36,15 @@ export const useKeyboardCapture = (isActive: boolean, onCombination: (keys: stri
     if (!isActive) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent default for ALL keys to block system shortcuts
       e.preventDefault();
+      e.stopPropagation();
+      
+      // Extra blocking for known system shortcuts
+      if (e.altKey && e.key === 'Tab') return;
+      if (e.altKey && e.key === 'F4') return;
+      if (e.ctrlKey && e.key === 'w') return;
+      if (e.metaKey) return; // Block Windows key combinations
       
       const normalizedKey = normalizeKey(e.key, e.code);
       
@@ -52,6 +60,7 @@ export const useKeyboardCapture = (isActive: boolean, onCombination: (keys: stri
 
     const handleKeyUp = (e: KeyboardEvent) => {
       e.preventDefault();
+      e.stopPropagation();
       
       setState(prev => {
         if (prev.pressedKeys.size > 0) {
@@ -67,14 +76,74 @@ export const useKeyboardCapture = (isActive: boolean, onCombination: (keys: stri
       });
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    // Block context menu
+    const handleContextMenu = (e: Event) => {
+      e.preventDefault();
+    };
+
+    // Use capture phase to intercept events before they bubble
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    window.addEventListener('keyup', handleKeyUp, { capture: true });
+    window.addEventListener('contextmenu', handleContextMenu);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('keydown', handleKeyDown, { capture: true });
+      window.removeEventListener('keyup', handleKeyUp, { capture: true });
+      window.removeEventListener('contextmenu', handleContextMenu);
     };
   }, [isActive, normalizeKey, onCombination]);
 
   return state;
+};
+
+// Hook for entering fullscreen mode
+export const useFullscreen = () => {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const enterFullscreen = useCallback(async () => {
+    try {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        await elem.requestFullscreen();
+      } else if ((elem as any).webkitRequestFullscreen) {
+        await (elem as any).webkitRequestFullscreen();
+      } else if ((elem as any).msRequestFullscreen) {
+        await (elem as any).msRequestFullscreen();
+      }
+      setIsFullscreen(true);
+    } catch (err) {
+      console.log('Fullscreen not available:', err);
+    }
+  }, []);
+
+  const exitFullscreen = useCallback(async () => {
+    try {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        await (document as any).webkitExitFullscreen();
+      } else if ((document as any).msExitFullscreen) {
+        await (document as any).msExitFullscreen();
+      }
+      setIsFullscreen(false);
+    } catch (err) {
+      console.log('Exit fullscreen error:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  return { isFullscreen, enterFullscreen, exitFullscreen };
 };

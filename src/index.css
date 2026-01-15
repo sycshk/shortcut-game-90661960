@@ -5,12 +5,13 @@
 @tailwind utilities;
 
 /* Elufa Shortcut Master - Design System
+   Corporate Colors: Swire Blue & Coca-Cola Red
    All colors in HSL format for theming
 */
 
 @layer base {
   :root {
-    /* Elufa Brand Colors - Light Theme */
+    /* Corporate Brand Colors - Light Theme */
     --background: 210 20% 98%;
     --foreground: 210 40% 10%;
 
@@ -20,20 +21,20 @@
     --popover: 0 0% 100%;
     --popover-foreground: 210 40% 10%;
 
-    /* Primary: Elufa Cyan/Teal */
-    --primary: 186 72% 42%;
+    /* Primary: Swire Blue */
+    --primary: 210 100% 35%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary */
-    --secondary: 210 20% 94%;
-    --secondary-foreground: 210 40% 10%;
+    /* Secondary: Coca-Cola Red */
+    --secondary: 0 100% 45%;
+    --secondary-foreground: 0 0% 100%;
 
     --muted: 210 20% 94%;
     --muted-foreground: 210 15% 45%;
 
-    /* Accent: Bright Cyan */
-    --accent: 186 100% 50%;
-    --accent-foreground: 210 40% 10%;
+    /* Accent: Coca-Cola Red */
+    --accent: 0 100% 45%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -48,7 +49,7 @@
 
     --border: 210 20% 90%;
     --input: 210 20% 90%;
-    --ring: 186 72% 42%;
+    --ring: 210 100% 35%;
 
     --radius: 0.75rem;
 
@@ -60,16 +61,16 @@
     /* Sidebar */
     --sidebar-background: 210 20% 98%;
     --sidebar-foreground: 210 40% 10%;
-    --sidebar-primary: 186 72% 42%;
+    --sidebar-primary: 210 100% 35%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 210 20% 94%;
     --sidebar-accent-foreground: 210 40% 10%;
     --sidebar-border: 210 20% 90%;
-    --sidebar-ring: 186 72% 42%;
+    --sidebar-ring: 210 100% 35%;
   }
 
   .dark {
-    /* Elufa Brand Colors - Dark Theme */
+    /* Corporate Brand Colors - Dark Theme */
     --background: 220 25% 8%;
     --foreground: 210 20% 95%;
 
@@ -79,19 +80,20 @@
     --popover: 220 25% 12%;
     --popover-foreground: 210 20% 95%;
 
-    /* Primary: Elufa Cyan/Teal */
-    --primary: 186 72% 50%;
-    --primary-foreground: 220 25% 8%;
+    /* Primary: Swire Blue */
+    --primary: 210 100% 45%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 20% 18%;
-    --secondary-foreground: 210 20% 95%;
+    /* Secondary: Coca-Cola Red */
+    --secondary: 0 100% 50%;
+    --secondary-foreground: 0 0% 100%;
 
     --muted: 220 20% 18%;
     --muted-foreground: 210 15% 60%;
 
-    /* Accent: Bright Cyan */
-    --accent: 186 100% 55%;
-    --accent-foreground: 220 25% 8%;
+    /* Accent: Coca-Cola Red */
+    --accent: 0 100% 50%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
@@ -106,7 +108,7 @@
 
     --border: 220 20% 20%;
     --input: 220 20% 20%;
-    --ring: 186 72% 50%;
+    --ring: 210 100% 45%;
 
     /* Glassmorphism - Dark */
     --glass-bg: 220 25% 12% / 0.8;
@@ -116,12 +118,12 @@
     /* Sidebar - Dark */
     --sidebar-background: 220 25% 10%;
     --sidebar-foreground: 210 20% 95%;
-    --sidebar-primary: 186 72% 50%;
-    --sidebar-primary-foreground: 220 25% 8%;
+    --sidebar-primary: 210 100% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 20% 18%;
     --sidebar-accent-foreground: 210 20% 95%;
     --sidebar-border: 220 20% 20%;
-    --sidebar-ring: 186 72% 50%;
+    --sidebar-ring: 210 100% 45%;
   }
 }
 
@@ -149,11 +151,19 @@
     box-shadow: 0 8px 32px hsl(var(--glass-shadow));
   }
 
-  /* Elufa Brand Button */
+  /* Elufa Brand Button - Swire Blue */
   .btn-elufa {
     @apply bg-primary text-primary-foreground font-medium px-6 py-3 rounded-lg;
     @apply transition-all duration-300 ease-out;
     @apply hover:shadow-lg hover:shadow-primary/30 hover:scale-[1.02];
+    @apply active:scale-[0.98];
+  }
+
+  /* Secondary Brand Button - Coca-Cola Red */
+  .btn-coca-cola {
+    @apply bg-secondary text-secondary-foreground font-medium px-6 py-3 rounded-lg;
+    @apply transition-all duration-300 ease-out;
+    @apply hover:shadow-lg hover:shadow-secondary/30 hover:scale-[1.02];
     @apply active:scale-[0.98];
   }
 
@@ -194,11 +204,11 @@
     @apply text-warning animate-bounce;
   }
 
-  /* Progress Bar Gradient */
+  /* Progress Bar Gradient - Swire Blue to Coca-Cola Red */
   .progress-gradient {
     background: linear-gradient(90deg, 
       hsl(var(--primary)) 0%, 
-      hsl(var(--accent)) 100%
+      hsl(var(--secondary)) 100%
     );
   }
 
@@ -215,19 +225,19 @@
   }
 
   .level-essentials {
-    @apply bg-emerald-500/10 text-emerald-500 border border-emerald-500/20;
+    @apply bg-primary/10 text-primary border border-primary/20;
   }
 
   .level-implementation {
-    @apply bg-cyan-500/10 text-cyan-500 border border-cyan-500/20;
+    @apply bg-secondary/10 text-secondary border border-secondary/20;
   }
 
   .level-architect {
-    @apply bg-violet-500/10 text-violet-500 border border-violet-500/20;
+    @apply bg-primary/10 text-primary border border-primary/20;
   }
 
   .level-guru {
-    @apply bg-amber-500/10 text-amber-500 border border-amber-500/20;
+    @apply bg-secondary/10 text-secondary border border-secondary/20;
   }
 
   /* Category Icon Container */
@@ -241,7 +251,7 @@
     @apply bg-primary/20 scale-110;
   }
 
-  /* Animated Background */
+  /* Animated Background - Swire Blue gradient */
   .animated-bg {
     background: linear-gradient(
       135deg,
@@ -256,6 +266,17 @@
   @keyframes gradient-shift {
     0%, 100% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
+  }
+
+  /* Fullscreen immersive mode */
+  .fullscreen-mode {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    background: hsl(var(--background));
   }
 
   /* Fade animations */
@@ -308,7 +329,7 @@
     100% { box-shadow: 0 0 0 0 hsl(var(--success) / 0); }
   }
 
-  /* Glow effect */
+  /* Glow effect - Swire Blue */
   .glow-primary {
     box-shadow: 0 0 20px hsl(var(--primary) / 0.3),
                 0 0 40px hsl(var(--primary) / 0.2),
@@ -317,9 +338,9 @@
 }
 
 @layer utilities {
-  /* Gradient text */
+  /* Gradient text - Swire Blue to Coca-Cola Red */
   .text-gradient {
-    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent;
   }
 
   /* Scrollbar styling */
