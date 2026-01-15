@@ -19,7 +19,7 @@ INSTALL_DIR="/opt/shortcut-game"
 DATA_DIR="$INSTALL_DIR/dist/data"
 BACKUP_DIR="/opt/shortcut-game-backups"
 SERVICE_NAME="shortcut-game"
-PORT=3000
+PORT=3001  # Use 3001 to avoid conflict with frontend dev server on 3000
 
 # Colors for output
 RED='\033[0;31m'
