@@ -41,7 +41,7 @@ export const ShortcutGame = () => {
     case 'setup':
       return (
         <SetupScreen 
-          onStart={startGame} 
+          onStart={(difficulty, level) => startGame(difficulty, level)} 
           onBack={resetGame} 
         />
       );
