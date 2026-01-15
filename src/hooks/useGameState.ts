@@ -61,6 +61,10 @@ export const useGameState = () => {
     setState(prev => ({ ...prev, status: 'dailyChallenge' }));
   }, []);
 
+  const goToProfile = useCallback(() => {
+    setState(prev => ({ ...prev, status: 'profile' }));
+  }, []);
+
   const startDailyChallenge = useCallback((dailyShortcuts: ShortcutChallenge[]) => {
     const firstOptions = generateMultipleChoiceOptions(dailyShortcuts[0].keys, shortcutChallenges);
     
@@ -324,6 +328,7 @@ export const useGameState = () => {
     saveToLeaderboard,
     goToAnalytics,
     goToDailyChallenge,
+    goToProfile,
     startDailyChallenge,
     setPlayerName,
     handlePause,

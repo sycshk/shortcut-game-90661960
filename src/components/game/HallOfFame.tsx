@@ -13,7 +13,7 @@ interface HallOfFameEntry {
   date: string;
 }
 
-// Badge definitions
+// Badge definitions for Hall of Fame display
 const getBadges = (entry: HallOfFameEntry) => {
   const badges: { icon: typeof Trophy; label: string; color: string; bgColor: string }[] = [];
   
