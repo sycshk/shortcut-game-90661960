@@ -55,6 +55,7 @@ export interface UserProfile {
 
 export interface GameSession {
   id: string;
+  email: string;
   date: string;
   level: DifficultyLevel;
   category: Category;
