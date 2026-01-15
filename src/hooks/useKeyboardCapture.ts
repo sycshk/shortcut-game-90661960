@@ -46,8 +46,26 @@ export const useKeyboardCapture = (isActive: boolean, onCombination: (keys: stri
         return false;
       }
       
-      // Block Alt+Tab and Alt+F4 completely
-      if (e.altKey && (e.key === 'Tab' || e.key === 'F4')) {
+      // Block Alt+Tab - this is truly uncapturable
+      if (e.altKey && e.key === 'Tab') {
+        return false;
+      }
+      
+      // Special handling for Alt+F4 - browsers can't truly capture this as it closes the window
+      // But we can still register it if the user presses it before the OS intercepts
+      // The key will be 'F4' when Alt is held
+      if (e.altKey && (e.key === 'F4' || e.code === 'F4')) {
+        setState(prev => {
+          const newPressedKeys = new Set<string>();
+          newPressedKeys.add('Alt');
+          newPressedKeys.add('F4');
+          return {
+            pressedKeys: newPressedKeys,
+            lastCombination: ['Alt', 'F4'],
+          };
+        });
+        // Trigger the combination immediately since keyup might not fire
+        onCombination(['Alt', 'F4']);
         return false;
       }
       

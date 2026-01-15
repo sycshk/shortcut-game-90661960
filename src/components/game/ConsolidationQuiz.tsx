@@ -8,7 +8,10 @@ import {
   QuizQuestion, 
   CONSOLIDATION_QUESTIONS, 
   shuffleQuestions,
-  getQuestionsByCategory 
+  getQuestionsByCategory,
+  getQuestionsByTool,
+  EPM_TOOL_CONFIG,
+  EPMTool
 } from '@/data/consolidationQuiz';
 
 interface ConsolidationQuizProps {
@@ -17,7 +20,7 @@ interface ConsolidationQuizProps {
   userEmail?: string;
 }
 
-type QuizCategory = 'all' | 'budget' | 'consolidation' | 'kpi' | 'general';
+type QuizCategory = 'all' | 'budget' | 'consolidation' | 'kpi' | 'general' | EPMTool;
 
 const CATEGORY_LABELS: Record<QuizCategory, { label: string; icon: string; color: string }> = {
   all: { label: 'All Topics', icon: '📚', color: 'text-primary' },
@@ -25,6 +28,12 @@ const CATEGORY_LABELS: Record<QuizCategory, { label: string; icon: string; color
   consolidation: { label: 'Financial Consolidation', icon: '🏢', color: 'text-blue-500' },
   kpi: { label: 'KPI Development', icon: '📊', color: 'text-purple-500' },
   general: { label: 'General EPM', icon: '⚡', color: 'text-orange-500' },
+  // Tool-specific categories
+  oracle_fccs: { label: 'Oracle FCCS', icon: '🔷', color: 'text-red-500' },
+  oracle_pbcs: { label: 'Oracle PBCS', icon: '🔶', color: 'text-orange-500' },
+  jedox: { label: 'Jedox', icon: '🟢', color: 'text-green-500' },
+  netsuite: { label: 'NetSuite EPM', icon: '🟠', color: 'text-amber-500' },
+  tagetik: { label: 'CCH Tagetik', icon: '🟣', color: 'text-purple-500' },
 };
 
 const POINTS_PER_QUESTION = 10;
@@ -50,10 +59,17 @@ export const ConsolidationQuiz = ({ onBack, onScoreSave, userEmail }: Consolidat
 
   // Start quiz
   const startQuiz = useCallback(() => {
-    const categoryQuestions = selectedCategory === 'all' 
-      ? CONSOLIDATION_QUESTIONS 
-      : getQuestionsByCategory(selectedCategory as any);
-    const shuffled = shuffleQuestions(categoryQuestions, 10);
+    let categoryQuestions: QuizQuestion[];
+    
+    if (selectedCategory === 'all') {
+      categoryQuestions = CONSOLIDATION_QUESTIONS;
+    } else if (['oracle_fccs', 'oracle_pbcs', 'jedox', 'netsuite', 'tagetik'].includes(selectedCategory)) {
+      categoryQuestions = getQuestionsByTool(selectedCategory as EPMTool);
+    } else {
+      categoryQuestions = getQuestionsByCategory(selectedCategory as 'budget' | 'consolidation' | 'kpi' | 'general');
+    }
+    
+    const shuffled = shuffleQuestions(categoryQuestions, Math.min(10, categoryQuestions.length));
     setQuestions(shuffled);
     setCurrentIndex(0);
     setScore(0);
