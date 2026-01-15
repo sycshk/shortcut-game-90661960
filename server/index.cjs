@@ -147,6 +147,8 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 // Ensure we have a reference to keep the process alive
 server.on('error', (err) => {
   console.error('❌ Server error:', err);
+  // If we cannot bind to the port (common during deploys), exit non-zero so systemd reports a real failure.
+  process.exit(1);
 });
 
 // Log when connections happen (debug)
