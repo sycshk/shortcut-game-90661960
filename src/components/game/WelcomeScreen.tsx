@@ -171,16 +171,14 @@ export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, userEmai
             
             <div className="space-y-3">
               {/* Daily Challenge Button */}
-              <Button 
-                onClick={onDailyChallenge} 
-                size="lg" 
+              <button 
+                onClick={onDailyChallenge}
                 className={cn(
-                  "w-full text-lg relative overflow-hidden",
+                  "inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-11 rounded-md px-8 btn-elufa w-full text-lg",
                   dailyCompleted 
-                    ? "bg-success/20 border-success text-success hover:bg-success/30" 
-                    : "bg-gradient-to-r from-secondary via-primary to-secondary bg-[length:200%_100%] animate-[shimmer_2s_linear_infinite] text-white"
+                    ? "bg-success/20 border border-success text-success hover:bg-success/30" 
+                    : "bg-primary text-primary-foreground hover:bg-primary/90"
                 )}
-                variant={dailyCompleted ? "outline" : "default"}
               >
                 <Calendar className="mr-2 h-5 w-5" />
                 {dailyCompleted ? 'Daily Complete ✓' : "Today's Challenge"}
@@ -190,12 +188,15 @@ export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, userEmai
                     {dailyStreak}
                   </span>
                 )}
-              </Button>
+              </button>
 
-              <Button onClick={onStart} size="lg" className="btn-elufa w-full text-lg">
+              <button 
+                onClick={onStart}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 h-11 rounded-md px-8 btn-elufa w-full text-lg"
+              >
                 <Gamepad2 className="mr-2 h-5 w-5" />
-                Practice Mode
-              </Button>
+                Start Game
+              </button>
               <Button onClick={onAnalytics} variant="outline" size="lg" className="w-full glass-button">
                 <BarChart3 className="mr-2 h-4 w-4" />
                 View Analytics
