@@ -26,6 +26,7 @@ export const ShortcutGame = () => {
     toggleHint,
     saveToLeaderboard,
     goToAnalytics,
+    handlePause,
   } = useGameState();
 
   // Check for existing session on mount
@@ -124,6 +125,7 @@ export const ShortcutGame = () => {
           onAnswer={checkAnswer}
           onMultipleChoiceAnswer={handleMultipleChoiceAnswer}
           onToggleHint={toggleHint}
+          onPause={handlePause}
         />
       );
     

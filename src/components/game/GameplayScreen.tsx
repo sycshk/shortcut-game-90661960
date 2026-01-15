@@ -1,11 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { GameState, DIFFICULTY_CONFIG, LEVEL_CONFIG } from '@/types/game';
 import { useKeyboardCapture, useFullscreen } from '@/hooks/useKeyboardCapture';
 import { cn } from '@/lib/utils';
-import { Timer, Target, CheckCircle2, XCircle, Flame, Lightbulb, Minimize2, Clock } from 'lucide-react';
+import { Timer, Target, CheckCircle2, XCircle, Flame, Lightbulb, Minimize2, Clock, AlertTriangle, Play } from 'lucide-react';
 
 interface GameplayScreenProps {
   state: GameState;
@@ -13,9 +13,13 @@ interface GameplayScreenProps {
   onAnswer: (keys: string[]) => void;
   onMultipleChoiceAnswer: (keys: string[]) => void;
   onToggleHint?: () => void;
+  onPause?: (isPaused: boolean) => void;
 }
 
-export const GameplayScreen = ({ state, feedback, onAnswer, onMultipleChoiceAnswer, onToggleHint }: GameplayScreenProps) => {
+export const GameplayScreen = ({ state, feedback, onAnswer, onMultipleChoiceAnswer, onToggleHint, onPause }: GameplayScreenProps) => {
+  const [isPaused, setIsPaused] = useState(false);
+  const [pauseReason, setPauseReason] = useState<'focus' | 'manual' | null>(null);
+  
   const currentShortcut = state.shortcuts[state.currentShortcutIndex];
   const config = state.level ? LEVEL_CONFIG[state.level] : (state.difficulty ? DIFFICULTY_CONFIG[state.difficulty] : DIFFICULTY_CONFIG.easy);
   const progress = ((state.currentShortcutIndex) / state.totalQuestions) * 100;
@@ -23,9 +27,51 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onMultipleChoiceAnsw
 
   const isMultipleChoice = state.questionType === 'multipleChoice';
 
+  // Pause/Resume handlers
+  const handlePause = useCallback((reason: 'focus' | 'manual') => {
+    setIsPaused(true);
+    setPauseReason(reason);
+    onPause?.(true);
+  }, [onPause]);
+
+  const handleResume = useCallback(() => {
+    setIsPaused(false);
+    setPauseReason(null);
+    onPause?.(false);
+  }, [onPause]);
+
+  // Focus loss detection
+  useEffect(() => {
+    if (state.status !== 'playing') return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        handlePause('focus');
+      }
+    };
+
+    const handleWindowBlur = () => {
+      handlePause('focus');
+    };
+
+    const handleWindowFocus = () => {
+      // Don't auto-resume, let user click to resume
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleWindowBlur);
+    window.addEventListener('focus', handleWindowFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleWindowBlur);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, [state.status, handlePause]);
+
   // Handle keyboard input for both keyboard and multiple choice questions
-  const handleKeyboardAnswer = (keys: string[]) => {
-    if (feedback || state.waitingForNext) return;
+  const handleKeyboardAnswer = useCallback((keys: string[]) => {
+    if (feedback || state.waitingForNext || isPaused) return;
     
     if (isMultipleChoice && state.multipleChoiceOptions) {
       // For multiple choice, match pressed keys to one of the options
@@ -44,29 +90,85 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onMultipleChoiceAnsw
       // Regular keyboard question
       onAnswer(keys);
     }
-  };
+  }, [feedback, state.waitingForNext, isPaused, isMultipleChoice, state.multipleChoiceOptions, onMultipleChoiceAnswer, onAnswer]);
 
-  // Always capture keyboard when playing (for both keyboard and multiple choice)
-  const isKeyboardActive = state.status === 'playing' && !feedback && !state.waitingForNext;
+  // Always capture keyboard when playing and not paused
+  const isKeyboardActive = state.status === 'playing' && !feedback && !state.waitingForNext && !isPaused;
   const { lastCombination } = useKeyboardCapture(isKeyboardActive, handleKeyboardAnswer);
   const { isFullscreen, enterFullscreen, exitFullscreen } = useFullscreen();
 
   // Enter fullscreen when gameplay starts
   useEffect(() => {
-    if (state.status === 'playing' && !isFullscreen) {
+    if (state.status === 'playing' && !isFullscreen && !isPaused) {
       enterFullscreen();
     }
-  }, [state.status, isFullscreen, enterFullscreen]);
+  }, [state.status, isFullscreen, isPaused, enterFullscreen]);
 
   if (!currentShortcut) return null;
 
   return (
     <div className={cn(
-      "flex min-h-screen flex-col items-center justify-center animated-bg p-4",
+      "flex min-h-screen flex-col items-center justify-center animated-bg p-4 relative",
       isFullscreen && "fullscreen-mode"
     )}>
+      {/* Pause Overlay */}
+      {isPaused && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-md animate-fade-in">
+          <Card className="glass-card w-full max-w-md mx-4 text-center">
+            <CardContent className="p-8 space-y-6">
+              <div className="mx-auto w-20 h-20 rounded-full bg-warning/10 flex items-center justify-center">
+                <AlertTriangle className="h-10 w-10 text-warning animate-pulse" />
+              </div>
+              
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold text-foreground">Game Paused</h2>
+                {pauseReason === 'focus' ? (
+                  <p className="text-muted-foreground">
+                    You switched away from the game. Click below to resume playing.
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground">
+                    Take a break! Click below when you're ready to continue.
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
+                  <div className="flex justify-between mb-1">
+                    <span>Current Score:</span>
+                    <span className="font-bold text-primary">{state.score}</span>
+                  </div>
+                  <div className="flex justify-between mb-1">
+                    <span>Question:</span>
+                    <span className="font-medium">{state.currentShortcutIndex + 1} / {state.totalQuestions}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Streak:</span>
+                    <span className="font-medium text-secondary">{state.currentStreak}</span>
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handleResume} 
+                  size="lg" 
+                  className="w-full btn-elufa"
+                >
+                  <Play className="h-5 w-5 mr-2" />
+                  Resume Game
+                </Button>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                💡 Tip: Stay focused to maintain your streak bonus!
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Fullscreen indicator */}
-      {isFullscreen && (
+      {isFullscreen && !isPaused && (
         <Button
           variant="ghost"
           size="sm"
@@ -79,7 +181,7 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onMultipleChoiceAnsw
       )}
 
       {/* Waiting indicator after wrong answer */}
-      {state.waitingForNext && feedback === 'incorrect' && (
+      {state.waitingForNext && feedback === 'incorrect' && !isPaused && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-muted/90 px-4 py-2 rounded-full flex items-center gap-2 text-sm">
           <Clock className="h-4 w-4 animate-spin" />
           <span>Next question in a moment...</span>
