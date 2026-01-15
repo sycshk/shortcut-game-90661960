@@ -9,6 +9,10 @@
 
 set -e
 
+# Script location (helps avoid running an outdated copy)
+SCRIPT_PATH="$(readlink -f "$0" 2>/dev/null || realpath "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+
 # Configuration
 REPO_URL="https://github.com/sycshk/shortcut-game-90661960.git"
 INSTALL_DIR="/opt/shortcut-game"
@@ -123,6 +127,14 @@ force_update_repository() {
     log_info "Cloning repository..."
     git clone "$REPO_URL" "$INSTALL_DIR"
     cd "$INSTALL_DIR"
+
+    # If this script is being run from outside the repo (common: /opt/update.sh),
+    # overwrite that copy so the NEXT run uses the latest version.
+    if [ "$SCRIPT_PATH" != "$INSTALL_DIR/update.sh" ] && [ -f "$INSTALL_DIR/update.sh" ]; then
+        cp -f "$INSTALL_DIR/update.sh" "$SCRIPT_PATH" \
+          && log_info "Updated deployment script at: $SCRIPT_PATH" \
+          || log_warn "Could not self-update script at: $SCRIPT_PATH"
+    fi
     
     log_info "Repository cloned successfully"
 }
@@ -243,7 +255,9 @@ EOF
 # Start the service
 start_service() {
     log_info "Starting service..."
-    systemctl start $SERVICE_NAME
+
+    # Use restart to ensure systemd picks up the latest unit changes
+    systemctl restart $SERVICE_NAME
     
     sleep 3
     
