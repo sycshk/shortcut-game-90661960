@@ -5,11 +5,12 @@ import { Progress } from '@/components/ui/progress';
 import { 
   getDailyShortcuts, 
   isDailyChallengeCompleted, 
-  getDailyChallengeData,
-  getDailyStreakData,
+  getDailyChallengeDataSync,
+  getDailyStreakDataSync,
   getTimeUntilNextChallenge,
   DAILY_BADGES,
-  saveDailyChallengeCompletion
+  DailyChallengeData,
+  DailyStreakData
 } from '@/services/dailyChallengeService';
 import { ArrowLeft, Calendar, Trophy, Flame, Clock, Star, CheckCircle2, Lock, Gift } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -22,16 +23,16 @@ interface DailyChallengeScreenProps {
 
 export const DailyChallengeScreen = ({ onBack, onStartChallenge, userEmail }: DailyChallengeScreenProps) => {
   const [isCompleted, setIsCompleted] = useState(false);
-  const [challengeData, setChallengeData] = useState<ReturnType<typeof getDailyChallengeData>>(null);
-  const [streakData, setStreakData] = useState(getDailyStreakData());
+  const [challengeData, setChallengeData] = useState<DailyChallengeData | null>(null);
+  const [streakData, setStreakData] = useState<DailyStreakData>(getDailyStreakDataSync());
   const [countdown, setCountdown] = useState(getTimeUntilNextChallenge());
   
   const shortcuts = getDailyShortcuts();
   
   useEffect(() => {
     setIsCompleted(isDailyChallengeCompleted());
-    setChallengeData(getDailyChallengeData());
-    setStreakData(getDailyStreakData());
+    setChallengeData(getDailyChallengeDataSync());
+    setStreakData(getDailyStreakDataSync());
   }, []);
   
   // Countdown timer

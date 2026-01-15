@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Trophy, Zap, Medal, LogOut, BarChart3, Edit2, Check, X, Gamepad2, Calendar, Flame, Star } from 'lucide-react';
-import { leaderboardService } from '@/services/leaderboardService';
-import { isDailyChallengeCompleted, getDailyStreakData } from '@/services/dailyChallengeService';
+import { leaderboardService, UserProfileData } from '@/services/leaderboardService';
+import { isDailyChallengeCompleted, getDailyStreakDataSync } from '@/services/dailyChallengeService';
 import { cn } from '@/lib/utils';
 
 interface WelcomeScreenProps {
@@ -42,26 +42,28 @@ export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, userEmai
 
   const loadData = async () => {
     await leaderboardService.init();
-    setAggregatedLeaderboard(leaderboardService.getAggregatedLeaderboard(10));
+    const leaderboard = await leaderboardService.getAggregatedLeaderboard(10);
+    setAggregatedLeaderboard(leaderboard);
     
     // Load or create profile
     if (userEmail) {
-      let profile = leaderboardService.getProfile(userEmail);
+      let profile = await leaderboardService.getProfile(userEmail);
       if (!profile) {
-        profile = {
+        const newProfile: UserProfileData = {
           email: userEmail,
           displayName: userEmail.split('@')[0],
           createdAt: new Date().toISOString(),
           lastActive: new Date().toISOString(),
         };
-        leaderboardService.saveProfile(profile);
+        await leaderboardService.saveProfile(newProfile);
+        profile = newProfile;
       }
       setDisplayName(profile.displayName);
     }
     
-    // Load daily challenge status
+    // Load daily challenge status (sync functions)
     setDailyCompleted(isDailyChallengeCompleted());
-    setDailyStreak(getDailyStreakData().currentStreak);
+    setDailyStreak(getDailyStreakDataSync().currentStreak);
     
     setIsLoading(false);
   };
@@ -70,14 +72,15 @@ export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, userEmai
     loadData();
   }, [userEmail]);
 
-  const handleSaveName = () => {
+  const handleSaveName = async () => {
     if (tempName.trim() && userEmail && tempName.trim() !== displayName) {
       const oldName = displayName;
-      leaderboardService.updateDisplayName(userEmail, tempName.trim(), oldName);
+      await leaderboardService.updateDisplayName(userEmail, tempName.trim(), oldName);
       setDisplayName(tempName.trim());
       setIsEditingName(false);
       // Refresh leaderboard to show updated names
-      setAggregatedLeaderboard(leaderboardService.getAggregatedLeaderboard(10));
+      const leaderboard = await leaderboardService.getAggregatedLeaderboard(10);
+      setAggregatedLeaderboard(leaderboard);
     } else {
       setIsEditingName(false);
     }

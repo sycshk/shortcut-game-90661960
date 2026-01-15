@@ -259,7 +259,7 @@ export const useGameState = () => {
     }));
   }, []);
 
-  const getLeaderboard = useCallback((): LeaderboardEntry[] => {
+  const getLeaderboard = useCallback(async (): Promise<LeaderboardEntry[]> => {
     return leaderboardService.getTop(10);
   }, []);
 

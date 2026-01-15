@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Bug, RefreshCw, Download, Trash2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Bug, RefreshCw, Download, Trash2, CheckCircle, XCircle, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import { leaderboardService } from '@/services/leaderboardService';
+import { apiService } from '@/services/apiService';
 
 interface DataStatus {
   name: string;
@@ -21,9 +22,15 @@ export const DebugPanel = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [dataStatuses, setDataStatuses] = useState<DataStatus[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [apiOnline, setApiOnline] = useState(false);
 
   const checkDataStatus = async () => {
     setIsRefreshing(true);
+    
+    // Check API status
+    const online = await apiService.ping();
+    setApiOnline(online);
+    
     const statuses: DataStatus[] = [];
 
     const dataFiles = [
@@ -38,24 +45,30 @@ export const DebugPanel = () => {
       let serverCount = 0;
       let lastError = '';
 
-      try {
-        const res = await fetch(file.url + '?t=' + Date.now()); // Cache bust
-        if (res.ok) {
-          const data = await res.json();
-          const countData = data[file.countField];
-          if (Array.isArray(countData)) {
-            serverCount = countData.length;
-          } else if (typeof countData === 'object' && countData !== null) {
-            serverCount = Object.keys(countData).length;
+      if (online) {
+        // Use API endpoints when available
+        serverStatus = 'success';
+        serverCount = -1; // API doesn't provide count easily
+      } else {
+        try {
+          const res = await fetch(file.url + '?t=' + Date.now());
+          if (res.ok) {
+            const data = await res.json();
+            const countData = data[file.countField];
+            if (Array.isArray(countData)) {
+              serverCount = countData.length;
+            } else if (typeof countData === 'object' && countData !== null) {
+              serverCount = Object.keys(countData).length;
+            }
+            serverStatus = serverCount > 0 ? 'success' : 'empty';
+          } else {
+            serverStatus = 'error';
+            lastError = `HTTP ${res.status}: ${res.statusText}`;
           }
-          serverStatus = serverCount > 0 ? 'success' : 'empty';
-        } else {
+        } catch (err) {
           serverStatus = 'error';
-          lastError = `HTTP ${res.status}: ${res.statusText}`;
+          lastError = err instanceof Error ? err.message : 'Unknown error';
         }
-      } catch (err) {
-        serverStatus = 'error';
-        lastError = err instanceof Error ? err.message : 'Unknown error';
       }
 
       // Check localStorage
@@ -110,28 +123,8 @@ export const DebugPanel = () => {
     }
   }, [isOpen]);
 
-  const handleExportAll = () => {
-    leaderboardService.syncAllToExport();
-    console.log('📤 Export triggered - check localStorage for export keys');
-    checkDataStatus();
-  };
-
   const handleDownloadExport = () => {
-    const exportData = {
-      leaderboard: JSON.parse(localStorage.getItem('shortcut-export-leaderboard') || '{}'),
-      profiles: JSON.parse(localStorage.getItem('shortcut-export-profiles') || '{}'),
-      sessions: JSON.parse(localStorage.getItem('shortcut-export-sessions') || '{}'),
-      history: JSON.parse(localStorage.getItem('shortcut-export-history') || '{}'),
-      exportedAt: new Date().toISOString(),
-    };
-    
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `shortcut-data-export-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    leaderboardService.exportAllData();
   };
 
   const handleClearLocal = () => {
@@ -182,6 +175,17 @@ export const DebugPanel = () => {
         <CardTitle className="text-sm flex items-center gap-2">
           <Bug className="h-4 w-4" />
           Data Sync Debug
+          {apiOnline ? (
+            <Badge variant="outline" className="text-green-500 border-green-500 text-[10px]">
+              <Wifi className="h-3 w-3 mr-1" />
+              API Online
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-yellow-500 border-yellow-500 text-[10px]">
+              <WifiOff className="h-3 w-3 mr-1" />
+              Offline Mode
+            </Badge>
+          )}
         </CardTitle>
         <div className="flex gap-1">
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={checkDataStatus} disabled={isRefreshing}>
@@ -204,9 +208,9 @@ export const DebugPanel = () => {
               </div>
               <div className="grid grid-cols-3 gap-2 text-muted-foreground">
                 <div>
-                  <span className="block text-[10px] uppercase">Server</span>
+                  <span className="block text-[10px] uppercase">{apiOnline ? 'API' : 'Server'}</span>
                   <Badge variant={status.serverStatus === 'error' ? 'destructive' : 'secondary'} className="text-[10px]">
-                    {status.serverCount} items
+                    {apiOnline ? 'Connected' : `${status.serverCount} items`}
                   </Badge>
                 </div>
                 <div>
@@ -235,19 +239,24 @@ export const DebugPanel = () => {
         <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2 text-blue-300">
           <div className="font-medium mb-1">ℹ️ How Sync Works</div>
           <ul className="space-y-0.5 text-[10px]">
-            <li>• <strong>Server:</strong> JSON files in /public/data/ (read-only in browser)</li>
-            <li>• <strong>Local:</strong> Browser localStorage (your active data)</li>
-            <li>• <strong>Export:</strong> Data formatted for server sync</li>
-            <li>• To persist: Download export → Replace JSON files on server</li>
+            {apiOnline ? (
+              <>
+                <li>• <strong>API:</strong> SQLite database backend (live sync)</li>
+                <li>• <strong>Local:</strong> Browser localStorage (backup)</li>
+                <li>• Data syncs automatically to the server</li>
+              </>
+            ) : (
+              <>
+                <li>• <strong>Server:</strong> JSON files in /public/data/ (read-only)</li>
+                <li>• <strong>Local:</strong> Browser localStorage (your active data)</li>
+                <li>• Deploy with SQLite backend for live sync</li>
+              </>
+            )}
           </ul>
         </div>
 
         {/* Actions */}
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" className="text-xs h-7" onClick={handleExportAll}>
-            <RefreshCw className="h-3 w-3 mr-1" />
-            Sync to Export
-          </Button>
           <Button size="sm" variant="outline" className="text-xs h-7" onClick={handleDownloadExport}>
             <Download className="h-3 w-3 mr-1" />
             Download Export

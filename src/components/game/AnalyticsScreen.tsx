@@ -31,13 +31,30 @@ export const AnalyticsScreen = ({ onBack, userEmail }: AnalyticsScreenProps) => 
   const [recentSessions, setRecentSessions] = useState<any[]>([]);
   const [answerHistory, setAnswerHistory] = useState<AnswerRecord[]>([]);
   const [historyFilter, setHistoryFilter] = useState<'all' | 'wrong' | 'correct'>('all');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setCategoryAnalysis(leaderboardService.getCategoryAnalysis(userEmail));
-    setOverallStats(leaderboardService.getOverallStats(userEmail));
-    setWeakShortcuts(leaderboardService.getWeakShortcuts(userEmail));
-    setRecentSessions(leaderboardService.getRecentSessions(5, userEmail));
-    setAnswerHistory(leaderboardService.getAnswerHistory(userEmail));
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        const [catAnalysis, stats, weak, sessions, history] = await Promise.all([
+          leaderboardService.getCategoryAnalysis(userEmail),
+          leaderboardService.getOverallStats(userEmail),
+          leaderboardService.getWeakShortcuts(userEmail),
+          leaderboardService.getRecentSessions(5, userEmail),
+          leaderboardService.getAnswerHistory(userEmail)
+        ]);
+        setCategoryAnalysis(catAnalysis);
+        setOverallStats(stats);
+        setWeakShortcuts(weak);
+        setRecentSessions(sessions);
+        setAnswerHistory(history);
+      } catch (error) {
+        console.error('Failed to load analytics:', error);
+      }
+      setIsLoading(false);
+    };
+    loadData();
   }, [userEmail]);
 
   const categories: Category[] = ['windows', 'excel', 'powerpoint', 'general'];
@@ -68,6 +85,17 @@ export const AnalyticsScreen = ({ onBack, userEmail }: AnalyticsScreenProps) => 
       uniqueWrongShortcuts.set(record.shortcutId, record);
     }
   });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen animated-bg p-4 flex items-center justify-center">
+        <div className="glass-card p-8 text-center">
+          <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
+          <p className="text-muted-foreground">Loading analytics...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen animated-bg p-4">

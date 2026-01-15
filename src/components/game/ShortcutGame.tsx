@@ -8,7 +8,7 @@ import { ResultsScreen } from './ResultsScreen';
 import { AnalyticsScreen } from './AnalyticsScreen';
 import { DailyChallengeScreen } from './DailyChallengeScreen';
 import { DebugPanel } from './DebugPanel';
-import { leaderboardService } from '@/services/leaderboardService';
+import { leaderboardService, UserProfileData } from '@/services/leaderboardService';
 import { getDailyShortcuts, saveDailyChallengeCompletion } from '@/services/dailyChallengeService';
 
 const USER_SESSION_KEY = 'shortcut-user-session';
@@ -43,7 +43,7 @@ export const ShortcutGame = () => {
         setUserEmail(savedEmail);
         
         // Load profile
-        const profile = leaderboardService.getProfile(savedEmail);
+        const profile = await leaderboardService.getProfile(savedEmail);
         if (profile) {
           setDisplayName(profile.displayName);
         } else {
@@ -55,20 +55,21 @@ export const ShortcutGame = () => {
     loadSession();
   }, []);
 
-  const handleLogin = (email: string) => {
+  const handleLogin = async (email: string) => {
     localStorage.setItem(USER_SESSION_KEY, email);
     setUserEmail(email);
     
     // Create or update profile
-    let profile = leaderboardService.getProfile(email);
+    let profile = await leaderboardService.getProfile(email);
     if (!profile) {
-      profile = {
+      const newProfile: UserProfileData = {
         email,
         displayName: email.split('@')[0],
         createdAt: new Date().toISOString(),
         lastActive: new Date().toISOString(),
       };
-      leaderboardService.saveProfile(profile);
+      await leaderboardService.saveProfile(newProfile);
+      profile = newProfile;
     }
     setDisplayName(profile.displayName);
   };
@@ -93,7 +94,7 @@ export const ShortcutGame = () => {
     
     // Save daily challenge completion
     const accuracy = Math.round((state.correctAnswers / state.totalQuestions) * 100);
-    saveDailyChallengeCompletion(state.score, accuracy);
+    saveDailyChallengeCompletion(state.score, accuracy, userEmail || undefined);
     
     setIsDailyMode(false);
   };
