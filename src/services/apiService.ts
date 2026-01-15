@@ -314,6 +314,28 @@ class ApiService {
   async ping() {
     return this.checkHealth();
   }
+
+  async getDebugInfo() {
+    return this.request<{
+      status: string;
+      server: {
+        nodeVersion: string;
+        uptime: number;
+        uptimeFormatted: string;
+        memoryUsage: number;
+        env: string;
+      };
+      database: {
+        path: string;
+        exists: boolean;
+        size: number;
+        sizeFormatted: string;
+        modified: string;
+        tables: Record<string, number | string>;
+      };
+      timestamp: string;
+    }>('/debug');
+  }
 }
 
 // Export singleton instance
