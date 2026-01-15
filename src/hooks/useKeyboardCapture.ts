@@ -190,23 +190,30 @@ export const useFullscreen = () => {
   }, [isGameActive, enterFullscreen]);
 
   // Intercept ESC key during game to prevent exit
+  // Enhanced ESC key blocking with multiple event phases
   useEffect(() => {
     if (!isGameActive) return;
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+    const blockEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.code === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
-        // Don't exit fullscreen, keep playing
+        e.stopImmediatePropagation();
         return false;
       }
     };
 
-    // Use capture phase to intercept before browser handles it
-    document.addEventListener('keydown', handleKeyDown, { capture: true });
+    // Block at multiple levels for maximum interception
+    document.addEventListener('keydown', blockEscape, { capture: true });
+    document.addEventListener('keyup', blockEscape, { capture: true });
+    window.addEventListener('keydown', blockEscape, { capture: true });
+    window.addEventListener('keyup', blockEscape, { capture: true });
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown, { capture: true });
+      document.removeEventListener('keydown', blockEscape, { capture: true });
+      document.removeEventListener('keyup', blockEscape, { capture: true });
+      window.removeEventListener('keydown', blockEscape, { capture: true });
+      window.removeEventListener('keyup', blockEscape, { capture: true });
     };
   }, [isGameActive]);
 

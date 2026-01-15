@@ -8,6 +8,7 @@ import { ResultsScreen } from './ResultsScreen';
 import { AnalyticsScreen } from './AnalyticsScreen';
 import { DailyChallengeScreen } from './DailyChallengeScreen';
 import { ProfilePage } from './ProfilePage';
+import { GamesHub } from './GamesHub';
 import { leaderboardService, UserProfileData } from '@/services/leaderboardService';
 import { getDailyShortcuts, saveDailyChallengeCompletion } from '@/services/dailyChallengeService';
 
@@ -33,6 +34,7 @@ export const ShortcutGame = () => {
     goToAnalytics,
     goToDailyChallenge,
     goToProfile,
+    goToMiniGames,
     handlePause,
   } = useGameState();
 
@@ -130,6 +132,7 @@ export const ShortcutGame = () => {
             onAnalytics={goToAnalytics}
             onDailyChallenge={goToDailyChallenge}
             onProfile={goToProfile}
+            onMiniGames={goToMiniGames}
             userEmail={userEmail}
             onLogout={handleLogout}
           />
@@ -141,6 +144,14 @@ export const ShortcutGame = () => {
             onBack={resetGame}
             userEmail={userEmail}
             displayName={displayName}
+          />
+        );
+      
+      case 'miniGames':
+        return (
+          <GamesHub
+            onBack={resetGame}
+            userEmail={userEmail}
           />
         );
       

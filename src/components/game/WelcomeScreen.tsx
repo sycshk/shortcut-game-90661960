@@ -7,12 +7,14 @@ import { leaderboardService, UserProfileData } from '@/services/leaderboardServi
 import { isDailyChallengeCompleted, getDailyStreakDataSync } from '@/services/dailyChallengeService';
 import { cn } from '@/lib/utils';
 import { HallOfFame } from './HallOfFame';
+import { PlayerAvatar } from './PlayerAvatar';
 
 interface WelcomeScreenProps {
   onStart: () => void;
   onAnalytics: () => void;
   onDailyChallenge: () => void;
   onProfile: () => void;
+  onMiniGames?: () => void;
   userEmail?: string;
   onLogout?: () => void;
 }
@@ -33,7 +35,7 @@ const ShortcutKeyIcon = () => (
   </div>
 );
 
-export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, onProfile, userEmail, onLogout }: WelcomeScreenProps) => {
+export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, onProfile, onMiniGames, userEmail, onLogout }: WelcomeScreenProps) => {
   const [aggregatedLeaderboard, setAggregatedLeaderboard] = useState<{ name: string; totalScore: number; gamesPlayed: number; avgAccuracy: number }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [displayName, setDisplayName] = useState('');
@@ -210,6 +212,12 @@ export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, onProfil
                 <User className="mr-2 h-4 w-4" />
                 My Profile & Achievements
               </Button>
+              {onMiniGames && (
+                <Button onClick={onMiniGames} variant="outline" size="lg" className="w-full glass-button">
+                  <Gamepad2 className="mr-2 h-4 w-4" />
+                  Mini Games
+                </Button>
+              )}
             </div>
             
             <p className="text-xs text-muted-foreground">
@@ -251,12 +259,15 @@ export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, onProfil
                       index < 3 && 'bg-primary/5'
                     )}
                   >
-                    <div className={cn('flex h-7 w-7 items-center justify-center font-bold text-sm', getMedalColor(index))}>
-                      {index < 3 ? (
-                        <Medal className="h-5 w-5" />
-                      ) : (
-                        <span>{index + 1}</span>
-                      )}
+                    <div className="flex items-center gap-2">
+                      <PlayerAvatar email={undefined} size="sm" />
+                      <div className={cn('flex h-6 w-6 items-center justify-center font-bold text-xs', getMedalColor(index))}>
+                        {index < 3 ? (
+                          <Medal className="h-4 w-4" />
+                        ) : (
+                          <span>{index + 1}</span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm truncate">{entry.name}</div>
