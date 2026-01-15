@@ -105,7 +105,7 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onMultipleChoiceAnsw
   // Always capture keyboard when playing and not paused
   const isKeyboardActive = state.status === 'playing' && !feedback && !state.waitingForNext && !isPaused;
   const { lastCombination } = useKeyboardCapture(isKeyboardActive, handleKeyboardAnswer);
-  const { isFullscreen, enterFullscreen, exitFullscreen } = useFullscreen();
+  const { isFullscreen, enterFullscreen, exitFullscreen, needsFullscreenRestore } = useFullscreen();
 
   // Enter fullscreen when gameplay starts
   useEffect(() => {
@@ -121,6 +121,34 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onMultipleChoiceAnsw
       "flex min-h-screen flex-col items-center justify-center animated-bg p-4 relative",
       isFullscreen && "fullscreen-mode"
     )}>
+      {/* Fullscreen restore overlay (Escape will often force-exit fullscreen in browsers) */}
+      {needsFullscreenRestore && !isFullscreen && !isPaused && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-md animate-fade-in">
+          <Card className="glass-card w-full max-w-md mx-4 text-center">
+            <CardContent className="p-8 space-y-6">
+              <div className="mx-auto w-20 h-20 rounded-full bg-muted/30 flex items-center justify-center">
+                <Minimize2 className="h-10 w-10 text-muted-foreground" />
+              </div>
+
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold text-foreground">Fullscreen exited</h2>
+                <p className="text-muted-foreground">
+                  Your browser forced fullscreen to exit (usually via <kbd className="kbd-key text-xs">Escape</kbd>). Click below to re-enter.
+                </p>
+              </div>
+
+              <Button onClick={enterFullscreen} size="lg" className="w-full btn-elufa">
+                Re-enter Fullscreen
+              </Button>
+
+              <p className="text-xs text-muted-foreground">
+                Tip: Some OS/browser shortcuts (Win key, Alt+Tab, Escape fullscreen) can’t be captured reliably in a browser game.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Pause Overlay */}
       {isPaused && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-md animate-fade-in">
