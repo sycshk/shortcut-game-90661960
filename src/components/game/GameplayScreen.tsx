@@ -21,9 +21,34 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onMultipleChoiceAnsw
   const progress = ((state.currentShortcutIndex) / state.totalQuestions) * 100;
   const timeProgress = (state.timeRemaining / config.timePerQuestion) * 100;
 
-  // Only capture keyboard when it's a keyboard question and not waiting
-  const isKeyboardActive = state.status === 'playing' && !feedback && state.questionType === 'keyboard' && !state.waitingForNext;
-  const { lastCombination } = useKeyboardCapture(isKeyboardActive, onAnswer);
+  const isMultipleChoice = state.questionType === 'multipleChoice';
+
+  // Handle keyboard input for both keyboard and multiple choice questions
+  const handleKeyboardAnswer = (keys: string[]) => {
+    if (feedback || state.waitingForNext) return;
+    
+    if (isMultipleChoice && state.multipleChoiceOptions) {
+      // For multiple choice, match pressed keys to one of the options
+      const pressedSorted = keys.map(k => k.toUpperCase()).sort().join('+');
+      
+      for (const option of state.multipleChoiceOptions) {
+        const optionSorted = option.map(k => k.toUpperCase()).sort().join('+');
+        if (pressedSorted === optionSorted) {
+          onMultipleChoiceAnswer(option);
+          return;
+        }
+      }
+      // If no match found, still pass to regular handler (will be marked wrong)
+      onAnswer(keys);
+    } else {
+      // Regular keyboard question
+      onAnswer(keys);
+    }
+  };
+
+  // Always capture keyboard when playing (for both keyboard and multiple choice)
+  const isKeyboardActive = state.status === 'playing' && !feedback && !state.waitingForNext;
+  const { lastCombination } = useKeyboardCapture(isKeyboardActive, handleKeyboardAnswer);
   const { isFullscreen, enterFullscreen, exitFullscreen } = useFullscreen();
 
   // Enter fullscreen when gameplay starts
@@ -34,8 +59,6 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onMultipleChoiceAnsw
   }, [state.status, isFullscreen, enterFullscreen]);
 
   if (!currentShortcut) return null;
-
-  const isMultipleChoice = state.questionType === 'multipleChoice';
 
   return (
     <div className={cn(
@@ -154,30 +177,57 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onMultipleChoiceAnsw
           {/* Input Area */}
           <div className="flex flex-col items-center">
             {isMultipleChoice ? (
-              // Multiple Choice Options
-              <div className="grid grid-cols-2 gap-3 w-full max-w-md">
-                {state.multipleChoiceOptions?.map((option, index) => {
-                  const optionString = option.join(' + ');
-                  const isCorrectOption = option.join('+') === currentShortcut.keys.join('+');
-                  const showResult = feedback !== null;
-                  
-                  return (
-                    <Button
-                      key={index}
-                      variant="outline"
-                      className={cn(
-                        'h-auto py-4 px-4 text-lg font-mono transition-all',
-                        showResult && isCorrectOption && 'bg-success/20 border-success text-success',
-                        showResult && !isCorrectOption && 'opacity-50',
-                        !showResult && 'hover:bg-primary/10 hover:border-primary'
-                      )}
-                      onClick={() => !feedback && !state.waitingForNext && onMultipleChoiceAnswer(option)}
-                      disabled={!!feedback || state.waitingForNext}
-                    >
-                      {optionString}
-                    </Button>
-                  );
-                })}
+              // Multiple Choice Options with keyboard support
+              <div className="space-y-4 w-full max-w-md">
+                {/* Show currently pressed keys for multiple choice */}
+                {lastCombination.length > 0 && !feedback && (
+                  <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-muted/30 border border-dashed">
+                    <span className="text-sm text-muted-foreground mr-2">Pressing:</span>
+                    {lastCombination.map((key, index) => (
+                      <span key={index} className="flex items-center">
+                        <kbd className="kbd-key text-sm">{key}</kbd>
+                        {index < lastCombination.length - 1 && (
+                          <span className="mx-1 text-muted-foreground">+</span>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-2 gap-3">
+                  {state.multipleChoiceOptions?.map((option, index) => {
+                    const optionString = option.join(' + ');
+                    const isCorrectOption = option.join('+') === currentShortcut.keys.join('+');
+                    const showResult = feedback !== null;
+                    
+                    // Highlight option if currently pressed keys match
+                    const pressedSorted = lastCombination.map(k => k.toUpperCase()).sort().join('+');
+                    const optionSorted = option.map(k => k.toUpperCase()).sort().join('+');
+                    const isBeingPressed = !showResult && pressedSorted === optionSorted && lastCombination.length > 0;
+                    
+                    return (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        className={cn(
+                          'h-auto py-4 px-4 text-lg font-mono transition-all',
+                          showResult && isCorrectOption && 'bg-success/20 border-success text-success',
+                          showResult && !isCorrectOption && 'opacity-50',
+                          !showResult && 'hover:bg-primary/10 hover:border-primary',
+                          isBeingPressed && 'bg-primary/20 border-primary ring-2 ring-primary'
+                        )}
+                        onClick={() => !feedback && !state.waitingForNext && onMultipleChoiceAnswer(option)}
+                        disabled={!!feedback || state.waitingForNext}
+                      >
+                        {optionString}
+                      </Button>
+                    );
+                  })}
+                </div>
+                
+                <p className="text-center text-sm text-muted-foreground">
+                  Click an option or press the shortcut keys directly
+                </p>
               </div>
             ) : (
               // Keyboard Input Display

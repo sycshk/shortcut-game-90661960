@@ -36,15 +36,18 @@ export const useKeyboardCapture = (isActive: boolean, onCombination: (keys: stri
     if (!isActive) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Prevent default for ALL keys to block system shortcuts
+      // Prevent ALL default browser behaviors to block system shortcuts
+      // This includes Ctrl+P (print), Ctrl+S (save), Ctrl+O (open), etc.
       e.preventDefault();
       e.stopPropagation();
+      e.stopImmediatePropagation();
       
-      // Extra blocking for known system shortcuts
-      if (e.altKey && e.key === 'Tab') return;
-      if (e.altKey && e.key === 'F4') return;
-      if (e.ctrlKey && e.key === 'w') return;
-      if (e.metaKey) return; // Block Windows key combinations
+      // Block specific dangerous combinations but still track the keys
+      const blockedCombos = ['Tab', 'F4'];
+      if (e.altKey && blockedCombos.includes(e.key)) {
+        return;
+      }
+      if (e.metaKey) return; // Block Windows/Command key combinations
       
       const normalizedKey = normalizeKey(e.key, e.code);
       
@@ -56,11 +59,14 @@ export const useKeyboardCapture = (isActive: boolean, onCombination: (keys: stri
           lastCombination: Array.from(newPressedKeys),
         };
       });
+      
+      return false;
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      e.stopImmediatePropagation();
       
       setState(prev => {
         if (prev.pressedKeys.size > 0) {
@@ -74,6 +80,8 @@ export const useKeyboardCapture = (isActive: boolean, onCombination: (keys: stri
           lastCombination: [],
         };
       });
+      
+      return false;
     };
 
     // Block context menu
