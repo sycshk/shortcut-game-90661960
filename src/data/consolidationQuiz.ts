@@ -2269,6 +2269,18 @@ const CORE_QUESTIONS: QuizQuestion[] = [
   }
 ];
 
+// Combine all questions: core + all tool-specific questions
+export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
+  ...CORE_QUESTIONS,
+  ...ORACLE_FCCS_QUESTIONS,
+  ...ORACLE_PBCS_QUESTIONS,
+  ...JEDOX_QUESTIONS,
+  ...NETSUITE_QUESTIONS,
+  ...TAGETIK_QUESTIONS,
+  ...ANAPLAN_QUESTIONS,
+  ...WORKDAY_ADAPTIVE_QUESTIONS
+];
+
 // Get questions by category
 export const getQuestionsByCategory = (category?: 'budget' | 'consolidation' | 'kpi' | 'general') => {
   if (!category) return CONSOLIDATION_QUESTIONS;
