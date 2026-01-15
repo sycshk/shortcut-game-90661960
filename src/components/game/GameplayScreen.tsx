@@ -5,22 +5,25 @@ import { Progress } from '@/components/ui/progress';
 import { GameState, DIFFICULTY_CONFIG, LEVEL_CONFIG } from '@/types/game';
 import { useKeyboardCapture, useFullscreen } from '@/hooks/useKeyboardCapture';
 import { cn } from '@/lib/utils';
-import { Timer, Target, CheckCircle2, XCircle, Flame, Lightbulb, Minimize2 } from 'lucide-react';
+import { Timer, Target, CheckCircle2, XCircle, Flame, Lightbulb, Minimize2, Clock } from 'lucide-react';
 
 interface GameplayScreenProps {
   state: GameState;
   feedback: 'correct' | 'incorrect' | null;
   onAnswer: (keys: string[]) => void;
+  onMultipleChoiceAnswer: (keys: string[]) => void;
   onToggleHint?: () => void;
 }
 
-export const GameplayScreen = ({ state, feedback, onAnswer, onToggleHint }: GameplayScreenProps) => {
+export const GameplayScreen = ({ state, feedback, onAnswer, onMultipleChoiceAnswer, onToggleHint }: GameplayScreenProps) => {
   const currentShortcut = state.shortcuts[state.currentShortcutIndex];
   const config = state.level ? LEVEL_CONFIG[state.level] : (state.difficulty ? DIFFICULTY_CONFIG[state.difficulty] : DIFFICULTY_CONFIG.easy);
   const progress = ((state.currentShortcutIndex) / state.totalQuestions) * 100;
   const timeProgress = (state.timeRemaining / config.timePerQuestion) * 100;
 
-  const { lastCombination } = useKeyboardCapture(state.status === 'playing' && !feedback, onAnswer);
+  // Only capture keyboard when it's a keyboard question and not waiting
+  const isKeyboardActive = state.status === 'playing' && !feedback && state.questionType === 'keyboard' && !state.waitingForNext;
+  const { lastCombination } = useKeyboardCapture(isKeyboardActive, onAnswer);
   const { isFullscreen, enterFullscreen, exitFullscreen } = useFullscreen();
 
   // Enter fullscreen when gameplay starts
@@ -31,6 +34,8 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onToggleHint }: Game
   }, [state.status, isFullscreen, enterFullscreen]);
 
   if (!currentShortcut) return null;
+
+  const isMultipleChoice = state.questionType === 'multipleChoice';
 
   return (
     <div className={cn(
@@ -48,6 +53,14 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onToggleHint }: Game
           <Minimize2 className="h-4 w-4 mr-1" />
           Exit Fullscreen
         </Button>
+      )}
+
+      {/* Waiting indicator after wrong answer */}
+      {state.waitingForNext && feedback === 'incorrect' && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-muted/90 px-4 py-2 rounded-full flex items-center gap-2 text-sm">
+          <Clock className="h-4 w-4 animate-spin" />
+          <span>Next question in a moment...</span>
+        </div>
       )}
 
       {/* Header Stats */}
@@ -75,7 +88,7 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onToggleHint }: Game
       )}>
         <CardContent className="p-8">
           {/* Timer */}
-          {state.mode !== 'practice' && (
+          {state.mode !== 'practice' && !state.waitingForNext && (
             <div className="mb-8">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2 text-muted-foreground">
@@ -109,12 +122,17 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onToggleHint }: Game
                   {LEVEL_CONFIG[state.level].label}
                 </span>
               )}
+              {isMultipleChoice && (
+                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">Multiple Choice</span>
+              )}
             </div>
             <h2 className="text-3xl font-display font-bold mb-2">{currentShortcut.description}</h2>
-            <p className="text-muted-foreground">Press the correct keyboard shortcut</p>
+            <p className="text-muted-foreground">
+              {isMultipleChoice ? 'Select the correct keyboard shortcut' : 'Press the correct keyboard shortcut'}
+            </p>
             
             {/* Hint Button */}
-            {currentShortcut.hint && onToggleHint && (
+            {currentShortcut.hint && onToggleHint && !isMultipleChoice && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -126,37 +144,66 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onToggleHint }: Game
               </Button>
             )}
             
-            {state.showHint && currentShortcut.hint && (
+            {state.showHint && currentShortcut.hint && !isMultipleChoice && (
               <p className="mt-2 text-sm text-primary/80 italic animate-fade-in">
                 💡 {currentShortcut.hint}
               </p>
             )}
           </div>
 
-          {/* Keyboard Input Display */}
+          {/* Input Area */}
           <div className="flex flex-col items-center">
-            <div className="min-h-[80px] flex items-center justify-center gap-2">
-              {lastCombination.length > 0 ? (
-                lastCombination.map((key, index) => (
-                  <span key={index} className="flex items-center">
-                    <kbd className={cn(
-                      'kbd-key',
-                      feedback === 'correct' && 'kbd-key-correct',
-                      feedback === 'incorrect' && 'kbd-key-incorrect'
-                    )}>
-                      {key}
-                    </kbd>
-                    {index < lastCombination.length - 1 && (
-                      <span className="mx-2 text-muted-foreground">+</span>
-                    )}
+            {isMultipleChoice ? (
+              // Multiple Choice Options
+              <div className="grid grid-cols-2 gap-3 w-full max-w-md">
+                {state.multipleChoiceOptions?.map((option, index) => {
+                  const optionString = option.join(' + ');
+                  const isCorrectOption = option.join('+') === currentShortcut.keys.join('+');
+                  const showResult = feedback !== null;
+                  
+                  return (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      className={cn(
+                        'h-auto py-4 px-4 text-lg font-mono transition-all',
+                        showResult && isCorrectOption && 'bg-success/20 border-success text-success',
+                        showResult && !isCorrectOption && 'opacity-50',
+                        !showResult && 'hover:bg-primary/10 hover:border-primary'
+                      )}
+                      onClick={() => !feedback && !state.waitingForNext && onMultipleChoiceAnswer(option)}
+                      disabled={!!feedback || state.waitingForNext}
+                    >
+                      {optionString}
+                    </Button>
+                  );
+                })}
+              </div>
+            ) : (
+              // Keyboard Input Display
+              <div className="min-h-[80px] flex items-center justify-center gap-2">
+                {lastCombination.length > 0 ? (
+                  lastCombination.map((key, index) => (
+                    <span key={index} className="flex items-center">
+                      <kbd className={cn(
+                        'kbd-key',
+                        feedback === 'correct' && 'kbd-key-correct',
+                        feedback === 'incorrect' && 'kbd-key-incorrect'
+                      )}>
+                        {key}
+                      </kbd>
+                      {index < lastCombination.length - 1 && (
+                        <span className="mx-2 text-muted-foreground">+</span>
+                      )}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-muted-foreground italic">
+                    Press your shortcut keys...
                   </span>
-                ))
-              ) : (
-                <span className="text-muted-foreground italic">
-                  Press your shortcut keys...
-                </span>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Feedback Display */}
             {feedback && (
@@ -167,7 +214,7 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onToggleHint }: Game
                 {feedback === 'correct' ? (
                   <>
                     <CheckCircle2 className="h-5 w-5" />
-                    <span>Correct! +{state.currentStreak > 1 ? `streak bonus!` : ''}</span>
+                    <span>Correct! {state.currentStreak > 1 ? 'Streak bonus!' : ''}</span>
                   </>
                 ) : (
                   <>

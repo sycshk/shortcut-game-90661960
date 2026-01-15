@@ -7,6 +7,9 @@ export type Category = 'windows' | 'excel' | 'powerpoint' | 'general';
 // Game Modes
 export type GameMode = 'practice' | 'timed' | 'challenge';
 
+// Question types
+export type QuestionType = 'keyboard' | 'multipleChoice';
+
 // Legacy types for backward compatibility
 export type ShortcutCategory = 'os' | 'office';
 export type Difficulty = 'easy' | 'medium' | 'hard';
@@ -65,7 +68,7 @@ export interface GameSession {
 }
 
 export interface GameState {
-  status: 'welcome' | 'login' | 'setup' | 'playing' | 'results' | 'dashboard';
+  status: 'welcome' | 'login' | 'setup' | 'playing' | 'results' | 'dashboard' | 'analytics';
   category: Category | ShortcutCategory | null;
   difficulty: Difficulty | null;
   level: DifficultyLevel | null;
@@ -81,6 +84,11 @@ export interface GameState {
   hintsUsed: number;
   showHint: boolean;
   isFullscreen: boolean;
+  // New fields for question type handling
+  questionType: QuestionType;
+  lastAnswerCorrect: boolean | null;
+  waitingForNext: boolean;
+  multipleChoiceOptions?: string[][];
 }
 
 export interface LeaderboardEntry {
@@ -109,7 +117,7 @@ export const LEVEL_CONFIG = {
     questionsCount: 10,
     label: 'Essentials',
     description: 'Basic shortcuts everyone should know',
-    color: 'text-emerald-500'
+    color: 'text-primary'
   },
   implementation: { 
     timePerQuestion: 15, 
@@ -117,7 +125,7 @@ export const LEVEL_CONFIG = {
     questionsCount: 12,
     label: 'Implementation',
     description: 'Intermediate shortcuts for productivity',
-    color: 'text-cyan-500'
+    color: 'text-secondary'
   },
   architect: { 
     timePerQuestion: 10, 
@@ -125,7 +133,7 @@ export const LEVEL_CONFIG = {
     questionsCount: 15,
     label: 'Architect',
     description: 'Advanced shortcuts for power users',
-    color: 'text-violet-500'
+    color: 'text-primary'
   },
   guru: { 
     timePerQuestion: 6, 
@@ -133,7 +141,7 @@ export const LEVEL_CONFIG = {
     questionsCount: 18,
     label: 'Guru',
     description: 'Expert-level shortcuts for masters',
-    color: 'text-amber-500'
+    color: 'text-secondary'
   },
 } as const;
 
