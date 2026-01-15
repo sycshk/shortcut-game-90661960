@@ -3,8 +3,10 @@
 # ============================================
 # Shortcut Game - Debian Deployment Script
 # Repository: sycshk/shortcut-game-90661960
-# Install Path: /opt/shortcut-game
-# Port: 3000 (Caddy reverse proxy on 443)
+# 
+# Architecture:
+#   Frontend: game.elufasys.com (Lovable preview or static)
+#   Backend:  api.game.elufasys.com → localhost:3001
 # ============================================
 
 set -e
@@ -16,10 +18,10 @@ SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
 # Configuration
 REPO_URL="https://github.com/sycshk/shortcut-game-90661960.git"
 INSTALL_DIR="/opt/shortcut-game"
-DATA_DIR="$INSTALL_DIR/dist/data"
+SQLITE_DATA_DIR="/opt/shortcut-game/data"
 BACKUP_DIR="/opt/shortcut-game-backups"
 SERVICE_NAME="shortcut-game"
-PORT=3001  # Use 3001 to avoid conflict with frontend dev server on 3000
+PORT=3001
 
 # Colors for output
 RED='\033[0;31m'
@@ -64,42 +66,35 @@ install_dependencies() {
         apt-get install -y git
     fi
     
-# Install build tools for native modules
+    # Install build tools for native modules (better-sqlite3)
     log_info "Installing build essentials for native modules..."
     apt-get install -y build-essential python3
     
     log_info "Dependencies ready"
 }
 
-# Backup existing data files (ALWAYS runs before update)
+# Backup SQLite database
 backup_data() {
     log_info "========================================"
-    log_info "BACKING UP DATA"
+    log_info "BACKING UP DATABASE"
     log_info "========================================"
     
     mkdir -p "$BACKUP_DIR"
     TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-    BACKUP_PATH="$BACKUP_DIR/data_$TIMESTAMP"
+    BACKUP_PATH="$BACKUP_DIR/backup_$TIMESTAMP"
     
-    if [ -d "$DATA_DIR" ]; then
+    if [ -f "$SQLITE_DATA_DIR/game.db" ]; then
         mkdir -p "$BACKUP_PATH"
-        
-        for file in leaderboard.json profiles.json sessions.json history.json; do
-            if [ -f "$DATA_DIR/$file" ]; then
-                cp "$DATA_DIR/$file" "$BACKUP_PATH/$file"
-                log_info "Backed up: $file"
-            fi
-        done
-        
-        log_info "Data backed up to: $BACKUP_PATH"
+        cp "$SQLITE_DATA_DIR/game.db" "$BACKUP_PATH/game.db"
+        log_info "Database backed up to: $BACKUP_PATH/game.db"
         echo "$BACKUP_PATH" > "$BACKUP_DIR/.latest"
     else
-        log_warn "No existing data directory found, skipping backup"
+        log_warn "No existing database found, skipping backup"
     fi
     
     # Clean old backups (keep last 10)
     cd "$BACKUP_DIR"
-    ls -dt data_* 2>/dev/null | tail -n +11 | xargs -r rm -rf
+    ls -dt backup_* 2>/dev/null | tail -n +11 | xargs -r rm -rf
     log_info "Old backups cleaned (keeping last 10)"
 }
 
@@ -111,116 +106,75 @@ stop_service() {
     fi
 }
 
-# Full force update - remove and re-clone
-force_update_repository() {
+# Update repository
+update_repository() {
     log_info "========================================"
-    log_info "FORCE UPDATE - FULL REBUILD"
+    log_info "UPDATING REPOSITORY"
     log_info "========================================"
     
-    # Remove existing installation completely
-    if [ -d "$INSTALL_DIR" ]; then
-        log_info "Removing existing installation..."
+    if [ -d "$INSTALL_DIR/.git" ]; then
+        cd "$INSTALL_DIR"
+        log_info "Fetching latest changes..."
+        git fetch origin
+        git reset --hard origin/main
+        log_info "Repository updated"
+    else
+        # Fresh clone if not exists
+        log_info "Cloning repository..."
         rm -rf "$INSTALL_DIR"
+        git clone "$REPO_URL" "$INSTALL_DIR"
+        log_info "Repository cloned"
     fi
     
-    # Fresh clone
-    log_info "Cloning repository..."
-    git clone "$REPO_URL" "$INSTALL_DIR"
     cd "$INSTALL_DIR"
 
-    # If this script is being run from outside the repo (common: /opt/update.sh),
-    # overwrite that copy so the NEXT run uses the latest version.
+    # Self-update: copy latest update.sh to /opt if running from there
     if [ "$SCRIPT_PATH" != "$INSTALL_DIR/update.sh" ] && [ -f "$INSTALL_DIR/update.sh" ]; then
         cp -f "$INSTALL_DIR/update.sh" "$SCRIPT_PATH" \
           && log_info "Updated deployment script at: $SCRIPT_PATH" \
           || log_warn "Could not self-update script at: $SCRIPT_PATH"
     fi
-    
-    log_info "Repository cloned successfully"
 }
 
-# Build the application from scratch
+# Build the application
 build_app() {
     log_info "========================================"
-    log_info "BUILDING APPLICATION"
+    log_info "INSTALLING DEPENDENCIES"
     log_info "========================================"
     
     cd "$INSTALL_DIR"
     
-    # Clean install dependencies
-    log_info "Installing npm dependencies (clean)..."
-    rm -rf node_modules package-lock.json
+    # Install dependencies
+    log_info "Installing npm dependencies..."
     npm install
     
-    # Build
-    log_info "Building application..."
-    npm run build
-    
-    # Ensure data directory exists
-    mkdir -p "$DATA_DIR"
-    
-    log_info "Build complete"
+    log_info "Dependencies installed"
 }
 
-# Initialize empty data files if they don't exist
-init_data_files() {
-    mkdir -p "$DATA_DIR"
-    
-    [ ! -f "$DATA_DIR/leaderboard.json" ] && echo '{"entries":[],"lastUpdated":null}' > "$DATA_DIR/leaderboard.json"
-    [ ! -f "$DATA_DIR/profiles.json" ] && echo '{"profiles":{},"lastUpdated":null}' > "$DATA_DIR/profiles.json"
-    [ ! -f "$DATA_DIR/sessions.json" ] && echo '{"sessions":[],"lastUpdated":null}' > "$DATA_DIR/sessions.json"
-    [ ! -f "$DATA_DIR/history.json" ] && echo '{"records":[],"lastUpdated":null}' > "$DATA_DIR/history.json"
-    
-    chmod -R 755 "$DATA_DIR"
-}
-
-# Restore data from the latest backup
+# Restore database from backup if needed
 restore_data() {
     log_info "========================================"
-    log_info "RESTORING DATA FROM BACKUP"
+    log_info "RESTORING DATABASE"
     log_info "========================================"
     
-    # Get latest backup path
-    if [ -f "$BACKUP_DIR/.latest" ]; then
-        LATEST_BACKUP=$(cat "$BACKUP_DIR/.latest")
-    else
-        LATEST_BACKUP=$(ls -td "$BACKUP_DIR"/data_* 2>/dev/null | head -1)
-    fi
-    
-    if [ -n "$LATEST_BACKUP" ] && [ -d "$LATEST_BACKUP" ]; then
-        mkdir -p "$DATA_DIR"
-        
-        for file in leaderboard.json profiles.json sessions.json history.json; do
-            if [ -f "$LATEST_BACKUP/$file" ]; then
-                cp "$LATEST_BACKUP/$file" "$DATA_DIR/$file"
-                log_info "Restored: $file"
-            fi
-        done
-        
-        chmod -R 755 "$DATA_DIR"
-        log_info "Data restored from: $LATEST_BACKUP"
-    else
-        log_warn "No backup found, initializing empty data files"
-        init_data_files
-    fi
-}
-
-# Migrate JSON data to SQLite (first-time only)
-migrate_data_to_sqlite() {
-    log_info "========================================"
-    log_info "MIGRATING DATA TO SQLITE"
-    log_info "========================================"
-    
-    SQLITE_DATA_DIR="$INSTALL_DIR/data"
     mkdir -p "$SQLITE_DATA_DIR"
     
+    # If database doesn't exist, try to restore from backup
     if [ ! -f "$SQLITE_DATA_DIR/game.db" ]; then
-        log_info "No SQLite database found, running migration..."
-        cd "$INSTALL_DIR"
-        node server/migrate-json.cjs || log_warn "Migration script failed or no data to migrate"
-        log_info "Migration complete"
+        if [ -f "$BACKUP_DIR/.latest" ]; then
+            LATEST_BACKUP=$(cat "$BACKUP_DIR/.latest")
+        else
+            LATEST_BACKUP=$(ls -td "$BACKUP_DIR"/backup_* 2>/dev/null | head -1)
+        fi
+        
+        if [ -n "$LATEST_BACKUP" ] && [ -f "$LATEST_BACKUP/game.db" ]; then
+            cp "$LATEST_BACKUP/game.db" "$SQLITE_DATA_DIR/game.db"
+            log_info "Database restored from: $LATEST_BACKUP"
+        else
+            log_info "No backup found, fresh database will be created on first run"
+        fi
     else
-        log_info "SQLite database already exists, skipping migration"
+        log_info "Database already exists"
     fi
 }
 
@@ -230,7 +184,7 @@ create_service() {
     
     cat > /etc/systemd/system/$SERVICE_NAME.service << EOF
 [Unit]
-Description=Shortcut Game Express + SQLite Server
+Description=Shortcut Game API Server (Express + SQLite)
 After=network.target
 
 [Service]
@@ -249,14 +203,13 @@ EOF
 
     systemctl daemon-reload
     systemctl enable $SERVICE_NAME
-    log_info "Service configured on port $PORT (Express + SQLite)"
+    log_info "Service configured on port $PORT"
 }
 
 # Start the service
 start_service() {
     log_info "Starting service..."
 
-    # Use restart to ensure systemd picks up the latest unit changes
     systemctl restart $SERVICE_NAME
     
     sleep 3
@@ -284,37 +237,30 @@ verify_deployment() {
         fi
     fi
     
-    # Check data files
-    for file in leaderboard.json profiles.json sessions.json history.json; do
-        if [ -f "$DATA_DIR/$file" ]; then
-            log_info "Data file exists: $file"
+    # Test health endpoint
+    if command -v curl &> /dev/null; then
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$PORT/health 2>/dev/null || echo "000")
+        if [ "$HTTP_CODE" = "200" ]; then
+            log_info "Health check passed (HTTP 200)"
         else
-            log_error "Missing data file: $file"
+            log_warn "Health check returned HTTP $HTTP_CODE"
         fi
-    done
-}
-
-# Print Caddy configuration hint
-print_caddy_hint() {
-    echo ""
-    log_info "========================================"
-    log_info "CADDY CONFIGURATION"
-    log_info "========================================"
-    echo ""
-    echo "Add this to your Caddyfile:"
-    echo ""
-    echo "yourdomain.com {"
-    echo "    reverse_proxy localhost:$PORT"
-    echo "}"
-    echo ""
-    log_info "Caddy will handle SSL on port 443 automatically"
+    fi
+    
+    # Check database
+    if [ -f "$SQLITE_DATA_DIR/game.db" ]; then
+        DB_SIZE=$(du -h "$SQLITE_DATA_DIR/game.db" | cut -f1)
+        log_info "Database exists: $SQLITE_DATA_DIR/game.db ($DB_SIZE)"
+    else
+        log_warn "Database file not found (will be created on first request)"
+    fi
 }
 
 # Main deployment flow
 main() {
     echo ""
     log_info "========================================"
-    log_info "SHORTCUT GAME DEPLOYMENT"
+    log_info "SHORTCUT GAME API DEPLOYMENT"
     log_info "$(date)"
     log_info "========================================"
     echo ""
@@ -322,10 +268,9 @@ main() {
     install_dependencies
     backup_data
     stop_service
-    force_update_repository
+    update_repository
     build_app
     restore_data
-    migrate_data_to_sqlite
     create_service
     start_service
     verify_deployment
@@ -334,12 +279,15 @@ main() {
     log_info "========================================"
     log_info "DEPLOYMENT COMPLETE!"
     log_info "========================================"
-    log_info "App URL: http://localhost:$PORT"
-    log_info "Data dir: $DATA_DIR"
+    log_info "API URL: http://localhost:$PORT"
+    log_info "Health:  curl http://localhost:$PORT/health"
+    log_info "Database: $SQLITE_DATA_DIR/game.db"
     log_info "Backups: $BACKUP_DIR"
     log_info "========================================"
-    
-    print_caddy_hint
+    echo ""
+    log_info "OPNsense Caddy config:"
+    log_info "  api.game.elufasys.com → your-server-ip:$PORT"
+    echo ""
 }
 
 # Run main
