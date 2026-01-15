@@ -111,10 +111,9 @@ const distPath = process.env.NODE_ENV === 'production'
 app.use(express.static(distPath));
 
 // SPA fallback - serve index.html for all non-API routes
-app.get('*', (req, res) => {
-  if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(distPath, 'index.html'));
-  }
+// Express 5 requires named wildcard: /{*splat} or use a regex
+app.get(/^(?!\/api).*/, (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 // Error handling middleware
