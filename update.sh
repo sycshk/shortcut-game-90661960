@@ -4,6 +4,7 @@
 # Shortcut Game - Debian Deployment Script
 # Repository: sycshk/shortcut-game-90661960
 # Install Path: /opt/shortcut-game
+# Port: 3000 (Caddy reverse proxy on 443)
 # ============================================
 
 set -e
@@ -20,7 +21,7 @@ PORT=3000
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 log_info() {
     echo -e "${GREEN}[INFO]${NC} $1"
@@ -44,12 +45,11 @@ fi
 install_dependencies() {
     log_info "Checking and installing dependencies..."
     
-    # Update package list
     apt-get update -qq
     
     # Install Node.js if not present
     if ! command -v node &> /dev/null; then
-        log_info "Installing Node.js..."
+        log_info "Installing Node.js 20.x..."
         curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
         apt-get install -y nodejs
     fi
@@ -60,101 +60,144 @@ install_dependencies() {
         apt-get install -y git
     fi
     
-    # Install nginx if not present (optional, for reverse proxy)
-    if ! command -v nginx &> /dev/null; then
-        log_info "Installing nginx..."
-        apt-get install -y nginx
+    # Install serve globally for static file serving
+    if ! command -v serve &> /dev/null; then
+        log_info "Installing serve..."
+        npm install -g serve
     fi
     
-    log_info "Dependencies installed successfully"
+    log_info "Dependencies ready"
 }
 
-# Backup existing data files
+# Backup existing data files (ALWAYS runs before update)
 backup_data() {
+    log_info "========================================"
+    log_info "BACKING UP DATA"
+    log_info "========================================"
+    
+    mkdir -p "$BACKUP_DIR"
+    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    BACKUP_PATH="$BACKUP_DIR/data_$TIMESTAMP"
+    
     if [ -d "$DATA_DIR" ]; then
-        log_info "Backing up existing data..."
-        mkdir -p "$BACKUP_DIR"
-        TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-        cp -r "$DATA_DIR" "$BACKUP_DIR/data_$TIMESTAMP"
-        log_info "Data backed up to $BACKUP_DIR/data_$TIMESTAMP"
-    fi
-}
-
-# Restore data files after deployment
-restore_data() {
-    if [ -d "$BACKUP_DIR" ]; then
-        # Get the most recent backup
-        LATEST_BACKUP=$(ls -td "$BACKUP_DIR"/data_* 2>/dev/null | head -1)
-        if [ -n "$LATEST_BACKUP" ] && [ -d "$LATEST_BACKUP" ]; then
-            log_info "Restoring data from backup..."
-            mkdir -p "$DATA_DIR"
-            
-            # Restore each data file if it exists in backup
-            for file in leaderboard.json profiles.json sessions.json history.json; do
-                if [ -f "$LATEST_BACKUP/$file" ]; then
-                    cp "$LATEST_BACKUP/$file" "$DATA_DIR/$file"
-                    log_info "Restored $file"
-                fi
-            done
-        fi
-    fi
-}
-
-# Clone or update repository
-update_repository() {
-    if [ -d "$INSTALL_DIR/.git" ]; then
-        log_info "Updating existing repository..."
-        cd "$INSTALL_DIR"
-        git fetch origin
-        git reset --hard origin/main
+        mkdir -p "$BACKUP_PATH"
+        
+        for file in leaderboard.json profiles.json sessions.json history.json; do
+            if [ -f "$DATA_DIR/$file" ]; then
+                cp "$DATA_DIR/$file" "$BACKUP_PATH/$file"
+                log_info "Backed up: $file"
+            fi
+        done
+        
+        log_info "Data backed up to: $BACKUP_PATH"
+        echo "$BACKUP_PATH" > "$BACKUP_DIR/.latest"
     else
-        log_info "Cloning repository..."
-        rm -rf "$INSTALL_DIR"
-        git clone "$REPO_URL" "$INSTALL_DIR"
-        cd "$INSTALL_DIR"
+        log_warn "No existing data directory found, skipping backup"
+    fi
+    
+    # Clean old backups (keep last 10)
+    cd "$BACKUP_DIR"
+    ls -dt data_* 2>/dev/null | tail -n +11 | xargs -r rm -rf
+    log_info "Old backups cleaned (keeping last 10)"
+}
+
+# Stop existing service
+stop_service() {
+    if systemctl is-active --quiet $SERVICE_NAME 2>/dev/null; then
+        log_info "Stopping existing service..."
+        systemctl stop $SERVICE_NAME
     fi
 }
 
-# Build the application
-build_app() {
-    log_info "Installing npm dependencies..."
+# Full force update - remove and re-clone
+force_update_repository() {
+    log_info "========================================"
+    log_info "FORCE UPDATE - FULL REBUILD"
+    log_info "========================================"
+    
+    # Remove existing installation completely
+    if [ -d "$INSTALL_DIR" ]; then
+        log_info "Removing existing installation..."
+        rm -rf "$INSTALL_DIR"
+    fi
+    
+    # Fresh clone
+    log_info "Cloning repository..."
+    git clone "$REPO_URL" "$INSTALL_DIR"
     cd "$INSTALL_DIR"
+    
+    log_info "Repository cloned successfully"
+}
+
+# Build the application from scratch
+build_app() {
+    log_info "========================================"
+    log_info "BUILDING APPLICATION"
+    log_info "========================================"
+    
+    cd "$INSTALL_DIR"
+    
+    # Clean install dependencies
+    log_info "Installing npm dependencies (clean)..."
+    rm -rf node_modules package-lock.json
     npm install
     
+    # Build
     log_info "Building application..."
     npm run build
     
-    # Ensure data directory exists in dist
+    # Ensure data directory exists
     mkdir -p "$DATA_DIR"
     
-    # Initialize data files if they don't exist
-    for file in leaderboard.json profiles.json sessions.json history.json; do
-        if [ ! -f "$DATA_DIR/$file" ]; then
-            case $file in
-                "leaderboard.json")
-                    echo '{"entries":[],"lastUpdated":null}' > "$DATA_DIR/$file"
-                    ;;
-                "profiles.json")
-                    echo '{"profiles":{},"lastUpdated":null}' > "$DATA_DIR/$file"
-                    ;;
-                "sessions.json")
-                    echo '{"sessions":[],"lastUpdated":null}' > "$DATA_DIR/$file"
-                    ;;
-                "history.json")
-                    echo '{"records":[],"lastUpdated":null}' > "$DATA_DIR/$file"
-                    ;;
-            esac
-            log_info "Created $file"
-        fi
-    done
+    log_info "Build complete"
+}
+
+# Initialize empty data files if they don't exist
+init_data_files() {
+    mkdir -p "$DATA_DIR"
     
-    # Set proper permissions
+    [ ! -f "$DATA_DIR/leaderboard.json" ] && echo '{"entries":[],"lastUpdated":null}' > "$DATA_DIR/leaderboard.json"
+    [ ! -f "$DATA_DIR/profiles.json" ] && echo '{"profiles":{},"lastUpdated":null}' > "$DATA_DIR/profiles.json"
+    [ ! -f "$DATA_DIR/sessions.json" ] && echo '{"sessions":[],"lastUpdated":null}' > "$DATA_DIR/sessions.json"
+    [ ! -f "$DATA_DIR/history.json" ] && echo '{"records":[],"lastUpdated":null}' > "$DATA_DIR/history.json"
+    
     chmod -R 755 "$DATA_DIR"
 }
 
-# Create systemd service for serving the app
+# Restore data from the latest backup
+restore_data() {
+    log_info "========================================"
+    log_info "RESTORING DATA FROM BACKUP"
+    log_info "========================================"
+    
+    # Get latest backup path
+    if [ -f "$BACKUP_DIR/.latest" ]; then
+        LATEST_BACKUP=$(cat "$BACKUP_DIR/.latest")
+    else
+        LATEST_BACKUP=$(ls -td "$BACKUP_DIR"/data_* 2>/dev/null | head -1)
+    fi
+    
+    if [ -n "$LATEST_BACKUP" ] && [ -d "$LATEST_BACKUP" ]; then
+        mkdir -p "$DATA_DIR"
+        
+        for file in leaderboard.json profiles.json sessions.json history.json; do
+            if [ -f "$LATEST_BACKUP/$file" ]; then
+                cp "$LATEST_BACKUP/$file" "$DATA_DIR/$file"
+                log_info "Restored: $file"
+            fi
+        done
+        
+        chmod -R 755 "$DATA_DIR"
+        log_info "Data restored from: $LATEST_BACKUP"
+    else
+        log_warn "No backup found, initializing empty data files"
+        init_data_files
+    fi
+}
+
+# Create/update systemd service
 create_service() {
-    log_info "Creating systemd service..."
+    log_info "Creating systemd service on port $PORT..."
     
     cat > /etc/systemd/system/$SERVICE_NAME.service << EOF
 [Unit]
@@ -167,109 +210,104 @@ User=root
 WorkingDirectory=$INSTALL_DIR/dist
 ExecStart=/usr/bin/npx serve -s . -l $PORT
 Restart=always
-RestartSec=10
+RestartSec=5
 Environment=NODE_ENV=production
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-    # Install serve globally if not present
-    if ! command -v serve &> /dev/null; then
-        npm install -g serve
-    fi
-
     systemctl daemon-reload
     systemctl enable $SERVICE_NAME
-    log_info "Service created and enabled"
+    log_info "Service configured on port $PORT"
 }
 
-# Configure nginx as reverse proxy (optional)
-configure_nginx() {
-    log_info "Configuring nginx..."
-    
-    cat > /etc/nginx/sites-available/$SERVICE_NAME << EOF
-server {
-    listen 80;
-    server_name _;
-
-    location / {
-        proxy_pass http://localhost:$PORT;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;
-    }
-
-    # Enable write access to data files via POST (optional API endpoint)
-    location /data/ {
-        alias $DATA_DIR/;
-        autoindex off;
-        
-        # Allow reading JSON files
-        add_header Content-Type application/json;
-    }
-}
-EOF
-
-    # Enable the site
-    ln -sf /etc/nginx/sites-available/$SERVICE_NAME /etc/nginx/sites-enabled/
-    rm -f /etc/nginx/sites-enabled/default
-    
-    # Test and reload nginx
-    nginx -t && systemctl reload nginx
-    log_info "Nginx configured"
-}
-
-# Start/restart the service
-restart_service() {
+# Start the service
+start_service() {
     log_info "Starting service..."
-    systemctl restart $SERVICE_NAME
+    systemctl start $SERVICE_NAME
     
-    # Wait a moment and check status
-    sleep 2
+    sleep 3
+    
     if systemctl is-active --quiet $SERVICE_NAME; then
         log_info "Service started successfully on port $PORT"
     else
-        log_error "Service failed to start. Check logs with: journalctl -u $SERVICE_NAME"
+        log_error "Service failed to start!"
+        journalctl -u $SERVICE_NAME --no-pager -n 20
         exit 1
     fi
 }
 
-# Sync localStorage export data back to JSON files (run via cron or manually)
-sync_data() {
-    log_info "Data files are synced from browser localStorage to server."
-    log_info "To sync data, copy the exported JSON from browser localStorage keys:"
-    log_info "  - shortcut-export-leaderboard -> $DATA_DIR/leaderboard.json"
-    log_info "  - shortcut-export-profiles -> $DATA_DIR/profiles.json"
-    log_info "  - shortcut-export-sessions -> $DATA_DIR/sessions.json"
-    log_info "  - shortcut-export-history -> $DATA_DIR/history.json"
+# Verify deployment
+verify_deployment() {
+    log_info "Verifying deployment..."
+    
+    # Check if port is listening
+    if command -v ss &> /dev/null; then
+        if ss -tlnp | grep -q ":$PORT"; then
+            log_info "Port $PORT is listening"
+        else
+            log_warn "Port $PORT not detected, checking again..."
+            sleep 2
+        fi
+    fi
+    
+    # Check data files
+    for file in leaderboard.json profiles.json sessions.json history.json; do
+        if [ -f "$DATA_DIR/$file" ]; then
+            log_info "Data file exists: $file"
+        else
+            log_error "Missing data file: $file"
+        fi
+    done
+}
+
+# Print Caddy configuration hint
+print_caddy_hint() {
+    echo ""
+    log_info "========================================"
+    log_info "CADDY CONFIGURATION"
+    log_info "========================================"
+    echo ""
+    echo "Add this to your Caddyfile:"
+    echo ""
+    echo "yourdomain.com {"
+    echo "    reverse_proxy localhost:$PORT"
+    echo "}"
+    echo ""
+    log_info "Caddy will handle SSL on port 443 automatically"
 }
 
 # Main deployment flow
 main() {
+    echo ""
     log_info "========================================"
-    log_info "Shortcut Game Deployment Script"
+    log_info "SHORTCUT GAME DEPLOYMENT"
+    log_info "$(date)"
     log_info "========================================"
+    echo ""
     
     install_dependencies
     backup_data
-    update_repository
+    stop_service
+    force_update_repository
     build_app
     restore_data
     create_service
-    configure_nginx
-    restart_service
+    start_service
+    verify_deployment
     
+    echo ""
     log_info "========================================"
-    log_info "Deployment complete!"
-    log_info "Application available at: http://localhost:$PORT"
-    log_info "Data directory: $DATA_DIR"
+    log_info "DEPLOYMENT COMPLETE!"
+    log_info "========================================"
+    log_info "App URL: http://localhost:$PORT"
+    log_info "Data dir: $DATA_DIR"
+    log_info "Backups: $BACKUP_DIR"
     log_info "========================================"
     
-    sync_data
+    print_caddy_hint
 }
 
-# Run main function
+# Run main
 main "$@"
