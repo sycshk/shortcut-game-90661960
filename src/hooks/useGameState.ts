@@ -40,7 +40,7 @@ const generateMultipleChoiceOptions = (correctKeys: string[], allShortcuts: Shor
   return shuffleArray(options);
 };
 
-export const useGameState = () => {
+export const useGameState = (userEmail?: string) => {
   const [state, setState] = useState<GameState>(initialState);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [playerName, setPlayerName] = useState<string>('');
@@ -123,7 +123,7 @@ export const useGameState = () => {
     });
   }, []);
 
-  const recordAnswer = useCallback((isCorrect: boolean, userAnswer: string[], userEmail?: string) => {
+  const recordAnswer = useCallback((isCorrect: boolean, userAnswer: string[]) => {
     const currentShortcut = state.shortcuts[state.currentShortcutIndex];
     if (!currentShortcut) return;
 
@@ -141,7 +141,7 @@ export const useGameState = () => {
       correctAnswer: currentShortcut.keys,
       timeSpent,
     });
-  }, [state.shortcuts, state.currentShortcutIndex, state.level, state.difficulty, state.timeRemaining]);
+  }, [state.shortcuts, state.currentShortcutIndex, state.level, state.difficulty, state.timeRemaining, userEmail]);
 
   const checkAnswer = useCallback((pressedKeys: string[]) => {
     if (state.waitingForNext) return;

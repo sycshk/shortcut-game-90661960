@@ -36,7 +36,7 @@ export const ShortcutGame = () => {
     goToProfile,
     goToMiniGames,
     handlePause,
-  } = useGameState();
+  } = useGameState(userEmail || undefined);
 
   // Check for existing session on mount
   useEffect(() => {
