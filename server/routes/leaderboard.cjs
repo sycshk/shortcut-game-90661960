@@ -170,4 +170,30 @@ router.get('/aggregated', (req, res) => {
   }
 });
 
+// GET Hall of Fame - Guru level completions
+router.get('/hall-of-fame', (req, res) => {
+  try {
+    const { limit = 20 } = req.query;
+    
+    const entries = db.prepare(`
+      SELECT 
+        name,
+        email,
+        score,
+        accuracy,
+        streak,
+        created_at as date
+      FROM leaderboard
+      WHERE level = 'guru'
+      ORDER BY score DESC, accuracy DESC, streak DESC
+      LIMIT ?
+    `).all(parseInt(limit));
+    
+    res.json({ entries });
+  } catch (error) {
+    console.error('Error fetching hall of fame:', error);
+    res.status(500).json({ error: 'Failed to fetch hall of fame' });
+  }
+});
+
 module.exports = router;

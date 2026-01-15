@@ -142,6 +142,12 @@ class ApiService {
     );
   }
 
+  async getHallOfFame(limit = 20) {
+    return this.request<{ entries: any[] }>(
+      `/leaderboard/hall-of-fame?limit=${limit}`
+    );
+  }
+
   async getPersonalBest(email: string, category?: string, level?: string) {
     const params = new URLSearchParams();
     if (category) params.append('category', category);

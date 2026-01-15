@@ -6,6 +6,7 @@ import { Trophy, Zap, Medal, LogOut, BarChart3, Edit2, Check, X, Gamepad2, Calen
 import { leaderboardService, UserProfileData } from '@/services/leaderboardService';
 import { isDailyChallengeCompleted, getDailyStreakDataSync } from '@/services/dailyChallengeService';
 import { cn } from '@/lib/utils';
+import { HallOfFame } from './HallOfFame';
 
 interface WelcomeScreenProps {
   onStart: () => void;
@@ -105,7 +106,7 @@ export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, userEmai
 
   return (
     <div className="flex min-h-screen items-center justify-center animated-bg p-4">
-      <div className="w-full max-w-4xl grid md:grid-cols-2 gap-6">
+      <div className="w-full max-w-6xl grid lg:grid-cols-3 md:grid-cols-2 gap-6">
         {/* Welcome Card */}
         <Card className="text-center glass-card animate-fade-in">
           <CardHeader className="space-y-4">
@@ -268,6 +269,9 @@ export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, userEmai
             )}
           </CardContent>
         </Card>
+
+        {/* Hall of Fame Card */}
+        <HallOfFame />
       </div>
     </div>
   );
