@@ -1,43 +1,72 @@
 import { useState, useCallback, useEffect } from 'react';
-import { GameState, ShortcutCategory, Difficulty, DIFFICULTY_CONFIG, LeaderboardEntry } from '@/types/game';
-import { getShortcutsByCategory, shuffleArray } from '@/data/shortcuts';
+import { GameState, ShortcutCategory, Difficulty, DIFFICULTY_CONFIG, LeaderboardEntry, DifficultyLevel, Category, LEVEL_CONFIG, ShortcutChallenge } from '@/types/game';
+import { getShortcutsByCategory, shuffleArray, getShortcutsByLevelAndCategory, shortcutChallenges } from '@/data/shortcuts';
 
 const LEADERBOARD_KEY = 'shortcut-game-leaderboard';
 
-export const useGameState = () => {
-  const [state, setState] = useState<GameState>({
-    status: 'welcome',
-    category: null,
-    difficulty: null,
-    currentShortcutIndex: 0,
-    score: 0,
-    correctAnswers: 0,
-    totalQuestions: 0,
-    timeRemaining: 0,
-    shortcuts: [],
-  });
+const initialState: GameState = {
+  status: 'welcome',
+  category: null,
+  difficulty: null,
+  level: null,
+  mode: 'timed',
+  currentShortcutIndex: 0,
+  score: 0,
+  correctAnswers: 0,
+  totalQuestions: 0,
+  timeRemaining: 0,
+  shortcuts: [],
+  currentStreak: 0,
+  bestStreak: 0,
+  hintsUsed: 0,
+  showHint: false,
+  isFullscreen: false,
+};
 
+export const useGameState = () => {
+  const [state, setState] = useState<GameState>(initialState);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
 
   const startSetup = useCallback(() => {
     setState(prev => ({ ...prev, status: 'setup' }));
   }, []);
 
-  const startGame = useCallback((category: ShortcutCategory, difficulty: Difficulty) => {
+  const startGame = useCallback((category: ShortcutCategory | Category, difficulty: Difficulty, level?: DifficultyLevel) => {
     const config = DIFFICULTY_CONFIG[difficulty];
-    const availableShortcuts = getShortcutsByCategory(category, difficulty);
-    const shuffled = shuffleArray(availableShortcuts).slice(0, config.questionsCount);
+    
+    // Use new curriculum if level is provided
+    let gameShortcuts: ShortcutChallenge[];
+    if (level) {
+      const levelConfig = LEVEL_CONFIG[level];
+      const available = getShortcutsByLevelAndCategory(level, category as Category);
+      gameShortcuts = shuffleArray(available).slice(0, levelConfig.questionsCount);
+    } else {
+      // Legacy mode - convert old shortcuts to new format
+      const legacyShortcuts = getShortcutsByCategory(category as ShortcutCategory, difficulty);
+      gameShortcuts = legacyShortcuts.map(s => ({
+        id: s.id,
+        level: 'essentials' as DifficultyLevel,
+        category: (s.category === 'os' ? 'windows' : 'general') as Category,
+        description: s.task,
+        keys: s.keys,
+      }));
+      gameShortcuts = shuffleArray(gameShortcuts).slice(0, config.questionsCount);
+    }
     
     setState({
+      ...initialState,
       status: 'playing',
       category,
       difficulty,
+      level: level || null,
       currentShortcutIndex: 0,
       score: 0,
       correctAnswers: 0,
-      totalQuestions: shuffled.length,
-      timeRemaining: config.timePerQuestion,
-      shortcuts: shuffled,
+      totalQuestions: gameShortcuts.length,
+      timeRemaining: level ? LEVEL_CONFIG[level].timePerQuestion : config.timePerQuestion,
+      shortcuts: gameShortcuts,
+      currentStreak: 0,
+      bestStreak: 0,
     });
   }, []);
 
@@ -45,9 +74,8 @@ export const useGameState = () => {
     const currentShortcut = state.shortcuts[state.currentShortcutIndex];
     if (!currentShortcut || !state.difficulty) return;
 
-    const config = DIFFICULTY_CONFIG[state.difficulty];
+    const config = state.level ? LEVEL_CONFIG[state.level] : DIFFICULTY_CONFIG[state.difficulty];
     
-    // Normalize and sort both arrays for comparison
     const normalizedPressed = pressedKeys.map(k => k.toUpperCase()).sort();
     const normalizedExpected = currentShortcut.keys.map(k => k.toUpperCase()).sort();
     
@@ -57,7 +85,8 @@ export const useGameState = () => {
 
     if (isCorrect) {
       const timeBonus = Math.floor(state.timeRemaining / 2);
-      const points = config.pointsPerCorrect + timeBonus;
+      const streakBonus = Math.min(state.currentStreak * 5, 50);
+      const points = config.pointsPerCorrect + timeBonus + streakBonus;
       
       setFeedback('correct');
       
@@ -65,17 +94,19 @@ export const useGameState = () => {
         ...prev,
         score: prev.score + points,
         correctAnswers: prev.correctAnswers + 1,
+        currentStreak: prev.currentStreak + 1,
+        bestStreak: Math.max(prev.bestStreak, prev.currentStreak + 1),
       }));
     } else {
       setFeedback('incorrect');
+      setState(prev => ({ ...prev, currentStreak: 0 }));
     }
 
-    // Clear feedback and move to next question
     setTimeout(() => {
       setFeedback(null);
       moveToNext();
     }, 800);
-  }, [state.shortcuts, state.currentShortcutIndex, state.difficulty, state.timeRemaining]);
+  }, [state.shortcuts, state.currentShortcutIndex, state.difficulty, state.timeRemaining, state.level, state.currentStreak]);
 
   const moveToNext = useCallback(() => {
     setState(prev => {
@@ -83,17 +114,19 @@ export const useGameState = () => {
         return { ...prev, status: 'results' };
       }
       
-      const config = prev.difficulty ? DIFFICULTY_CONFIG[prev.difficulty] : DIFFICULTY_CONFIG.easy;
+      const config = prev.level ? LEVEL_CONFIG[prev.level] : (prev.difficulty ? DIFFICULTY_CONFIG[prev.difficulty] : DIFFICULTY_CONFIG.easy);
       return {
         ...prev,
         currentShortcutIndex: prev.currentShortcutIndex + 1,
         timeRemaining: config.timePerQuestion,
+        showHint: false,
       };
     });
   }, []);
 
   const timeOut = useCallback(() => {
     setFeedback('incorrect');
+    setState(prev => ({ ...prev, currentStreak: 0 }));
     setTimeout(() => {
       setFeedback(null);
       moveToNext();
@@ -101,17 +134,15 @@ export const useGameState = () => {
   }, [moveToNext]);
 
   const resetGame = useCallback(() => {
-    setState({
-      status: 'welcome',
-      category: null,
-      difficulty: null,
-      currentShortcutIndex: 0,
-      score: 0,
-      correctAnswers: 0,
-      totalQuestions: 0,
-      timeRemaining: 0,
-      shortcuts: [],
-    });
+    setState(initialState);
+  }, []);
+
+  const toggleHint = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      showHint: !prev.showHint,
+      hintsUsed: prev.showHint ? prev.hintsUsed : prev.hintsUsed + 1,
+    }));
   }, []);
 
   const getLeaderboard = useCallback((): LeaderboardEntry[] => {
@@ -133,7 +164,9 @@ export const useGameState = () => {
       accuracy: Math.round((state.correctAnswers / state.totalQuestions) * 100),
       category: state.category,
       difficulty: state.difficulty,
+      level: state.level || undefined,
       date: new Date().toISOString(),
+      streak: state.bestStreak,
     };
 
     const current = getLeaderboard();
@@ -144,9 +177,8 @@ export const useGameState = () => {
     localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(updated));
   }, [state, getLeaderboard]);
 
-  // Timer effect
   useEffect(() => {
-    if (state.status !== 'playing' || feedback) return;
+    if (state.status !== 'playing' || feedback || state.mode === 'practice') return;
 
     const timer = setInterval(() => {
       setState(prev => {
@@ -158,14 +190,13 @@ export const useGameState = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [state.status, feedback]);
+  }, [state.status, feedback, state.mode]);
 
-  // Check for timeout
   useEffect(() => {
-    if (state.status === 'playing' && state.timeRemaining === 0 && !feedback) {
+    if (state.status === 'playing' && state.timeRemaining === 0 && !feedback && state.mode !== 'practice') {
       timeOut();
     }
-  }, [state.status, state.timeRemaining, feedback, timeOut]);
+  }, [state.status, state.timeRemaining, feedback, timeOut, state.mode]);
 
   return {
     state,
@@ -174,6 +205,7 @@ export const useGameState = () => {
     startGame,
     checkAnswer,
     resetGame,
+    toggleHint,
     getLeaderboard,
     saveToLeaderboard,
   };
