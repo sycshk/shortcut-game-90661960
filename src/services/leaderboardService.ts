@@ -601,6 +601,37 @@ export const leaderboardService = {
     };
   },
 
+  // Get Hall of Fame - Guru level completions
+  getHallOfFame: async (): Promise<{ name: string; email?: string; score: number; accuracy: number; streak: number; date: string }[]> => {
+    if (useApi) {
+      const result = await apiService.getHallOfFame(20);
+      if (result.data?.entries) {
+        return result.data.entries.map(e => ({
+          name: e.name,
+          email: e.email,
+          score: e.score,
+          accuracy: e.accuracy || 0,
+          streak: e.streak || 0,
+          date: e.date || new Date().toISOString()
+        }));
+      }
+    }
+    
+    // Fallback to localStorage - filter for guru level entries
+    const entries = cachedLeaderboard || leaderboardService.getFromLocalStorage(LEADERBOARD_KEY, []);
+    return entries
+      .filter(e => e.level === 'guru')
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 20)
+      .map(e => ({
+        name: e.name,
+        score: e.score,
+        accuracy: e.accuracy,
+        streak: e.streak || 0,
+        date: e.date
+      }));
+  },
+
   // Export all data as downloadable files
   exportAllData: (): void => {
     const data = {
