@@ -47,20 +47,20 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// API routes
-app.use('/api/leaderboard', leaderboardRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/sessions', sessionsRoutes);
-app.use('/api/history', historyRoutes);
-app.use('/api/daily', dailyRoutes);
+// API routes (no /api prefix - dedicated subdomain)
+app.use('/leaderboard', leaderboardRoutes);
+app.use('/users', usersRoutes);
+app.use('/sessions', sessionsRoutes);
+app.use('/history', historyRoutes);
+app.use('/daily', dailyRoutes);
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Debug endpoint - provides detailed server/database diagnostics
-app.get('/api/debug', (req, res) => {
+app.get('/debug', (req, res) => {
   try {
     const db = require('./database.cjs');
     const fs = require('fs');
@@ -118,19 +118,6 @@ app.get('/api/debug', (req, res) => {
       timestamp: new Date().toISOString()
     });
   }
-});
-
-// Serve static files from the dist directory
-const distPath = process.env.NODE_ENV === 'production'
-  ? '/opt/shortcut-game/dist'
-  : path.join(__dirname, '..', 'dist');
-
-app.use(express.static(distPath));
-
-// SPA fallback - serve index.html for all non-API routes
-// Use a regex to avoid wildcard incompatibilities across Express versions
-app.get(/^(?!\/api).*/, (req, res) => {
-  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 // Error handling middleware

@@ -5,8 +5,8 @@
 
 // API environment management
 const STORAGE_KEY = 'shortcut-api-environment';
-const PRODUCTION_API = 'https://game.elufasys.com/api';
-const LOCAL_API = '/api';
+const PRODUCTION_API = 'https://api.game.elufasys.com';
+const LOCAL_API = 'http://localhost:3001';
 
 function getApiBase(): string {
   const saved = localStorage.getItem(STORAGE_KEY);
