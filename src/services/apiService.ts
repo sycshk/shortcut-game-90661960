@@ -12,8 +12,13 @@ function getApiBase(): string {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved === 'production') return PRODUCTION_API;
   if (saved === 'local') return LOCAL_API;
-  // Auto-detect: use production for Lovable preview
-  return window.location.hostname.includes('lovable') ? PRODUCTION_API : LOCAL_API;
+  // Auto-detect: use production for Lovable preview or published domains
+  const hostname = window.location.hostname;
+  const isProduction = hostname.includes('lovable') || 
+                       hostname.includes('elufasys') || 
+                       hostname.endsWith('.app') ||
+                       !hostname.includes('localhost');
+  return isProduction ? PRODUCTION_API : LOCAL_API;
 }
 
 export function getApiEnvironment(): 'production' | 'local' | 'auto' {
