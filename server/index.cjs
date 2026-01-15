@@ -2,6 +2,23 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 
+// --- Process diagnostics (helps debug systemd restarts) ---
+process.on('uncaughtException', (err) => {
+  console.error('❌ uncaughtException:', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('❌ unhandledRejection:', reason);
+});
+process.on('SIGTERM', () => {
+  console.error('⚠️ SIGTERM received');
+});
+process.on('SIGINT', () => {
+  console.error('⚠️ SIGINT received');
+});
+process.on('exit', (code) => {
+  console.error('⚠️ process exit with code:', code);
+});
+
 // Initialize database (creates tables if needed)
 require('./database.cjs');
 
@@ -111,7 +128,7 @@ const distPath = process.env.NODE_ENV === 'production'
 app.use(express.static(distPath));
 
 // SPA fallback - serve index.html for all non-API routes
-// Express 5 requires named wildcard: /{*splat} or use a regex
+// Use a regex to avoid wildcard incompatibilities across Express versions
 app.get(/^(?!\/api).*/, (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
