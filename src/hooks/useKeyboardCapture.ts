@@ -96,9 +96,10 @@ export const useKeyboardCapture = (isActive: boolean, onCombination: (keys: stri
   return state;
 };
 
-// Hook for entering fullscreen mode
+// Hook for entering fullscreen mode with auto-recovery
 export const useFullscreen = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isGameActive, setIsGameActive] = useState(false);
 
   const enterFullscreen = useCallback(async () => {
     try {
@@ -111,19 +112,23 @@ export const useFullscreen = () => {
         await (elem as any).msRequestFullscreen();
       }
       setIsFullscreen(true);
+      setIsGameActive(true);
     } catch (err) {
       console.log('Fullscreen not available:', err);
     }
   }, []);
 
   const exitFullscreen = useCallback(async () => {
+    setIsGameActive(false); // Mark game as no longer active
     try {
-      if (document.exitFullscreen) {
-        await document.exitFullscreen();
-      } else if ((document as any).webkitExitFullscreen) {
-        await (document as any).webkitExitFullscreen();
-      } else if ((document as any).msExitFullscreen) {
-        await (document as any).msExitFullscreen();
+      if (document.fullscreenElement) {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          await (document as any).webkitExitFullscreen();
+        } else if ((document as any).msExitFullscreen) {
+          await (document as any).msExitFullscreen();
+        }
       }
       setIsFullscreen(false);
     } catch (err) {
@@ -131,9 +136,21 @@ export const useFullscreen = () => {
     }
   }, []);
 
+  // Auto-recover fullscreen when user presses ESC during active game
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const currentlyFullscreen = !!document.fullscreenElement;
+      setIsFullscreen(currentlyFullscreen);
+      
+      // If game is active and user exited fullscreen (e.g., via ESC), prompt to re-enter
+      if (isGameActive && !currentlyFullscreen) {
+        // Small delay to avoid immediate re-trigger
+        setTimeout(() => {
+          if (isGameActive) {
+            enterFullscreen();
+          }
+        }, 100);
+      }
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -143,7 +160,28 @@ export const useFullscreen = () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
     };
-  }, []);
+  }, [isGameActive, enterFullscreen]);
 
-  return { isFullscreen, enterFullscreen, exitFullscreen };
+  // Intercept ESC key during game to prevent exit
+  useEffect(() => {
+    if (!isGameActive) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        // Don't exit fullscreen, keep playing
+        return false;
+      }
+    };
+
+    // Use capture phase to intercept before browser handles it
+    document.addEventListener('keydown', handleKeyDown, { capture: true });
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown, { capture: true });
+    };
+  }, [isGameActive]);
+
+  return { isFullscreen, enterFullscreen, exitFullscreen, isGameActive };
 };
