@@ -7,7 +7,7 @@ export interface QuizQuestion {
   correctIndex: number;
   explanation: string;
   topic: string;
-  tool?: 'oracle_fccs' | 'oracle_pbcs' | 'jedox' | 'netsuite' | 'tagetik'; // EPM tool-specific questions
+  tool?: 'oracle_fccs' | 'oracle_pbcs' | 'jedox' | 'netsuite' | 'tagetik' | 'anaplan' | 'workday_adaptive'; // EPM tool-specific questions
 }
 
 // Tool-specific configuration
@@ -46,6 +46,20 @@ export const EPM_TOOL_CONFIG = {
     icon: '🟣',
     color: 'text-purple-500',
     description: 'Analytic Information Hub, Matrix Designer, regulatory compliance'
+  },
+  anaplan: {
+    label: 'Anaplan',
+    fullName: 'Anaplan Connected Planning Platform',
+    icon: '🔵',
+    color: 'text-blue-500',
+    description: 'Hyperblock engine, hub-and-spoke, DISCO methodology, modules & line items'
+  },
+  workday_adaptive: {
+    label: 'Workday Adaptive',
+    fullName: 'Workday Adaptive Planning',
+    icon: '🟡',
+    color: 'text-yellow-500',
+    description: 'Cube sheets, modeled sheets, OfficeConnect, versions & dimensions'
   }
 } as const;
 
@@ -1258,6 +1272,490 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     explanation: 'Datasets in Tagetik are defined data collections within the Analytical Workspace, organized by the selected dimensions and aggregation structures.',
     topic: 'Tagetik Architecture',
     tool: 'tagetik'
+  },
+
+  // ==========================================
+  // ANAPLAN QUESTIONS
+  // ==========================================
+  
+  // Anaplan - Beginner
+  {
+    id: 'anaplan-1',
+    category: 'general',
+    difficulty: 'beginner',
+    question: 'What is the core calculation engine behind Anaplan?',
+    options: [
+      'Oracle Essbase',
+      'Hyperblock - a proprietary in-memory engine',
+      'Microsoft OLAP Services',
+      'SAP HANA'
+    ],
+    correctIndex: 1,
+    explanation: 'Anaplan uses its proprietary Hyperblock engine, which performs incremental calculations updating only cells affected by changes.',
+    topic: 'Anaplan Architecture',
+    tool: 'anaplan'
+  },
+  {
+    id: 'anaplan-2',
+    category: 'budget',
+    difficulty: 'beginner',
+    question: 'In Anaplan, what is the relationship between a Workspace and a Model?',
+    options: [
+      'They are the same thing',
+      'Workspaces are storage areas; Models contain business logic (modules, lists, dashboards)',
+      'Models contain Workspaces',
+      'Workspaces are for users; Models are for admins'
+    ],
+    correctIndex: 1,
+    explanation: 'Workspaces are the tenant storage areas, while Models are where the actual business logic, modules, lists, and dashboards reside.',
+    topic: 'Anaplan Structure',
+    tool: 'anaplan'
+  },
+  {
+    id: 'anaplan-3',
+    category: 'budget',
+    difficulty: 'beginner',
+    question: 'What is a "Module" in Anaplan?',
+    options: [
+      'A user interface component',
+      'The primary calculation container where data is stored against dimensions',
+      'A reporting template',
+      'A security role'
+    ],
+    correctIndex: 1,
+    explanation: 'Modules are the primary calculation engine in Anaplan where data is stored against dimensions like Time, Versions, and Lists.',
+    topic: 'Anaplan Modules',
+    tool: 'anaplan'
+  },
+  {
+    id: 'anaplan-4',
+    category: 'budget',
+    difficulty: 'beginner',
+    question: 'What are "Line Items" in Anaplan?',
+    options: [
+      'Rows in a report',
+      'The variables/calculations stored in a module (e.g., Revenue, Cost)',
+      'User comments',
+      'List members'
+    ],
+    correctIndex: 1,
+    explanation: 'Line Items are the variables or calculations within a module, such as Revenue, Quantity, or Price, that define what data is being tracked.',
+    topic: 'Anaplan Line Items',
+    tool: 'anaplan'
+  },
+
+  // Anaplan - Intermediate
+  {
+    id: 'anaplan-5',
+    category: 'budget',
+    difficulty: 'intermediate',
+    question: 'What is the "Hub-and-Spoke" architecture in Anaplan?',
+    options: [
+      'A network topology for servers',
+      'A central Data Hub with connected specialized Spoke models for specific functions',
+      'A user interface pattern',
+      'A backup and recovery strategy'
+    ],
+    correctIndex: 1,
+    explanation: 'Hub-and-Spoke uses a central Data Hub as the single source of truth for master data, synced to specialized Spoke models for different planning functions.',
+    topic: 'Anaplan Architecture',
+    tool: 'anaplan'
+  },
+  {
+    id: 'anaplan-6',
+    category: 'budget',
+    difficulty: 'intermediate',
+    question: 'What does the DISCO methodology stand for in Anaplan best practices?',
+    options: [
+      'Data, Integration, Security, Compliance, Optimization',
+      'Data, Input, System, Calculation, Output',
+      'Design, Implement, Support, Configure, Operate',
+      'Dimension, Import, Structure, Calculate, Output'
+    ],
+    correctIndex: 1,
+    explanation: 'DISCO (Data, Input, System, Calculation, Output) is the standard methodology for organizing Anaplan modules for optimal performance and logic clarity.',
+    topic: 'Anaplan Best Practices',
+    tool: 'anaplan'
+  },
+  {
+    id: 'anaplan-7',
+    category: 'budget',
+    difficulty: 'intermediate',
+    question: 'What is "Sparsity" in the context of Anaplan model optimization?',
+    options: [
+      'Empty cells in a report',
+      'The ratio of empty to populated cells, which impacts performance when high',
+      'A data compression technique',
+      'A security restriction'
+    ],
+    correctIndex: 1,
+    explanation: 'Sparsity refers to empty cells in dimensions. High sparsity means many empty combinations, which can waste memory and slow calculations.',
+    topic: 'Anaplan Performance',
+    tool: 'anaplan'
+  },
+  {
+    id: 'anaplan-8',
+    category: 'budget',
+    difficulty: 'intermediate',
+    question: 'What is "Progressive Disclosure" in Anaplan UX design?',
+    options: [
+      'Gradually revealing more complex features to new users',
+      'Showing detailed transactional data in separate models while surfacing key metrics in the main app',
+      'Releasing new features in phases',
+      'A security escalation process'
+    ],
+    correctIndex: 1,
+    explanation: 'Progressive Disclosure allows detailed data to remain in separate models while key metrics are surfaced on unified pages in the New User Experience (NUX).',
+    topic: 'Anaplan UX',
+    tool: 'anaplan'
+  },
+  {
+    id: 'anaplan-9',
+    category: 'kpi',
+    difficulty: 'intermediate',
+    question: 'How should variance analysis be structured in Anaplan to optimize performance?',
+    options: [
+      'Create a separate model for variances',
+      'Use Line Item Subsets instead of the Versions dimension to avoid excessive sparsity',
+      'Add a custom variance dimension',
+      'Calculate variances in Excel'
+    ],
+    correctIndex: 1,
+    explanation: 'For variance analysis, using Line Item Subsets for versions avoids adding sparsity that comes with using the full Versions dimension.',
+    topic: 'Anaplan Optimization',
+    tool: 'anaplan'
+  },
+
+  // Anaplan - Advanced
+  {
+    id: 'anaplan-10',
+    category: 'budget',
+    difficulty: 'advanced',
+    question: 'What is "Time Ranges" in Anaplan and why is it used?',
+    options: [
+      'Date formatting options',
+      'Allowing different modules to use different time scales (e.g., 1-year vs 5-year) to optimize performance',
+      'Time zone configurations',
+      'Historical data retention settings'
+    ],
+    correctIndex: 1,
+    explanation: 'Time Ranges allow different modules to operate on different time scales, enabling a 1-year operational forecast alongside a 5-year strategic plan without performance penalty.',
+    topic: 'Anaplan Time',
+    tool: 'anaplan'
+  },
+  {
+    id: 'anaplan-11',
+    category: 'general',
+    difficulty: 'advanced',
+    question: 'What is Dynamic Cell Access (DCA) in Anaplan?',
+    options: [
+      'Dynamic data loading',
+      'Cell-level security allowing Read, Write, or No Access based on Boolean logic',
+      'Automatic cell formatting',
+      'Real-time collaboration features'
+    ],
+    correctIndex: 1,
+    explanation: 'DCA provides advanced cell-level security, allowing different access (Read, Write, No Access) based on Boolean conditions in the model.',
+    topic: 'Anaplan Security',
+    tool: 'anaplan'
+  },
+  {
+    id: 'anaplan-12',
+    category: 'general',
+    difficulty: 'advanced',
+    question: 'What is ALM (Application Lifecycle Management) in Anaplan?',
+    options: [
+      'A third-party integration tool',
+      'Framework for managing Development, Test, and Production versions of models',
+      'An API management system',
+      'User license management'
+    ],
+    correctIndex: 1,
+    explanation: 'ALM provides a framework for managing model versions across Development, Test, and Production environments with structured deployment processes.',
+    topic: 'Anaplan ALM',
+    tool: 'anaplan'
+  },
+  {
+    id: 'anaplan-13',
+    category: 'budget',
+    difficulty: 'advanced',
+    question: 'Why should nested IF statements be avoided in Anaplan formulas?',
+    options: [
+      'They are not supported',
+      'They impact performance; Boolean logic expressions are preferred',
+      'They cause security issues',
+      'They cannot handle null values'
+    ],
+    correctIndex: 1,
+    explanation: 'Nested IFs are performance-intensive. Anaplan best practice recommends using Boolean logic expressions for better calculation efficiency.',
+    topic: 'Anaplan Formulas',
+    tool: 'anaplan'
+  },
+  {
+    id: 'anaplan-14',
+    category: 'budget',
+    difficulty: 'advanced',
+    question: 'What is the primary benefit of using a Data Hub in an Anaplan ecosystem?',
+    options: [
+      'Faster report generation',
+      'Centralizing master data and reducing redundancy across spoke models',
+      'Better user interface',
+      'Lower licensing costs'
+    ],
+    correctIndex: 1,
+    explanation: 'The Data Hub centralizes master data (lists, hierarchies) as a single source of truth, reducing redundancy and ensuring consistency across all spoke models.',
+    topic: 'Anaplan Data Hub',
+    tool: 'anaplan'
+  },
+
+  // ==========================================
+  // WORKDAY ADAPTIVE PLANNING QUESTIONS
+  // ==========================================
+  
+  // Workday Adaptive - Beginner
+  {
+    id: 'adaptive-1',
+    category: 'general',
+    difficulty: 'beginner',
+    question: 'What is Workday Adaptive Planning (formerly Adaptive Insights)?',
+    options: [
+      'An HR management system',
+      'A cloud-based EPM solution for budgeting, forecasting, and reporting',
+      'A CRM platform',
+      'An ERP system'
+    ],
+    correctIndex: 1,
+    explanation: 'Workday Adaptive Planning is a cloud-based EPM solution that supports budgeting, forecasting, and reporting with intuitive modeling capabilities.',
+    topic: 'Adaptive Basics',
+    tool: 'workday_adaptive'
+  },
+  {
+    id: 'adaptive-2',
+    category: 'budget',
+    difficulty: 'beginner',
+    question: 'What is a "Cube Sheet" in Workday Adaptive Planning?',
+    options: [
+      'A 3D visualization',
+      'A multi-dimensional grid for entering data across several dimensions (Product, Region, Channel)',
+      'A pivot table export',
+      'A backup file format'
+    ],
+    correctIndex: 1,
+    explanation: 'Cube Sheets allow multi-dimensional data input and analysis across dimensions like Product, Region, or Channel, enabling users to pivot and filter dynamically.',
+    topic: 'Adaptive Sheets',
+    tool: 'workday_adaptive'
+  },
+  {
+    id: 'adaptive-3',
+    category: 'budget',
+    difficulty: 'beginner',
+    question: 'What is a "Model Sheet" (or Modeled Sheet) in Adaptive Planning?',
+    options: [
+      'A template for new models',
+      'Row-level transactional planning for items like employees or assets',
+      'A summary sheet',
+      'An import configuration'
+    ],
+    correctIndex: 1,
+    explanation: 'Model Sheets enable granular, row-level planning like Workforce or Capital Planning, where each row represents a unique record (e.g., an individual employee).',
+    topic: 'Adaptive Sheets',
+    tool: 'workday_adaptive'
+  },
+  {
+    id: 'adaptive-4',
+    category: 'budget',
+    difficulty: 'beginner',
+    question: 'What is OfficeConnect in Workday Adaptive Planning?',
+    options: [
+      'An email integration',
+      'A Microsoft Office add-in for creating live-linked financial reports',
+      'A calendar sync tool',
+      'A file sharing service'
+    ],
+    correctIndex: 1,
+    explanation: 'OfficeConnect is an add-in for Excel, Word, and PowerPoint that creates and updates financial reports using live Adaptive Planning data.',
+    topic: 'Adaptive Reporting',
+    tool: 'workday_adaptive'
+  },
+
+  // Workday Adaptive - Intermediate
+  {
+    id: 'adaptive-5',
+    category: 'budget',
+    difficulty: 'intermediate',
+    question: 'How does versioning work in Adaptive Planning?',
+    options: [
+      'Only one version is allowed',
+      'Versions represent different scenarios (Actuals, Budget, Forecast, What-if) for comparison',
+      'Versions are for backup purposes only',
+      'Each user has their own version'
+    ],
+    correctIndex: 1,
+    explanation: 'Versioning creates multiple iterations of budgets/forecasts representing different scenarios like Best Case, Worst Case, or Actuals for comparison.',
+    topic: 'Adaptive Versions',
+    tool: 'workday_adaptive'
+  },
+  {
+    id: 'adaptive-6',
+    category: 'budget',
+    difficulty: 'intermediate',
+    question: 'What are "Levels" in Workday Adaptive Planning?',
+    options: [
+      'User permission tiers',
+      'Organizational hierarchy units (entities, departments, cost centers)',
+      'Data quality ratings',
+      'Calculation precedence'
+    ],
+    correctIndex: 1,
+    explanation: 'Levels represent the organizational hierarchy structure in Adaptive, such as Departments, Cost Centers, or Business Units.',
+    topic: 'Adaptive Hierarchy',
+    tool: 'workday_adaptive'
+  },
+  {
+    id: 'adaptive-7',
+    category: 'budget',
+    difficulty: 'intermediate',
+    question: 'What is the difference between a Standard Account and a Modeled Account?',
+    options: [
+      'No difference',
+      'Standard accounts are for aggregated cube data; Modeled accounts enable row-level customization',
+      'Standard is newer than Modeled',
+      'Modeled accounts are read-only'
+    ],
+    correctIndex: 1,
+    explanation: 'Standard accounts are used in cube sheets for aggregated data, while Modeled accounts enable detailed row-level planning and calculations.',
+    topic: 'Adaptive Accounts',
+    tool: 'workday_adaptive'
+  },
+  {
+    id: 'adaptive-8',
+    category: 'budget',
+    difficulty: 'intermediate',
+    question: 'What are "Assumptions" in an Adaptive Planning model?',
+    options: [
+      'Default values for missing data',
+      'User-defined variables (inflation rates, exchange rates) that influence formulas',
+      'Security assumptions',
+      'Performance benchmarks'
+    ],
+    correctIndex: 1,
+    explanation: 'Assumptions are user-defined variables like inflation rates or headcount growth that influence calculations, improving model flexibility.',
+    topic: 'Adaptive Modeling',
+    tool: 'workday_adaptive'
+  },
+  {
+    id: 'adaptive-9',
+    category: 'general',
+    difficulty: 'intermediate',
+    question: 'How does Adaptive Planning support cross-departmental collaboration?',
+    options: [
+      'Email notifications only',
+      'Real-time data sharing, workflow controls, and role-based access',
+      'Separate databases per department',
+      'Manual data exports'
+    ],
+    correctIndex: 1,
+    explanation: 'Adaptive supports collaboration through real-time data sharing, workflow controls for approvals, and role-based access ensuring alignment across teams.',
+    topic: 'Adaptive Collaboration',
+    tool: 'workday_adaptive'
+  },
+
+  // Workday Adaptive - Advanced
+  {
+    id: 'adaptive-10',
+    category: 'budget',
+    difficulty: 'advanced',
+    question: 'What are "Alternate Hierarchies" in Workday Adaptive Planning?',
+    options: [
+      'Backup hierarchy configurations',
+      'Different rollup structures for the same data (e.g., Functional vs Legal) without duplication',
+      'User-specific views',
+      'Historical hierarchy versions'
+    ],
+    correctIndex: 1,
+    explanation: 'Alternate Hierarchies allow data to be rolled up in different ways (Functional, Legal, Regional) without duplicating the underlying data.',
+    topic: 'Adaptive Advanced',
+    tool: 'workday_adaptive'
+  },
+  {
+    id: 'adaptive-11',
+    category: 'general',
+    difficulty: 'advanced',
+    question: 'How does Workday Adaptive Planning support Integrated Business Planning (IBP)?',
+    options: [
+      'It only supports financial planning',
+      'Unified platform connecting financial, operational, workforce, and sales plans with real-time sync',
+      'Through third-party integrations only',
+      'IBP is not supported'
+    ],
+    correctIndex: 1,
+    explanation: 'Adaptive provides a unified platform connecting financial, operational, workforce, and sales plans through shared models and real-time data synchronization.',
+    topic: 'Adaptive IBP',
+    tool: 'workday_adaptive'
+  },
+  {
+    id: 'adaptive-12',
+    category: 'budget',
+    difficulty: 'advanced',
+    question: 'What is driver-based modeling in Workday Adaptive Planning?',
+    options: [
+      'Planning focused on vehicle fleets',
+      'Using operational drivers (volume, headcount, rates) to calculate financial outcomes',
+      'A database driver configuration',
+      'Manual data entry process'
+    ],
+    correctIndex: 1,
+    explanation: 'Driver-based modeling links operational assumptions (headcount, unit prices, churn rates) to financial outcomes for more accurate and flexible forecasting.',
+    topic: 'Adaptive Driver Modeling',
+    tool: 'workday_adaptive'
+  },
+  {
+    id: 'adaptive-13',
+    category: 'general',
+    difficulty: 'advanced',
+    question: 'Which sheet type allows you to delete the sheet without losing the underlying account data?',
+    options: [
+      'Cube Sheet',
+      'Model Sheet',
+      'Standard Sheet',
+      'Dashboard Sheet'
+    ],
+    correctIndex: 2,
+    explanation: 'Standard Sheets can be deleted without affecting the underlying accounts because data is tied to accounts, not the sheet itself.',
+    topic: 'Adaptive Architecture',
+    tool: 'workday_adaptive'
+  },
+  {
+    id: 'adaptive-14',
+    category: 'budget',
+    difficulty: 'advanced',
+    question: 'What tool creates dynamic, refreshable board decks in PowerPoint using Adaptive data?',
+    options: [
+      'Adaptive Reports',
+      'OfficeConnect',
+      'Smart View',
+      'Tableau Connector'
+    ],
+    correctIndex: 1,
+    explanation: 'OfficeConnect extends to PowerPoint, enabling dynamic board decks that automatically refresh with the latest Adaptive Planning data.',
+    topic: 'Adaptive Reporting',
+    tool: 'workday_adaptive'
+  },
+  {
+    id: 'adaptive-15',
+    category: 'general',
+    difficulty: 'advanced',
+    question: 'How are Calculated Accounts used in Workday Adaptive Planning?',
+    options: [
+      'For manual data entry only',
+      'To derive values using formulas based on other accounts or assumptions',
+      'For historical data storage',
+      'As placeholders for future data'
+    ],
+    correctIndex: 1,
+    explanation: 'Calculated Accounts derive their values from formulas referencing other accounts, assumptions, or dimensions, enabling dynamic computed metrics.',
+    topic: 'Adaptive Calculations',
+    tool: 'workday_adaptive'
   }
 ];
 
