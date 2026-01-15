@@ -87,13 +87,13 @@ export const ShortcutGame = () => {
     startDailyChallenge(dailyShortcuts);
   };
 
-  const handleDailyChallengeComplete = (name: string) => {
+  const handleDailyChallengeComplete = (name: string, email?: string) => {
     // Save to leaderboard
-    saveToLeaderboard(name);
+    saveToLeaderboard(name, email);
     
     // Save daily challenge completion
     const accuracy = Math.round((state.correctAnswers / state.totalQuestions) * 100);
-    saveDailyChallengeCompletion(state.score, accuracy, userEmail || undefined);
+    saveDailyChallengeCompletion(state.score, accuracy, email || userEmail || undefined);
     
     setIsDailyMode(false);
   };
@@ -175,7 +175,7 @@ export const ShortcutGame = () => {
             state={state} 
             onPlayAgain={isDailyMode ? handleBackFromDaily : startSetup} 
             onHome={() => { setIsDailyMode(false); resetGame(); }} 
-            onSaveScore={isDailyMode ? handleDailyChallengeComplete : saveToLeaderboard}
+            onSaveScore={isDailyMode ? handleDailyChallengeComplete : (name, email) => saveToLeaderboard(name, email)}
             onAnalytics={goToAnalytics}
             userEmail={userEmail}
             displayName={displayName}

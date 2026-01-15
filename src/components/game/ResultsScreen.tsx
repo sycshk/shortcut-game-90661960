@@ -12,7 +12,7 @@ interface ResultsScreenProps {
   state: GameState;
   onPlayAgain: () => void;
   onHome: () => void;
-  onSaveScore: (name: string) => void;
+  onSaveScore: (name: string, email?: string) => void;
   onAnalytics: () => void;
   userEmail?: string;
   displayName?: string;
@@ -42,7 +42,7 @@ export const ResultsScreen = ({ state, onPlayAgain, onHome, onSaveScore, onAnaly
   // Auto-save to leaderboard
   useEffect(() => {
     if (!saved && displayName && state.score > 0) {
-      onSaveScore(displayName);
+      onSaveScore(displayName, userEmail);
       setSaved(true);
       
       // Also save game session

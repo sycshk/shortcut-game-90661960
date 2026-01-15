@@ -263,7 +263,7 @@ export const useGameState = () => {
     return leaderboardService.getTop(10);
   }, []);
 
-  const saveToLeaderboard = useCallback((name: string) => {
+  const saveToLeaderboard = useCallback((name: string, email?: string) => {
     if (!state.difficulty) return;
     
     setPlayerName(name);
@@ -277,7 +277,7 @@ export const useGameState = () => {
       difficulty: state.difficulty,
       level: state.level || undefined,
       streak: state.bestStreak,
-    });
+    }, email);
   }, [state]);
 
   // Auto-save when game ends
