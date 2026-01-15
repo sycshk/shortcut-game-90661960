@@ -1,17 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Gamepad2, Brain, Trophy } from 'lucide-react';
+import { ArrowLeft, Gamepad2, Brain, Trophy, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SnakeGame } from './SnakeGame';
 import { ConsolidationQuiz } from './ConsolidationQuiz';
+import { UnifiedLeaderboard, saveMiniGameScore, getUserMiniGameStats } from './UnifiedLeaderboard';
+import { ACHIEVEMENTS, RARITY_COLORS } from '@/data/achievements';
 
 interface GamesHubProps {
   onBack: () => void;
   userEmail?: string;
 }
 
-type GameType = 'hub' | 'snake' | 'epm-quiz';
+type GameType = 'hub' | 'snake' | 'epm-quiz' | 'leaderboard';
 
 interface GameCard {
   id: GameType;
@@ -41,24 +43,66 @@ const GAMES: GameCard[] = [
   }
 ];
 
+// Get mini game achievements that are unlocked
+const getUnlockedMiniGameAchievements = (email: string) => {
+  const stats = getUserMiniGameStats(email);
+  const miniGameAchievements = ACHIEVEMENTS.filter(a => 
+    ['snake_score', 'epm_score', 'epm_games', 'epm_accuracy', 'epm_mastery', 'consolidation_perfect'].includes(a.requirement.type)
+  );
+  
+  return miniGameAchievements.filter(achievement => {
+    const req = achievement.requirement;
+    switch (req.type) {
+      case 'snake_score':
+        return stats.snake >= req.value;
+      case 'epm_score':
+        return stats.epm >= req.value;
+      case 'epm_games':
+        return stats.epmGames >= req.value;
+      case 'epm_accuracy':
+        return stats.epmAccuracy >= req.value;
+      case 'epm_mastery':
+        return stats.epm >= 150 && stats.epmAccuracy >= 90;
+      default:
+        return false;
+    }
+  });
+};
+
 export const GamesHub = ({ onBack, userEmail }: GamesHubProps) => {
   const [currentGame, setCurrentGame] = useState<GameType>('hub');
   const [scores, setScores] = useState<Record<string, number>>({});
+  const [unlockedAchievements, setUnlockedAchievements] = useState<typeof ACHIEVEMENTS>([]);
+
+  useEffect(() => {
+    if (userEmail) {
+      const stats = getUserMiniGameStats(userEmail);
+      setScores({
+        snake: stats.snake,
+        'epm-quiz': stats.epm
+      });
+      setUnlockedAchievements(getUnlockedMiniGameAchievements(userEmail));
+    }
+  }, [userEmail, currentGame]);
 
   const handleSnakeScoreSave = (score: number) => {
-    setScores(prev => ({
-      ...prev,
-      snake: Math.max(prev.snake || 0, score)
-    }));
-    // TODO: Save to leaderboard service
+    if (userEmail) {
+      saveMiniGameScore(userEmail, 'snake', score);
+      setScores(prev => ({
+        ...prev,
+        snake: Math.max(prev.snake || 0, score)
+      }));
+    }
   };
 
   const handleQuizScoreSave = (score: number, accuracy: number) => {
-    setScores(prev => ({
-      ...prev,
-      'epm-quiz': Math.max(prev['epm-quiz'] || 0, score)
-    }));
-    // TODO: Save to leaderboard service
+    if (userEmail) {
+      saveMiniGameScore(userEmail, 'epm', score, accuracy);
+      setScores(prev => ({
+        ...prev,
+        'epm-quiz': Math.max(prev['epm-quiz'] || 0, score)
+      }));
+    }
   };
 
   if (currentGame === 'snake') {
@@ -81,6 +125,15 @@ export const GamesHub = ({ onBack, userEmail }: GamesHubProps) => {
     );
   }
 
+  if (currentGame === 'leaderboard') {
+    return (
+      <UnifiedLeaderboard
+        onBack={() => setCurrentGame('hub')}
+        userEmail={userEmail}
+      />
+    );
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center animated-bg p-4">
       <Card className="glass-card w-full max-w-2xl">
@@ -89,14 +142,25 @@ export const GamesHub = ({ onBack, userEmail }: GamesHubProps) => {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-secondary">
-              <Gamepad2 className="h-6 w-6 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-secondary">
+                <Gamepad2 className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-2xl">Mini Games</CardTitle>
+                <CardDescription>Take a break with these fun games!</CardDescription>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-2xl">Mini Games</CardTitle>
-              <CardDescription>Take a break with these fun games!</CardDescription>
-            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setCurrentGame('leaderboard')}
+              className="glass-button"
+            >
+              <Trophy className="h-4 w-4 mr-2" />
+              Leaderboard
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -130,7 +194,7 @@ export const GamesHub = ({ onBack, userEmail }: GamesHubProps) => {
                     </span>
                   ))}
                 </div>
-                {scores[game.id] && (
+                {scores[game.id] > 0 && (
                   <div className="mt-3 pt-3 border-t border-muted flex items-center gap-2 text-sm">
                     <Trophy className="h-4 w-4 text-yellow-500" />
                     <span className="text-muted-foreground">Best:</span>
@@ -140,6 +204,37 @@ export const GamesHub = ({ onBack, userEmail }: GamesHubProps) => {
               </button>
             ))}
           </div>
+
+          {/* Mini Game Achievements */}
+          {unlockedAchievements.length > 0 && (
+            <div className="p-4 rounded-xl bg-muted/50">
+              <div className="flex items-center gap-2 mb-3">
+                <Award className="h-5 w-5 text-yellow-500" />
+                <span className="font-medium">Mini Game Achievements</span>
+                <span className="text-xs text-muted-foreground">({unlockedAchievements.length} unlocked)</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {unlockedAchievements.map(achievement => {
+                  const AchievementIcon = achievement.icon;
+                  const rarityColors = RARITY_COLORS[achievement.rarity];
+                  return (
+                    <div
+                      key={achievement.id}
+                      className={cn(
+                        'flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium',
+                        rarityColors.bg,
+                        rarityColors.text
+                      )}
+                      title={achievement.description}
+                    >
+                      <AchievementIcon className="h-3 w-3" />
+                      {achievement.name}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Coming Soon */}
           <div className="p-4 rounded-xl border border-dashed border-muted-foreground/30 text-center">
@@ -156,7 +251,7 @@ export const GamesHub = ({ onBack, userEmail }: GamesHubProps) => {
                 <span className="font-medium">Total Mini Game Score</span>
               </div>
               <span className="font-bold text-xl text-primary">
-                {Object.values(scores).reduce((a, b) => a + b, 0)}
+                {Object.values(scores).reduce((a, b) => a + (b || 0), 0)}
               </span>
             </div>
           </div>

@@ -8,7 +8,7 @@ export interface Achievement {
   color: string;
   bgColor: string;
   requirement: {
-    type: 'games_played' | 'guru_completed' | 'perfect_score' | 'streak' | 'daily_streak' | 'total_score' | 'accuracy' | 'speed' | 'first_game';
+    type: 'games_played' | 'guru_completed' | 'perfect_score' | 'streak' | 'daily_streak' | 'total_score' | 'accuracy' | 'speed' | 'first_game' | 'snake_score' | 'epm_score' | 'epm_games' | 'epm_accuracy' | 'epm_mastery' | 'consolidation_perfect';
     value: number;
     category?: string;
     level?: string;
@@ -231,6 +231,100 @@ export const ACHIEVEMENTS: Achievement[] = [
     bgColor: 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20',
     requirement: { type: 'total_score', value: 10000 },
     rarity: 'epic'
+  },
+  
+  // Mini Game Achievements - Snake
+  {
+    id: 'snake_beginner',
+    name: 'Snake Charmer',
+    description: 'Score 50 points in Snake',
+    icon: Rocket,
+    color: 'text-green-400',
+    bgColor: 'bg-green-500/20',
+    requirement: { type: 'snake_score', value: 50 },
+    rarity: 'common'
+  },
+  {
+    id: 'snake_intermediate',
+    name: 'Snake Handler',
+    description: 'Score 150 points in Snake',
+    icon: Flame,
+    color: 'text-green-500',
+    bgColor: 'bg-green-500/20',
+    requirement: { type: 'snake_score', value: 150 },
+    rarity: 'uncommon'
+  },
+  {
+    id: 'snake_master',
+    name: 'Snake Master',
+    description: 'Score 300 points in Snake',
+    icon: Crown,
+    color: 'text-emerald-400',
+    bgColor: 'bg-emerald-500/20',
+    requirement: { type: 'snake_score', value: 300 },
+    rarity: 'rare'
+  },
+  {
+    id: 'snake_legend',
+    name: 'Serpent Legend',
+    description: 'Score 500 points in Snake',
+    icon: Sparkles,
+    color: 'text-emerald-300',
+    bgColor: 'bg-gradient-to-r from-emerald-500/20 to-green-500/20',
+    requirement: { type: 'snake_score', value: 500 },
+    rarity: 'legendary'
+  },
+  
+  // Mini Game Achievements - EPM Quiz
+  {
+    id: 'epm_learner',
+    name: 'EPM Learner',
+    description: 'Complete an EPM quiz',
+    icon: Brain,
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-500/20',
+    requirement: { type: 'epm_games', value: 1 },
+    rarity: 'common'
+  },
+  {
+    id: 'epm_student',
+    name: 'EPM Student',
+    description: 'Score 100 points in EPM Quiz',
+    icon: Brain,
+    color: 'text-blue-500',
+    bgColor: 'bg-blue-500/20',
+    requirement: { type: 'epm_score', value: 100 },
+    rarity: 'uncommon'
+  },
+  {
+    id: 'epm_expert',
+    name: 'EPM Expert',
+    description: 'Achieve 80% accuracy in EPM Quiz',
+    icon: Target,
+    color: 'text-purple-400',
+    bgColor: 'bg-purple-500/20',
+    requirement: { type: 'epm_accuracy', value: 80 },
+    rarity: 'rare'
+  },
+  {
+    id: 'epm_master',
+    name: 'EPM Master',
+    description: 'Score 150+ with 90% accuracy in EPM Quiz',
+    icon: Award,
+    color: 'text-purple-500',
+    bgColor: 'bg-gradient-to-r from-purple-500/20 to-blue-500/20',
+    requirement: { type: 'epm_mastery', value: 1 },
+    rarity: 'epic'
+  },
+  {
+    id: 'consolidation_guru',
+    name: 'Consolidation Guru',
+    description: 'Perfect score on Financial Consolidation topic',
+    icon: Crown,
+    color: 'text-indigo-400',
+    bgColor: 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20',
+    requirement: { type: 'consolidation_perfect', value: 1 },
+    rarity: 'legendary'
   },
 ];
 
