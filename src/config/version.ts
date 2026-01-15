@@ -1,6 +1,12 @@
 // App version - update this when deploying new features
 export const APP_VERSION = '2.1.0';
-export const BUILD_DATE = '2025-01-15';
+
+// Auto-generated at build time by Vite plugin
+declare const __BUILD_TIME__: string;
+declare const __BUILD_DATE__: string;
+
+export const BUILD_TIME = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : new Date().toISOString();
+export const BUILD_DATE = typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__ : new Date().toISOString().split('T')[0];
 
 // Version history:
 // 2.1.0 - Mini games (Snake, EPM Quiz), unified leaderboard, mini game achievements
