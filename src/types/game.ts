@@ -121,25 +121,25 @@ export const LEVEL_CONFIG = {
     color: 'text-primary'
   },
   implementation: { 
-    timePerQuestion: 15, 
+    timePerQuestion: 20, 
     pointsPerCorrect: 15, 
-    questionsCount: 12,
+    questionsCount: 10,
     label: 'Implementation',
     description: 'Intermediate shortcuts for productivity',
     color: 'text-secondary'
   },
   architect: { 
-    timePerQuestion: 10, 
-    pointsPerCorrect: 25, 
-    questionsCount: 15,
+    timePerQuestion: 20, 
+    pointsPerCorrect: 20, 
+    questionsCount: 10,
     label: 'Architect',
     description: 'Advanced shortcuts for power users',
     color: 'text-primary'
   },
   guru: { 
-    timePerQuestion: 6, 
-    pointsPerCorrect: 40, 
-    questionsCount: 18,
+    timePerQuestion: 20, 
+    pointsPerCorrect: 25, 
+    questionsCount: 10,
     label: 'Guru',
     description: 'Expert-level shortcuts for masters',
     color: 'text-secondary'
