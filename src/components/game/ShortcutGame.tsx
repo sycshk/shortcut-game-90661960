@@ -7,6 +7,7 @@ import { GameplayScreen } from './GameplayScreen';
 import { ResultsScreen } from './ResultsScreen';
 import { AnalyticsScreen } from './AnalyticsScreen';
 import { DailyChallengeScreen } from './DailyChallengeScreen';
+import { DebugPanel } from './DebugPanel';
 import { leaderboardService } from '@/services/leaderboardService';
 import { getDailyShortcuts, saveDailyChallengeCompletion } from '@/services/dailyChallengeService';
 
@@ -115,73 +116,87 @@ export const ShortcutGame = () => {
 
   // Show login if not authenticated
   if (!userEmail) {
-    return <LoginScreen onLogin={handleLogin} />;
+    return (
+      <>
+        <LoginScreen onLogin={handleLogin} />
+        <DebugPanel />
+      </>
+    );
   }
 
-  switch (state.status) {
-    case 'welcome':
-      return (
-        <WelcomeScreen 
-          onStart={startSetup}
-          onAnalytics={goToAnalytics}
-          onDailyChallenge={goToDailyChallenge}
-          userEmail={userEmail}
-          onLogout={handleLogout}
-        />
-      );
-    
-    case 'dailyChallenge':
-      return (
-        <DailyChallengeScreen
-          onBack={handleBackFromDaily}
-          onStartChallenge={handleStartDailyChallenge}
-          userEmail={userEmail}
-        />
-      );
-    
-    case 'analytics':
-      return (
-        <AnalyticsScreen
-          onBack={resetGame}
-          userEmail={userEmail}
-        />
-      );
-    
-    case 'setup':
-      return (
-        <SetupScreen 
-          onStart={(difficulty, level) => startGame(difficulty, level)} 
-          onBack={resetGame} 
-        />
-      );
-    
-    case 'playing':
-      return (
-        <GameplayScreen 
-          state={state} 
-          feedback={feedback} 
-          onAnswer={checkAnswer}
-          onMultipleChoiceAnswer={handleMultipleChoiceAnswer}
-          onToggleHint={toggleHint}
-          onPause={handlePause}
-        />
-      );
-    
-    case 'results':
-      return (
-        <ResultsScreen 
-          state={state} 
-          onPlayAgain={isDailyMode ? handleBackFromDaily : startSetup} 
-          onHome={() => { setIsDailyMode(false); resetGame(); }} 
-          onSaveScore={isDailyMode ? handleDailyChallengeComplete : saveToLeaderboard}
-          onAnalytics={goToAnalytics}
-          userEmail={userEmail}
-          displayName={displayName}
-          isDailyChallenge={isDailyMode}
-        />
-      );
-    
-    default:
-      return null;
-  }
+  const renderScreen = () => {
+    switch (state.status) {
+      case 'welcome':
+        return (
+          <WelcomeScreen 
+            onStart={startSetup}
+            onAnalytics={goToAnalytics}
+            onDailyChallenge={goToDailyChallenge}
+            userEmail={userEmail}
+            onLogout={handleLogout}
+          />
+        );
+      
+      case 'dailyChallenge':
+        return (
+          <DailyChallengeScreen
+            onBack={handleBackFromDaily}
+            onStartChallenge={handleStartDailyChallenge}
+            userEmail={userEmail}
+          />
+        );
+      
+      case 'analytics':
+        return (
+          <AnalyticsScreen
+            onBack={resetGame}
+            userEmail={userEmail}
+          />
+        );
+      
+      case 'setup':
+        return (
+          <SetupScreen 
+            onStart={(difficulty, level) => startGame(difficulty, level)} 
+            onBack={resetGame} 
+          />
+        );
+      
+      case 'playing':
+        return (
+          <GameplayScreen 
+            state={state} 
+            feedback={feedback} 
+            onAnswer={checkAnswer}
+            onMultipleChoiceAnswer={handleMultipleChoiceAnswer}
+            onToggleHint={toggleHint}
+            onPause={handlePause}
+          />
+        );
+      
+      case 'results':
+        return (
+          <ResultsScreen 
+            state={state} 
+            onPlayAgain={isDailyMode ? handleBackFromDaily : startSetup} 
+            onHome={() => { setIsDailyMode(false); resetGame(); }} 
+            onSaveScore={isDailyMode ? handleDailyChallengeComplete : saveToLeaderboard}
+            onAnalytics={goToAnalytics}
+            userEmail={userEmail}
+            displayName={displayName}
+            isDailyChallenge={isDailyMode}
+          />
+        );
+      
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <>
+      {renderScreen()}
+      <DebugPanel />
+    </>
+  );
 };

@@ -79,62 +79,91 @@ export const leaderboardService = {
   init: async (): Promise<void> => {
     if (isInitialized) return;
     
+    console.group('📊 LeaderboardService Init');
+    console.log('Starting data sync...');
+    
     try {
       // Load leaderboard
+      console.log('📥 Fetching leaderboard from', LEADERBOARD_FILE);
       const leaderboardRes = await fetch(LEADERBOARD_FILE);
+      console.log('  Response:', leaderboardRes.status, leaderboardRes.statusText);
       if (leaderboardRes.ok) {
         const data: LeaderboardData = await leaderboardRes.json();
+        console.log('  Server entries:', data.entries?.length || 0);
         const localData = leaderboardService.getFromLocalStorage(LEADERBOARD_KEY, []);
+        console.log('  Local entries:', localData.length);
         cachedLeaderboard = leaderboardService.mergeEntries(data.entries || [], localData);
+        console.log('  Merged entries:', cachedLeaderboard.length);
         localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(cachedLeaderboard));
       }
-    } catch {
-      console.log('Loading leaderboard from localStorage only');
+    } catch (err) {
+      console.warn('⚠️ Leaderboard fetch failed:', err);
       cachedLeaderboard = leaderboardService.getFromLocalStorage(LEADERBOARD_KEY, []);
+      console.log('  Using localStorage only:', cachedLeaderboard.length, 'entries');
     }
 
     try {
       // Load profiles
+      console.log('📥 Fetching profiles from', PROFILES_FILE);
       const profilesRes = await fetch(PROFILES_FILE);
+      console.log('  Response:', profilesRes.status, profilesRes.statusText);
       if (profilesRes.ok) {
         const data: ProfilesData = await profilesRes.json();
+        console.log('  Server profiles:', Object.keys(data.profiles || {}).length);
         const localProfiles = leaderboardService.getFromLocalStorage(PROFILES_KEY, {});
+        console.log('  Local profiles:', Object.keys(localProfiles).length);
         cachedProfiles = { ...data.profiles, ...localProfiles };
+        console.log('  Merged profiles:', Object.keys(cachedProfiles).length);
         localStorage.setItem(PROFILES_KEY, JSON.stringify(cachedProfiles));
       }
-    } catch {
-      console.log('Loading profiles from localStorage only');
+    } catch (err) {
+      console.warn('⚠️ Profiles fetch failed:', err);
       cachedProfiles = leaderboardService.getFromLocalStorage(PROFILES_KEY, {});
+      console.log('  Using localStorage only:', Object.keys(cachedProfiles).length, 'profiles');
     }
 
     try {
       // Load sessions
+      console.log('📥 Fetching sessions from', SESSIONS_FILE);
       const sessionsRes = await fetch(SESSIONS_FILE);
+      console.log('  Response:', sessionsRes.status, sessionsRes.statusText);
       if (sessionsRes.ok) {
         const data: SessionsData = await sessionsRes.json();
+        console.log('  Server sessions:', data.sessions?.length || 0);
         const localSessions = leaderboardService.getFromLocalStorage(SESSIONS_KEY, []);
+        console.log('  Local sessions:', localSessions.length);
         cachedSessions = leaderboardService.mergeSessions(data.sessions || [], localSessions);
+        console.log('  Merged sessions:', cachedSessions.length);
         localStorage.setItem(SESSIONS_KEY, JSON.stringify(cachedSessions));
       }
-    } catch {
-      console.log('Loading sessions from localStorage only');
+    } catch (err) {
+      console.warn('⚠️ Sessions fetch failed:', err);
       cachedSessions = leaderboardService.getFromLocalStorage(SESSIONS_KEY, []);
+      console.log('  Using localStorage only:', cachedSessions.length, 'sessions');
     }
 
     try {
       // Load history
+      console.log('📥 Fetching history from', HISTORY_FILE);
       const historyRes = await fetch(HISTORY_FILE);
+      console.log('  Response:', historyRes.status, historyRes.statusText);
       if (historyRes.ok) {
         const data: HistoryData = await historyRes.json();
+        console.log('  Server records:', data.records?.length || 0);
         const localHistory = leaderboardService.getFromLocalStorage(ANSWER_HISTORY_KEY, []);
+        console.log('  Local records:', localHistory.length);
         cachedHistory = leaderboardService.mergeHistory(data.records || [], localHistory);
+        console.log('  Merged records:', cachedHistory.length);
         localStorage.setItem(ANSWER_HISTORY_KEY, JSON.stringify(cachedHistory));
       }
-    } catch {
-      console.log('Loading history from localStorage only');
+    } catch (err) {
+      console.warn('⚠️ History fetch failed:', err);
       cachedHistory = leaderboardService.getFromLocalStorage(ANSWER_HISTORY_KEY, []);
+      console.log('  Using localStorage only:', cachedHistory.length, 'records');
     }
     
+    console.log('✅ Init complete');
+    console.groupEnd();
     isInitialized = true;
   },
 
