@@ -126,9 +126,10 @@ export const useGameState = () => {
     recordAnswer(isCorrect, pressedKeys);
 
     if (isCorrect) {
-      const timeBonus = Math.floor(state.timeRemaining / 2);
-      const streakBonus = Math.min(state.currentStreak * 5, 50);
-      const points = config.pointsPerCorrect + timeBonus + streakBonus;
+      // Streak bonus: 1 point for streak 1, 2 for streak 2, etc.
+      const newStreak = state.currentStreak + 1;
+      const streakBonus = newStreak;
+      const points = config.pointsPerCorrect + streakBonus;
       
       setFeedback('correct');
       
