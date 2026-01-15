@@ -163,14 +163,15 @@ restore_data() {
     
     mkdir -p "$SQLITE_DATA_DIR"
     
-    # If database doesn't exist, try to restore from backup
+    # Check if we have a backup from this run
+    if [ -f "$BACKUP_DIR/.latest" ]; then
+        LATEST_BACKUP=$(cat "$BACKUP_DIR/.latest")
+    else
+        LATEST_BACKUP=$(ls -td "$BACKUP_DIR"/backup_* 2>/dev/null | head -1)
+    fi
+    
+    # If database doesn't exist but backup does, restore it
     if [ ! -f "$SQLITE_DATA_DIR/game.db" ]; then
-        if [ -f "$BACKUP_DIR/.latest" ]; then
-            LATEST_BACKUP=$(cat "$BACKUP_DIR/.latest")
-        else
-            LATEST_BACKUP=$(ls -td "$BACKUP_DIR"/backup_* 2>/dev/null | head -1)
-        fi
-        
         if [ -n "$LATEST_BACKUP" ] && [ -f "$LATEST_BACKUP/game.db" ]; then
             cp "$LATEST_BACKUP/game.db" "$SQLITE_DATA_DIR/game.db"
             log_info "Database restored from: $LATEST_BACKUP"
@@ -178,7 +179,16 @@ restore_data() {
             log_info "No backup found, fresh database will be created on first run"
         fi
     else
-        log_info "Database already exists"
+        log_info "Database already exists at $SQLITE_DATA_DIR/game.db"
+        # Verify database integrity
+        if command -v sqlite3 &> /dev/null; then
+            INTEGRITY=$(sqlite3 "$SQLITE_DATA_DIR/game.db" "PRAGMA integrity_check;" 2>/dev/null || echo "error")
+            if [ "$INTEGRITY" = "ok" ]; then
+                log_info "Database integrity check: OK"
+            else
+                log_warn "Database may have issues, consider restoring from backup"
+            fi
+        fi
     fi
 }
 
