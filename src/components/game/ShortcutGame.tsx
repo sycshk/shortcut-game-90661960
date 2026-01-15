@@ -77,7 +77,9 @@ export const ShortcutGame = () => {
   if (isCheckingSession) {
     return (
       <div className="flex min-h-screen items-center justify-center animated-bg">
-        <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full"></div>
+        <div className="glass-card p-8">
+          <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
+        </div>
       </div>
     );
   }
