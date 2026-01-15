@@ -3,14 +3,14 @@ const path = require('path');
 const cors = require('cors');
 
 // Initialize database (creates tables if needed)
-require('./database');
+require('./database.cjs');
 
 // Import routes
-const leaderboardRoutes = require('./routes/leaderboard');
-const usersRoutes = require('./routes/users');
-const sessionsRoutes = require('./routes/sessions');
-const historyRoutes = require('./routes/history');
-const dailyRoutes = require('./routes/daily');
+const leaderboardRoutes = require('./routes/leaderboard.cjs');
+const usersRoutes = require('./routes/users.cjs');
+const sessionsRoutes = require('./routes/sessions.cjs');
+const historyRoutes = require('./routes/history.cjs');
+const dailyRoutes = require('./routes/daily.cjs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -45,7 +45,7 @@ app.get('/api/health', (req, res) => {
 // Debug endpoint - provides detailed server/database diagnostics
 app.get('/api/debug', (req, res) => {
   try {
-    const db = require('./database');
+    const db = require('./database.cjs');
     const fs = require('fs');
     const dataDir = process.env.NODE_ENV === 'production' 
       ? '/opt/shortcut-game/data' 
