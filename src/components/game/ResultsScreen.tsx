@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { GameState, LEVEL_CONFIG } from '@/types/game';
-import { Trophy, RotateCcw, Home, Star, Target, Zap, BarChart3, Crown } from 'lucide-react';
+import { Trophy, RotateCcw, Home, Star, Target, Zap, BarChart3, Crown, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFullscreen } from '@/hooks/useKeyboardCapture';
 import { leaderboardService } from '@/services/leaderboardService';
@@ -16,9 +16,10 @@ interface ResultsScreenProps {
   onAnalytics: () => void;
   userEmail?: string;
   displayName?: string;
+  isDailyChallenge?: boolean;
 }
 
-export const ResultsScreen = ({ state, onPlayAgain, onHome, onSaveScore, onAnalytics, userEmail, displayName }: ResultsScreenProps) => {
+export const ResultsScreen = ({ state, onPlayAgain, onHome, onSaveScore, onAnalytics, userEmail, displayName, isDailyChallenge }: ResultsScreenProps) => {
   const [saved, setSaved] = useState(false);
   const { exitFullscreen } = useFullscreen();
   
@@ -96,8 +97,14 @@ export const ResultsScreen = ({ state, onPlayAgain, onHome, onSaveScore, onAnaly
           {performance.isPerfect && (
             <p className="text-yellow-500 font-medium animate-fade-in">🏆 Flawless Victory! 🏆</p>
           )}
+          {isDailyChallenge && (
+            <div className="flex items-center justify-center gap-2 text-sm bg-gradient-to-r from-primary/10 to-secondary/10 px-4 py-2 rounded-full">
+              <Calendar className="h-4 w-4 text-primary" />
+              <span className="font-medium">Daily Challenge Complete!</span>
+            </div>
+          )}
           <CardDescription className="text-lg">
-            You completed the <span className="font-medium text-foreground">{levelLabel}</span> challenge
+            You completed the <span className="font-medium text-foreground">{isDailyChallenge ? "Daily" : levelLabel}</span> challenge
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

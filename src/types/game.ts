@@ -69,7 +69,7 @@ export interface GameSession {
 }
 
 export interface GameState {
-  status: 'welcome' | 'login' | 'setup' | 'playing' | 'results' | 'dashboard' | 'analytics';
+  status: 'welcome' | 'login' | 'setup' | 'playing' | 'results' | 'dashboard' | 'analytics' | 'dailyChallenge';
   category: Category | ShortcutCategory | null;
   difficulty: Difficulty | null;
   level: DifficultyLevel | null;

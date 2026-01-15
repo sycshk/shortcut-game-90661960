@@ -6,26 +6,31 @@ import { SetupScreen } from './SetupScreen';
 import { GameplayScreen } from './GameplayScreen';
 import { ResultsScreen } from './ResultsScreen';
 import { AnalyticsScreen } from './AnalyticsScreen';
+import { DailyChallengeScreen } from './DailyChallengeScreen';
 import { leaderboardService } from '@/services/leaderboardService';
+import { getDailyShortcuts, saveDailyChallengeCompletion } from '@/services/dailyChallengeService';
 
-const USER_SESSION_KEY = 'elufa-user-session';
+const USER_SESSION_KEY = 'shortcut-user-session';
 
 export const ShortcutGame = () => {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string>('');
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [isDailyMode, setIsDailyMode] = useState(false);
   
   const { 
     state, 
     feedback, 
     startSetup, 
-    startGame, 
+    startGame,
+    startDailyChallenge,
     checkAnswer, 
     handleMultipleChoiceAnswer,
     resetGame, 
     toggleHint,
     saveToLeaderboard,
     goToAnalytics,
+    goToDailyChallenge,
     handlePause,
   } = useGameState();
 
@@ -71,6 +76,29 @@ export const ShortcutGame = () => {
     localStorage.removeItem(USER_SESSION_KEY);
     setUserEmail(null);
     setDisplayName('');
+    setIsDailyMode(false);
+    resetGame();
+  };
+
+  const handleStartDailyChallenge = () => {
+    setIsDailyMode(true);
+    const dailyShortcuts = getDailyShortcuts();
+    startDailyChallenge(dailyShortcuts);
+  };
+
+  const handleDailyChallengeComplete = (name: string) => {
+    // Save to leaderboard
+    saveToLeaderboard(name);
+    
+    // Save daily challenge completion
+    const accuracy = Math.round((state.correctAnswers / state.totalQuestions) * 100);
+    saveDailyChallengeCompletion(state.score, accuracy);
+    
+    setIsDailyMode(false);
+  };
+
+  const handleBackFromDaily = () => {
+    setIsDailyMode(false);
     resetGame();
   };
 
@@ -96,8 +124,18 @@ export const ShortcutGame = () => {
         <WelcomeScreen 
           onStart={startSetup}
           onAnalytics={goToAnalytics}
+          onDailyChallenge={goToDailyChallenge}
           userEmail={userEmail}
           onLogout={handleLogout}
+        />
+      );
+    
+    case 'dailyChallenge':
+      return (
+        <DailyChallengeScreen
+          onBack={handleBackFromDaily}
+          onStartChallenge={handleStartDailyChallenge}
+          userEmail={userEmail}
         />
       );
     
@@ -133,12 +171,13 @@ export const ShortcutGame = () => {
       return (
         <ResultsScreen 
           state={state} 
-          onPlayAgain={startSetup} 
-          onHome={resetGame} 
-          onSaveScore={saveToLeaderboard}
+          onPlayAgain={isDailyMode ? handleBackFromDaily : startSetup} 
+          onHome={() => { setIsDailyMode(false); resetGame(); }} 
+          onSaveScore={isDailyMode ? handleDailyChallengeComplete : saveToLeaderboard}
           onAnalytics={goToAnalytics}
           userEmail={userEmail}
           displayName={displayName}
+          isDailyChallenge={isDailyMode}
         />
       );
     

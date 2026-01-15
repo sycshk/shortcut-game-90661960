@@ -2,13 +2,15 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Trophy, Zap, Medal, LogOut, BarChart3, Edit2, Check, X, Gamepad2 } from 'lucide-react';
+import { Trophy, Zap, Medal, LogOut, BarChart3, Edit2, Check, X, Gamepad2, Calendar, Flame, Star } from 'lucide-react';
 import { leaderboardService } from '@/services/leaderboardService';
+import { isDailyChallengeCompleted, getDailyStreakData } from '@/services/dailyChallengeService';
 import { cn } from '@/lib/utils';
 
 interface WelcomeScreenProps {
   onStart: () => void;
   onAnalytics: () => void;
+  onDailyChallenge: () => void;
   userEmail?: string;
   onLogout?: () => void;
 }
@@ -29,12 +31,14 @@ const ShortcutKeyIcon = () => (
   </div>
 );
 
-export const WelcomeScreen = ({ onStart, onAnalytics, userEmail, onLogout }: WelcomeScreenProps) => {
+export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, userEmail, onLogout }: WelcomeScreenProps) => {
   const [aggregatedLeaderboard, setAggregatedLeaderboard] = useState<{ name: string; totalScore: number; gamesPlayed: number; avgAccuracy: number }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [displayName, setDisplayName] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
+  const [dailyCompleted, setDailyCompleted] = useState(false);
+  const [dailyStreak, setDailyStreak] = useState(0);
 
   const loadData = async () => {
     await leaderboardService.init();
@@ -54,6 +58,10 @@ export const WelcomeScreen = ({ onStart, onAnalytics, userEmail, onLogout }: Wel
       }
       setDisplayName(profile.displayName);
     }
+    
+    // Load daily challenge status
+    setDailyCompleted(isDailyChallengeCompleted());
+    setDailyStreak(getDailyStreakData().currentStreak);
     
     setIsLoading(false);
   };
@@ -162,8 +170,31 @@ export const WelcomeScreen = ({ onStart, onAnalytics, userEmail, onLogout }: Wel
             </div>
             
             <div className="space-y-3">
+              {/* Daily Challenge Button */}
+              <Button 
+                onClick={onDailyChallenge} 
+                size="lg" 
+                className={cn(
+                  "w-full text-lg relative overflow-hidden",
+                  dailyCompleted 
+                    ? "bg-success/20 border-success text-success hover:bg-success/30" 
+                    : "bg-gradient-to-r from-secondary via-primary to-secondary bg-[length:200%_100%] animate-[shimmer_2s_linear_infinite] text-white"
+                )}
+                variant={dailyCompleted ? "outline" : "default"}
+              >
+                <Calendar className="mr-2 h-5 w-5" />
+                {dailyCompleted ? 'Daily Complete ✓' : "Today's Challenge"}
+                {dailyStreak > 0 && (
+                  <span className="ml-2 flex items-center gap-1 text-xs bg-white/20 px-2 py-0.5 rounded-full">
+                    <Flame className="h-3 w-3" />
+                    {dailyStreak}
+                  </span>
+                )}
+              </Button>
+
               <Button onClick={onStart} size="lg" className="btn-elufa w-full text-lg">
-                Start Game
+                <Gamepad2 className="mr-2 h-5 w-5" />
+                Practice Mode
               </Button>
               <Button onClick={onAnalytics} variant="outline" size="lg" className="w-full glass-button">
                 <BarChart3 className="mr-2 h-4 w-4" />
