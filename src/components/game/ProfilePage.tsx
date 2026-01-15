@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { leaderboardService } from '@/services/leaderboardService';
 import { AchievementBadge } from './AchievementBadge';
 import { ACHIEVEMENTS, AVATARS, RARITY_COLORS, Avatar } from '@/data/achievements';
+import { getUserMiniGameStats } from './UnifiedLeaderboard';
 
 interface ProfilePageProps {
   onBack: () => void;
@@ -23,6 +24,9 @@ interface UserStats {
   guruCompleted: number;
   dailyStreak: number;
   avgAccuracy: number;
+  snakeHighScore: number;
+  epmHighScore: number;
+  epmBestAccuracy: number;
 }
 
 export const ProfilePage = ({ onBack, userEmail, displayName, onAvatarChange }: ProfilePageProps) => {
@@ -33,7 +37,10 @@ export const ProfilePage = ({ onBack, userEmail, displayName, onAvatarChange }: 
     perfectGames: 0,
     guruCompleted: 0,
     dailyStreak: 0,
-    avgAccuracy: 0
+    avgAccuracy: 0,
+    snakeHighScore: 0,
+    epmHighScore: 0,
+    epmBestAccuracy: 0
   });
   const [selectedAvatar, setSelectedAvatar] = useState<string>('default_smile');
   const [isLoading, setIsLoading] = useState(true);
@@ -58,6 +65,9 @@ export const ProfilePage = ({ onBack, userEmail, displayName, onAvatarChange }: 
         const dailyData = localStorage.getItem('daily-streak');
         const dailyStreak = dailyData ? JSON.parse(dailyData).currentStreak || 0 : 0;
         
+        // Get mini game stats
+        const miniGameStats = getUserMiniGameStats(userEmail);
+        
         setStats({
           gamesPlayed,
           totalScore,
@@ -65,7 +75,10 @@ export const ProfilePage = ({ onBack, userEmail, displayName, onAvatarChange }: 
           perfectGames,
           guruCompleted,
           dailyStreak,
-          avgAccuracy
+          avgAccuracy,
+          snakeHighScore: miniGameStats.snake || 0,
+          epmHighScore: miniGameStats.epm || 0,
+          epmBestAccuracy: miniGameStats.epmAccuracy || 0
         });
         
         // Load saved avatar
@@ -102,6 +115,17 @@ export const ProfilePage = ({ onBack, userEmail, displayName, onAvatarChange }: 
         return stats.totalScore >= req.value;
       case 'accuracy':
         return stats.avgAccuracy >= req.value && stats.gamesPlayed >= 10;
+      // Mini game achievements
+      case 'snake_score':
+        return stats.snakeHighScore >= req.value;
+      case 'epm_score':
+        return stats.epmHighScore >= req.value;
+      case 'epm_games':
+        return true; // Would need to track epm games played
+      case 'epm_accuracy':
+        return stats.epmBestAccuracy >= req.value;
+      case 'epm_mastery':
+        return stats.epmHighScore >= 150 && stats.epmBestAccuracy >= 90;
       default:
         return false;
     }
@@ -126,6 +150,17 @@ export const ProfilePage = ({ onBack, userEmail, displayName, onAvatarChange }: 
         return (stats.totalScore / req.value) * 100;
       case 'accuracy':
         return stats.gamesPlayed >= 10 ? (stats.avgAccuracy / req.value) * 100 : 0;
+      // Mini game achievements
+      case 'snake_score':
+        return (stats.snakeHighScore / req.value) * 100;
+      case 'epm_score':
+        return (stats.epmHighScore / req.value) * 100;
+      case 'epm_accuracy':
+        return (stats.epmBestAccuracy / req.value) * 100;
+      case 'epm_mastery':
+        const scoreProgress = Math.min(100, (stats.epmHighScore / 150) * 50);
+        const accProgress = Math.min(100, (stats.epmBestAccuracy / 90) * 50);
+        return scoreProgress + accProgress;
       default:
         return 0;
     }
