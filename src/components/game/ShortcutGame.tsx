@@ -1,13 +1,10 @@
-import { useState } from 'react';
 import { useGameState } from '@/hooks/useGameState';
 import { WelcomeScreen } from './WelcomeScreen';
 import { SetupScreen } from './SetupScreen';
 import { GameplayScreen } from './GameplayScreen';
 import { ResultsScreen } from './ResultsScreen';
-import { LeaderboardScreen } from './LeaderboardScreen';
 
 export const ShortcutGame = () => {
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const { 
     state, 
     feedback, 
@@ -16,25 +13,14 @@ export const ShortcutGame = () => {
     checkAnswer, 
     resetGame, 
     toggleHint,
-    getLeaderboard, 
     saveToLeaderboard 
   } = useGameState();
-
-  if (showLeaderboard) {
-    return (
-      <LeaderboardScreen 
-        entries={getLeaderboard()} 
-        onBack={() => setShowLeaderboard(false)} 
-      />
-    );
-  }
 
   switch (state.status) {
     case 'welcome':
       return (
         <WelcomeScreen 
           onStart={startSetup} 
-          onViewLeaderboard={() => setShowLeaderboard(true)} 
         />
       );
     

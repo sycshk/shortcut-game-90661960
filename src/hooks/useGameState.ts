@@ -1,8 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
-import { GameState, ShortcutCategory, Difficulty, DIFFICULTY_CONFIG, LeaderboardEntry, DifficultyLevel, Category, LEVEL_CONFIG, ShortcutChallenge } from '@/types/game';
-import { getShortcutsByCategory, shuffleArray, getShortcutsByLevelAndCategory, shortcutChallenges } from '@/data/shortcuts';
-
-const LEADERBOARD_KEY = 'shortcut-game-leaderboard';
+import { GameState, Difficulty, DIFFICULTY_CONFIG, LeaderboardEntry, DifficultyLevel, LEVEL_CONFIG } from '@/types/game';
+import { shuffleArray, getShortcutsByLevelAndCategory } from '@/data/shortcuts';
+import { leaderboardService } from '@/services/leaderboardService';
 
 const initialState: GameState = {
   status: 'welcome',
@@ -130,36 +129,23 @@ export const useGameState = () => {
   }, []);
 
   const getLeaderboard = useCallback((): LeaderboardEntry[] => {
-    try {
-      const stored = localStorage.getItem(LEADERBOARD_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
+    return leaderboardService.getTop(10);
   }, []);
 
   const saveToLeaderboard = useCallback((name: string) => {
-    if (!state.category || !state.difficulty) return;
+    if (!state.difficulty) return;
     
-    const entry: LeaderboardEntry = {
-      id: Date.now().toString(),
+    // Use leaderboard service to add and sync
+    leaderboardService.addEntry({
       name,
       score: state.score,
       accuracy: Math.round((state.correctAnswers / state.totalQuestions) * 100),
-      category: state.category,
+      category: state.category || 'general', // Mixed defaults to general
       difficulty: state.difficulty,
       level: state.level || undefined,
-      date: new Date().toISOString(),
       streak: state.bestStreak,
-    };
-
-    const current = getLeaderboard();
-    const updated = [...current, entry]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
-    
-    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(updated));
-  }, [state, getLeaderboard]);
+    });
+  }, [state]);
 
   useEffect(() => {
     if (state.status !== 'playing' || feedback || state.mode === 'practice') return;
