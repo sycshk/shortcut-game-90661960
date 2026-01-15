@@ -1756,6 +1756,506 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     explanation: 'Calculated Accounts derive their values from formulas referencing other accounts, assumptions, or dimensions, enabling dynamic computed metrics.',
     topic: 'Adaptive Calculations',
     tool: 'workday_adaptive'
+  },
+
+  // ==========================================
+  // ADDITIONAL ORACLE FCCS QUESTIONS
+  // ==========================================
+  {
+    id: 'fccs-new-1',
+    category: 'consolidation',
+    difficulty: 'beginner',
+    question: 'In Oracle FCCS, what is the purpose of the "View" dimension?',
+    options: [
+      'To control user interface themes',
+      'To distinguish between Periodic and Year-to-Date (YTD) data perspectives',
+      'To filter report layouts',
+      'To manage dashboard views'
+    ],
+    correctIndex: 1,
+    explanation: 'The View dimension in FCCS allows you to see data in Periodic (single period) or YTD (cumulative) perspectives.',
+    topic: 'Oracle FCCS',
+    tool: 'oracle_fccs'
+  },
+  {
+    id: 'fccs-new-2',
+    category: 'consolidation',
+    difficulty: 'intermediate',
+    question: 'What is the "Consol Dim" member used for in FCCS?',
+    options: [
+      'To consolidate databases',
+      'To control how data is consolidated (Proportion, Elimination, Contribution)',
+      'To manage console access',
+      'To configure dimension security'
+    ],
+    correctIndex: 1,
+    explanation: 'The Consolidation dimension controls data flow during consolidation including Proportion, Elimination, and Contribution members.',
+    topic: 'Oracle FCCS',
+    tool: 'oracle_fccs'
+  },
+  {
+    id: 'fccs-new-3',
+    category: 'consolidation',
+    difficulty: 'intermediate',
+    question: 'In FCCS, what does FCCS_No Intercompany member represent?',
+    options: [
+      'Transactions with no value',
+      'Data that is not associated with any intercompany partner',
+      'Blocked intercompany transactions',
+      'External customer transactions'
+    ],
+    correctIndex: 1,
+    explanation: 'FCCS_No Intercompany is used when data is not an intercompany transaction and does not require partner matching or elimination.',
+    topic: 'Oracle FCCS',
+    tool: 'oracle_fccs'
+  },
+  {
+    id: 'fccs-new-4',
+    category: 'consolidation',
+    difficulty: 'advanced',
+    question: 'What is the purpose of Configurable Consolidation Rules in FCCS?',
+    options: [
+      'To define user access rules',
+      'To create custom consolidation logic beyond standard ownership/elimination processing',
+      'To configure report formatting',
+      'To set up data validation rules'
+    ],
+    correctIndex: 1,
+    explanation: 'Configurable Consolidation Rules allow custom Groovy-based logic for complex consolidation requirements beyond standard processing.',
+    topic: 'Oracle FCCS',
+    tool: 'oracle_fccs'
+  },
+  {
+    id: 'fccs-new-5',
+    category: 'consolidation',
+    difficulty: 'advanced',
+    question: 'In FCCS Ownership Management, what happens when you run "Calculate Ownership"?',
+    options: [
+      'It calculates dividends',
+      'It computes effective ownership percentages based on direct/indirect holdings and applies to consolidation',
+      'It transfers ownership to new entities',
+      'It validates ownership documents'
+    ],
+    correctIndex: 1,
+    explanation: 'Calculate Ownership computes effective ownership percentages considering direct and indirect holdings, which are then used during the Proportion consolidation step.',
+    topic: 'Oracle FCCS',
+    tool: 'oracle_fccs'
+  },
+
+  // ==========================================
+  // ADDITIONAL ORACLE PBCS QUESTIONS
+  // ==========================================
+  {
+    id: 'pbcs-new-1',
+    category: 'budget',
+    difficulty: 'beginner',
+    question: 'What is "Sandboxing" in Oracle PBCS?',
+    options: [
+      'Creating test databases',
+      'Private workspaces for users to test scenarios before committing to the main plan',
+      'Database security isolation',
+      'Backup process'
+    ],
+    correctIndex: 1,
+    explanation: 'Sandboxing provides private workspaces where planners can model what-if scenarios without affecting the main plan until ready to publish.',
+    topic: 'Oracle PBCS',
+    tool: 'oracle_pbcs'
+  },
+  {
+    id: 'pbcs-new-2',
+    category: 'budget',
+    difficulty: 'beginner',
+    question: 'What is a "Form" in Oracle PBCS?',
+    options: [
+      'A paper document',
+      'A web-based grid interface for data entry and viewing multidimensional data',
+      'A report template',
+      'A user registration screen'
+    ],
+    correctIndex: 1,
+    explanation: 'Forms are the primary data entry and viewing interface in PBCS, displaying multidimensional data in a grid layout.',
+    topic: 'Oracle PBCS',
+    tool: 'oracle_pbcs'
+  },
+  {
+    id: 'pbcs-new-3',
+    category: 'budget',
+    difficulty: 'intermediate',
+    question: 'In Oracle PBCS, what does "Substitution Variable" allow you to do?',
+    options: [
+      'Replace user names',
+      'Create dynamic references to frequently changing values like current month or year',
+      'Substitute currency values',
+      'Replace dimension members'
+    ],
+    correctIndex: 1,
+    explanation: 'Substitution Variables are global placeholders for values that change regularly, like &CurMonth or &CurYear, used in reports and calculations.',
+    topic: 'Oracle PBCS',
+    tool: 'oracle_pbcs'
+  },
+  {
+    id: 'pbcs-new-4',
+    category: 'budget',
+    difficulty: 'intermediate',
+    question: 'What is the purpose of "Spread Patterns" in PBCS?',
+    options: [
+      'To distribute data across charts',
+      'To automatically allocate values across time periods based on predefined patterns',
+      'To spread user access rights',
+      'To replicate databases'
+    ],
+    correctIndex: 1,
+    explanation: 'Spread Patterns allow planners to distribute annual targets across months using patterns like even spread, seasonal, or custom profiles.',
+    topic: 'Oracle PBCS',
+    tool: 'oracle_pbcs'
+  },
+  {
+    id: 'pbcs-new-5',
+    category: 'budget',
+    difficulty: 'advanced',
+    question: 'What is the "Approvals" workflow in PBCS used for?',
+    options: [
+      'Document approval',
+      'Managing the promotion, rejection, and sign-off of Planning Units through the budget cycle',
+      'User access approval',
+      'Report distribution approval'
+    ],
+    correctIndex: 1,
+    explanation: 'The Approvals process manages Planning Unit lifecycle: submission, review, approval, rejection, and sign-off across organizational hierarchy.',
+    topic: 'Oracle PBCS',
+    tool: 'oracle_pbcs'
+  },
+  {
+    id: 'pbcs-new-6',
+    category: 'budget',
+    difficulty: 'advanced',
+    question: 'In PBCS, what distinguishes a "Dense" dimension from a "Sparse" dimension?',
+    options: [
+      'Dense dimensions have more members',
+      'Dense dimensions have most intersections populated; Sparse dimensions have few populated intersections',
+      'Dense is for financial data; Sparse is for operational',
+      'There is no difference'
+    ],
+    correctIndex: 1,
+    explanation: 'Dense dimensions (like Accounts, Period) have most cells populated. Sparse dimensions (like Entity, Product) have few populated cells. This affects storage and performance.',
+    topic: 'Oracle PBCS',
+    tool: 'oracle_pbcs'
+  },
+
+  // ==========================================
+  // ADDITIONAL NETSUITE EPM QUESTIONS
+  // ==========================================
+  {
+    id: 'netsuite-new-1',
+    category: 'budget',
+    difficulty: 'beginner',
+    question: 'What is the "Period Close Checklist" in NetSuite?',
+    options: [
+      'A shopping list for accountants',
+      'A guided workflow of tasks for closing accounting periods systematically',
+      'A calendar reminder system',
+      'A security checklist'
+    ],
+    correctIndex: 1,
+    explanation: 'The Period Close Checklist provides a structured workflow of tasks (like reconciliations, accruals) to ensure consistent and complete period closings.',
+    topic: 'NetSuite EPM',
+    tool: 'netsuite'
+  },
+  {
+    id: 'netsuite-new-2',
+    category: 'budget',
+    difficulty: 'beginner',
+    question: 'What is the NetSuite "Class" segment typically used for?',
+    options: [
+      'Classifying products by size',
+      'Segmenting financial data by business line, product line, or channel',
+      'Student class scheduling',
+      'User training levels'
+    ],
+    correctIndex: 1,
+    explanation: 'The Class segment in NetSuite is commonly used to track profitability by business line, product category, or sales channel.',
+    topic: 'NetSuite EPM',
+    tool: 'netsuite'
+  },
+  {
+    id: 'netsuite-new-3',
+    category: 'consolidation',
+    difficulty: 'intermediate',
+    question: 'How does NetSuite handle currency revaluation for open foreign transactions?',
+    options: [
+      'It ignores currency changes',
+      'Using the Currency Revaluation feature to adjust open balances to current exchange rates',
+      'Through manual journal entries only',
+      'By deleting foreign transactions'
+    ],
+    correctIndex: 1,
+    explanation: 'Currency Revaluation automatically adjusts open A/R, A/P, and bank balances to period-end exchange rates, posting gains/losses accordingly.',
+    topic: 'NetSuite Consolidation',
+    tool: 'netsuite'
+  },
+  {
+    id: 'netsuite-new-4',
+    category: 'budget',
+    difficulty: 'intermediate',
+    question: 'What is "Saved Search" in NetSuite commonly used for in EPM context?',
+    options: [
+      'Finding lost documents',
+      'Creating reusable queries for reporting, analytics, and feeding data to NSPB',
+      'Saving user preferences',
+      'Bookmarking web pages'
+    ],
+    correctIndex: 1,
+    explanation: 'Saved Searches are powerful, reusable queries used for reporting, KPI dashboards, and as data sources for NSPB integration.',
+    topic: 'NetSuite EPM',
+    tool: 'netsuite'
+  },
+  {
+    id: 'netsuite-new-5',
+    category: 'consolidation',
+    difficulty: 'advanced',
+    question: 'What is the purpose of "Financial Statement Columns" in NetSuite?',
+    options: [
+      'Formatting text columns',
+      'Customizing financial report layouts to show periods, comparisons, and calculated columns',
+      'Defining database columns',
+      'Setting up spreadsheet exports'
+    ],
+    correctIndex: 1,
+    explanation: 'Financial Statement Columns define report layouts: which periods to show, comparative columns, variance calculations, and percentage columns.',
+    topic: 'NetSuite Reporting',
+    tool: 'netsuite'
+  },
+  {
+    id: 'netsuite-new-6',
+    category: 'general',
+    difficulty: 'advanced',
+    question: 'What is SuiteAnalytics Connect in NetSuite?',
+    options: [
+      'A VPN connection tool',
+      'ODBC/JDBC connectivity for direct SQL access to NetSuite data for BI tools',
+      'A social media integration',
+      'Customer support chat'
+    ],
+    correctIndex: 1,
+    explanation: 'SuiteAnalytics Connect provides ODBC/JDBC drivers allowing external BI tools to query NetSuite data directly using SQL.',
+    topic: 'NetSuite Analytics',
+    tool: 'netsuite'
+  },
+  {
+    id: 'netsuite-new-7',
+    category: 'general',
+    difficulty: 'intermediate',
+    question: 'What does "OneWorld" refer to in NetSuite?',
+    options: [
+      'A single worldwide server',
+      'Multi-subsidiary management capability for global organizations',
+      'A charity initiative',
+      'Single sign-on feature'
+    ],
+    correctIndex: 1,
+    explanation: 'NetSuite OneWorld enables management of multiple subsidiaries, currencies, and tax jurisdictions within a single instance.',
+    topic: 'NetSuite EPM',
+    tool: 'netsuite'
+  },
+
+  // ==========================================
+  // ADDITIONAL JEDOX QUESTIONS
+  // ==========================================
+  {
+    id: 'jedox-new-1',
+    category: 'budget',
+    difficulty: 'beginner',
+    question: 'What is "Jedox Integrator" used for?',
+    options: [
+      'Connecting team members',
+      'ETL tool for extracting, transforming, and loading data from various sources',
+      'Integrating with social media',
+      'User authentication'
+    ],
+    correctIndex: 1,
+    explanation: 'Jedox Integrator is the built-in ETL tool for connecting to data sources, transforming data, and loading it into PALO cubes.',
+    topic: 'Jedox Integration',
+    tool: 'jedox'
+  },
+  {
+    id: 'jedox-new-2',
+    category: 'budget',
+    difficulty: 'beginner',
+    question: 'What is the "Jedox Web" component?',
+    options: [
+      'A website builder',
+      'Browser-based interface for spreadsheet-like planning, analysis, and reporting',
+      'A web hosting service',
+      'Email client'
+    ],
+    correctIndex: 1,
+    explanation: 'Jedox Web provides a browser-based spreadsheet interface for data entry, analysis, and reporting without requiring Excel installation.',
+    topic: 'Jedox Interface',
+    tool: 'jedox'
+  },
+  {
+    id: 'jedox-new-3',
+    category: 'general',
+    difficulty: 'beginner',
+    question: 'What is "Jedox Spreadsheet Add-in" (formerly Excel Plus)?',
+    options: [
+      'A calculator add-in',
+      'Excel integration enabling direct connection to Jedox databases for planning and reporting',
+      'A charting tool',
+      'Spell checker'
+    ],
+    correctIndex: 1,
+    explanation: 'The Jedox Spreadsheet Add-in connects Excel directly to PALO databases for real-time data entry, analysis, and report creation.',
+    topic: 'Jedox Excel',
+    tool: 'jedox'
+  },
+  {
+    id: 'jedox-new-4',
+    category: 'budget',
+    difficulty: 'intermediate',
+    question: 'What are "Subsets" in Jedox?',
+    options: [
+      'Partial data backups',
+      'Dynamic filtered views of dimension elements based on criteria or rules',
+      'User group definitions',
+      'Database partitions'
+    ],
+    correctIndex: 1,
+    explanation: 'Subsets are dynamic, filterable views of dimension members that can be based on attribute values, data conditions, or hierarchical positions.',
+    topic: 'Jedox Dimensions',
+    tool: 'jedox'
+  },
+  {
+    id: 'jedox-new-5',
+    category: 'consolidation',
+    difficulty: 'intermediate',
+    question: 'What are "Rules" in Jedox PALO?',
+    options: [
+      'Business policies',
+      'Server-side calculations that derive cell values based on formulas',
+      'User access rules',
+      'Naming conventions'
+    ],
+    correctIndex: 1,
+    explanation: 'PALO Rules are server-side formulas that calculate cell values on-the-fly, enabling allocations, currency conversion, and consolidation logic.',
+    topic: 'Jedox Rules',
+    tool: 'jedox'
+  },
+  {
+    id: 'jedox-new-6',
+    category: 'budget',
+    difficulty: 'intermediate',
+    question: 'What is "Write-back" capability in Jedox?',
+    options: [
+      'Reversing transactions',
+      'Users can directly enter data into OLAP cubes from Excel or web interfaces',
+      'Data backup process',
+      'Undo functionality'
+    ],
+    correctIndex: 1,
+    explanation: 'Write-back allows users to input data directly into PALO cubes through Excel or web interfaces, enabling collaborative planning.',
+    topic: 'Jedox Planning',
+    tool: 'jedox'
+  },
+  {
+    id: 'jedox-new-7',
+    category: 'general',
+    difficulty: 'advanced',
+    question: 'What is Jedox "Supervision Server" functionality?',
+    options: [
+      'Employee monitoring',
+      'High-availability clustering with automatic failover for Jedox servers',
+      'Supervisor access control',
+      'Log monitoring'
+    ],
+    correctIndex: 1,
+    explanation: 'Supervision Server provides high availability through active-passive clustering with automatic failover for mission-critical deployments.',
+    topic: 'Jedox Architecture',
+    tool: 'jedox'
+  },
+  {
+    id: 'jedox-new-8',
+    category: 'consolidation',
+    difficulty: 'advanced',
+    question: 'What is the purpose of "GPU acceleration" in Jedox?',
+    options: [
+      'Gaming support',
+      'Accelerating complex calculations using graphics processing units for faster performance',
+      'Video rendering',
+      'Display graphics'
+    ],
+    correctIndex: 1,
+    explanation: 'Jedox supports GPU acceleration for complex aggregations and calculations, significantly improving performance for large datasets.',
+    topic: 'Jedox Performance',
+    tool: 'jedox'
+  },
+  {
+    id: 'jedox-new-9',
+    category: 'budget',
+    difficulty: 'advanced',
+    question: 'What is "Modelling" in Jedox Report Designer?',
+    options: [
+      '3D modeling',
+      'Creating dynamic report templates with placeholders that automatically adapt to dimension changes',
+      'Data modeling',
+      'Financial forecasting'
+    ],
+    correctIndex: 1,
+    explanation: 'Report Modelling creates dynamic templates where dimension elements serve as placeholders, automatically reflecting changes in hierarchies.',
+    topic: 'Jedox Reporting',
+    tool: 'jedox'
+  },
+
+  // ==========================================
+  // ADDITIONAL TAGETIK QUESTIONS
+  // ==========================================
+  {
+    id: 'tagetik-new-1',
+    category: 'budget',
+    difficulty: 'beginner',
+    question: 'What is the "Unified Financial Platform" concept in CCH Tagetik?',
+    options: [
+      'A single database approach',
+      'Single platform for close, consolidation, planning, reporting, and disclosure management',
+      'Unified user interface theme',
+      'A licensing model'
+    ],
+    correctIndex: 1,
+    explanation: 'Tagetik provides a unified platform covering the entire Office of Finance needs: close, consolidation, planning, reporting, and disclosure.',
+    topic: 'Tagetik Platform',
+    tool: 'tagetik'
+  },
+  {
+    id: 'tagetik-new-2',
+    category: 'consolidation',
+    difficulty: 'intermediate',
+    question: 'What are "Intercompany Matching" capabilities in Tagetik?',
+    options: [
+      'Finding similar companies',
+      'Automated matching and reconciliation of intercompany transactions with dispute management',
+      'Company database search',
+      'M&A target matching'
+    ],
+    correctIndex: 1,
+    explanation: 'Tagetik\'s IC Matching automatically reconciles intercompany balances, identifies mismatches, and manages resolution workflows.',
+    topic: 'Tagetik Consolidation',
+    tool: 'tagetik'
+  },
+  {
+    id: 'tagetik-new-3',
+    category: 'general',
+    difficulty: 'advanced',
+    question: 'What is "iXBRL" tagging in CCH Tagetik used for?',
+    options: [
+      'Internal XML formatting',
+      'Inline XBRL tagging for digital regulatory filing (SEC, ESMA, HMRC)',
+      'Database indexing',
+      'User interface design'
+    ],
+    correctIndex: 1,
+    explanation: 'iXBRL tagging in Tagetik enables automated preparation of machine-readable financial reports for regulatory bodies like SEC and ESMA.',
+    topic: 'Tagetik Compliance',
+    tool: 'tagetik'
   }
 ];
 
