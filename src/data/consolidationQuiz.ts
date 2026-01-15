@@ -7,7 +7,49 @@ export interface QuizQuestion {
   correctIndex: number;
   explanation: string;
   topic: string;
+  tool?: 'oracle_fccs' | 'oracle_pbcs' | 'jedox' | 'netsuite' | 'tagetik'; // EPM tool-specific questions
 }
+
+// Tool-specific configuration
+export const EPM_TOOL_CONFIG = {
+  oracle_fccs: {
+    label: 'Oracle FCCS',
+    fullName: 'Oracle Financial Consolidation and Close Cloud Service',
+    icon: '🔷',
+    color: 'text-red-500',
+    description: 'Financial consolidation, intercompany eliminations, multi-GAAP reporting'
+  },
+  oracle_pbcs: {
+    label: 'Oracle PBCS',
+    fullName: 'Oracle Planning and Budgeting Cloud Service',
+    icon: '🔶',
+    color: 'text-orange-500',
+    description: 'Planning units, Smart View, business rules, driver-based planning'
+  },
+  jedox: {
+    label: 'Jedox',
+    fullName: 'Jedox EPM Platform',
+    icon: '🟢',
+    color: 'text-green-500',
+    description: 'PALO technology, Excel-Plus approach, Integrator ETL'
+  },
+  netsuite: {
+    label: 'NetSuite EPM',
+    fullName: 'NetSuite Planning, Budgeting & Close Management',
+    icon: '🟠',
+    color: 'text-amber-500',
+    description: 'NSPB, Period Close Checklist, elimination subsidiaries'
+  },
+  tagetik: {
+    label: 'CCH Tagetik',
+    fullName: 'Wolters Kluwer CCH Tagetik',
+    icon: '🟣',
+    color: 'text-purple-500',
+    description: 'Analytic Information Hub, Matrix Designer, regulatory compliance'
+  }
+} as const;
+
+export type EPMTool = keyof typeof EPM_TOOL_CONFIG;
 
 export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
   // ==========================================
@@ -73,7 +115,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'In NetSuite, an Elimination Subsidiary is a special entity used to record intercompany elimination entries during the consolidation process.',
-    topic: 'NetSuite Consolidation'
+    topic: 'NetSuite Consolidation',
+    tool: 'netsuite'
   },
   {
     id: 'consol-fccs-1',
@@ -88,7 +131,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'The Data Source dimension in FCCS tracks how data was entered (e.g., FCCS_Data Input, FCCS_Managed Data, FCCS_Journal Input).',
-    topic: 'Oracle FCCS'
+    topic: 'Oracle FCCS',
+    tool: 'oracle_fccs'
   },
 
   // Consolidation - Intermediate
@@ -135,7 +179,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'FCCS posts intercompany eliminations to Plug Accounts specified in the account metadata, at the first common parent entity.',
-    topic: 'Oracle FCCS'
+    topic: 'Oracle FCCS',
+    tool: 'oracle_fccs'
   },
   {
     id: 'consol-fccs-3',
@@ -165,7 +210,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'The Eliminate checkbox marks an account for automatic reversal of intercompany transactions during the consolidation process.',
-    topic: 'NetSuite Consolidation'
+    topic: 'NetSuite Consolidation',
+    tool: 'netsuite'
   },
   {
     id: 'consol-jedox-1',
@@ -180,7 +226,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'Jedox uses PALO, an in-memory, cell-oriented OLAP database that enables real-time data processing and multi-dimensional analysis.',
-    topic: 'Jedox Technology'
+    topic: 'Jedox Technology',
+    tool: 'jedox'
   },
   {
     id: 'consol-fccs-ownership',
@@ -195,7 +242,24 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'The Proportion step applies ownership percentages to calculate the parent company\'s share of each subsidiary\'s values.',
-    topic: 'Oracle FCCS'
+    topic: 'Oracle FCCS',
+    tool: 'oracle_fccs'
+  },
+  {
+    id: 'consol-tagetik-1',
+    category: 'consolidation',
+    difficulty: 'intermediate',
+    question: 'In CCH Tagetik, what is the "Movement" dimension used for?',
+    options: [
+      'Tracking physical inventory movements',
+      'Tracking changes in balance sheet accounts (opening, additions, disposals, closing)',
+      'Recording staff movements between departments',
+      'Managing data transfers between systems'
+    ],
+    correctIndex: 1,
+    explanation: 'The Movement dimension in Tagetik tracks how balance sheet account values change over time (e.g., opening balance, additions, disposals, FX impact, closing balance).',
+    topic: 'Tagetik Dimensions',
+    tool: 'tagetik'
   },
 
   // Consolidation - Advanced
@@ -242,7 +306,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'FCCS_Rate Override allows a custom exchange rate, while FCCS_Amount Override specifies an exact translated amount, bypassing standard translation.',
-    topic: 'Oracle FCCS'
+    topic: 'Oracle FCCS',
+    tool: 'oracle_fccs'
   },
   {
     id: 'consol-fccs-5',
@@ -257,7 +322,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'FCCS consolidation flows: Entity Input → Translated Currency (if applicable) → Proportion → Elimination.',
-    topic: 'Oracle FCCS'
+    topic: 'Oracle FCCS',
+    tool: 'oracle_fccs'
   },
   {
     id: 'consol-ns-3',
@@ -272,7 +338,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'Multi-Book Accounting allows a single transaction to be recorded differently across multiple books for different standards like US GAAP and IFRS.',
-    topic: 'NetSuite Consolidation'
+    topic: 'NetSuite Consolidation',
+    tool: 'netsuite'
   },
   {
     id: 'consol-jedox-2',
@@ -287,7 +354,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'Jedox supports multiple accounting standards including IFRS, US GAAP, and various local GAAPs for automated consolidation.',
-    topic: 'Jedox Consolidation'
+    topic: 'Jedox Consolidation',
+    tool: 'jedox'
   },
   {
     id: 'consol-fccs-multigaap',
@@ -302,7 +370,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'Enabling Multi-GAAP creates the Multi-GAAP dimension and automatically generates FCCS_IFRS member for additional GAAP adjustments.',
-    topic: 'Oracle FCCS'
+    topic: 'Oracle FCCS',
+    tool: 'oracle_fccs'
   },
   {
     id: 'consol-fccs-icp',
@@ -317,7 +386,40 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 3,
     explanation: 'When no intercompany options are enabled during FCCS application creation, the ICP (Intercompany Partner) dimension is completely omitted.',
-    topic: 'Oracle FCCS'
+    topic: 'Oracle FCCS',
+    tool: 'oracle_fccs'
+  },
+  {
+    id: 'consol-tagetik-2',
+    category: 'consolidation',
+    difficulty: 'advanced',
+    question: 'What is the Analytic Information Hub (AIH) in CCH Tagetik?',
+    options: [
+      'A reporting dashboard',
+      'A high-performance engine for handling granular operational data with Data Transformation Packages',
+      'A user authentication system',
+      'A cloud storage solution'
+    ],
+    correctIndex: 1,
+    explanation: 'The AIH is a high-performance engine that handles granular operational data and supports Data Transformation Packages for operations like analytical allocations.',
+    topic: 'Tagetik Architecture',
+    tool: 'tagetik'
+  },
+  {
+    id: 'consol-tagetik-3',
+    category: 'consolidation',
+    difficulty: 'advanced',
+    question: 'Which regulatory "Starter Kits" does CCH Tagetik provide out-of-the-box?',
+    options: [
+      'Only basic consolidation',
+      'IFRS 17, Solvency II, IFRS 16, and BEPS Pillar Two',
+      'Only tax reporting',
+      'SOX compliance only'
+    ],
+    correctIndex: 1,
+    explanation: 'Tagetik provides pre-packaged Starter Kits for complex regulatory requirements including IFRS 17 (insurance), Solvency II, IFRS 16 (leases), and BEPS Pillar Two (global minimum tax).',
+    topic: 'Tagetik Compliance',
+    tool: 'tagetik'
   },
 
   // ==========================================
@@ -368,7 +470,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'Smart View is the "lifeblood" of Oracle EPM, enabling ad hoc analysis, data submission, and business rule execution directly from Excel.',
-    topic: 'Oracle PBCS'
+    topic: 'Oracle PBCS',
+    tool: 'oracle_pbcs'
   },
   {
     id: 'budget-ns-1',
@@ -383,7 +486,24 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'NSPB uses the NSPB Sync SuiteApp and EPM Connector to sync data via Saved Searches, enabling drill-through from EPM reports to NetSuite transactions.',
-    topic: 'NetSuite EPM'
+    topic: 'NetSuite EPM',
+    tool: 'netsuite'
+  },
+  {
+    id: 'budget-tagetik-1',
+    category: 'budget',
+    difficulty: 'beginner',
+    question: 'What Excel-based reporting tool does CCH Tagetik provide?',
+    options: [
+      'Power BI Connector',
+      'Matrix Designer for dynamic, reusable report combinations',
+      'Crystal Reports',
+      'SSRS Integration'
+    ],
+    correctIndex: 1,
+    explanation: 'The Matrix Designer is Tagetik\'s Excel-based tool for creating highly dynamic and reusable report combinations.',
+    topic: 'Tagetik Reporting',
+    tool: 'tagetik'
   },
 
   // Budget - Intermediate
@@ -430,7 +550,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'A Planning Unit represents the basic unit of a budget and follows a Promotional Path (Under Review, Approved, etc.) through the Approvals process.',
-    topic: 'Oracle PBCS'
+    topic: 'Oracle PBCS',
+    tool: 'oracle_pbcs'
   },
   {
     id: 'budget-pbcs-3',
@@ -445,7 +566,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'Business Rules (managed via Calculation Manager) can include Groovy for complex logic, while Member Formulas calculate dynamically within the Essbase outline.',
-    topic: 'Oracle PBCS'
+    topic: 'Oracle PBCS',
+    tool: 'oracle_pbcs'
   },
   {
     id: 'budget-jedox-1',
@@ -460,7 +582,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'Jedox uses an "Excel-Plus" approach where users work in familiar Excel while data is stored in a central, multi-dimensional PALO database.',
-    topic: 'Jedox Planning'
+    topic: 'Jedox Planning',
+    tool: 'jedox'
   },
   {
     id: 'budget-ns-2',
@@ -475,7 +598,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'NSPB\'s Predictive Planning uses AI/ML algorithms to analyze historical NetSuite data, detect anomalies, and generate intelligent forecasts.',
-    topic: 'NetSuite EPM'
+    topic: 'NetSuite EPM',
+    tool: 'netsuite'
   },
   {
     id: 'budget-topdown',
@@ -491,6 +615,22 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     correctIndex: 0,
     explanation: 'Top-down budgeting starts with executive targets allocated downward, while bottom-up aggregates detailed departmental inputs upward.',
     topic: 'Budgeting Methods'
+  },
+  {
+    id: 'budget-tagetik-2',
+    category: 'budget',
+    difficulty: 'intermediate',
+    question: 'What is the "Analytical Workspace" in CCH Tagetik?',
+    options: [
+      'A reporting dashboard',
+      'A flexible area for defining custom analytical dimensions beyond standard system dimensions',
+      'The login portal',
+      'A file storage area'
+    ],
+    correctIndex: 1,
+    explanation: 'The Analytical Workspace in Tagetik allows organizations to define unlimited custom and analytical dimensions for detailed operational planning.',
+    topic: 'Tagetik Architecture',
+    tool: 'tagetik'
   },
 
   // Budget - Advanced
@@ -522,7 +662,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'Smart Push enables real-time data synchronization between Block Storage (BSO) and Aggregate Storage (ASO) cubes in Oracle EPM.',
-    topic: 'Oracle PBCS'
+    topic: 'Oracle PBCS',
+    tool: 'oracle_pbcs'
   },
   {
     id: 'budget-pbcs-5',
@@ -537,7 +678,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'Substitution Variables like &OEP_CurYr make rules and reports dynamic by automatically adapting to the current period or year.',
-    topic: 'Oracle PBCS'
+    topic: 'Oracle PBCS',
+    tool: 'oracle_pbcs'
   },
   {
     id: 'budget-epbcs-1',
@@ -552,7 +694,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'EPBCS (Enterprise PBCS) adds out-of-the-box frameworks for Workforce, Capital Assets, and Projects beyond basic financial planning.',
-    topic: 'Oracle EPM'
+    topic: 'Oracle EPM',
+    tool: 'oracle_pbcs'
   },
   {
     id: 'budget-jedox-2',
@@ -567,7 +710,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'The Jedox Integrator is a powerful ETL tool for extracting data from various sources (ERPs, databases) and loading it into Jedox cubes using Groovy scripts.',
-    topic: 'Jedox Technology'
+    topic: 'Jedox Technology',
+    tool: 'jedox'
   },
   {
     id: 'budget-pbcs-dataform',
@@ -582,7 +726,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'Flex Forms in Smart View allow users to add, reorder, and modify rows in data entry forms while maintaining the underlying form integrity.',
-    topic: 'Oracle PBCS'
+    topic: 'Oracle PBCS',
+    tool: 'oracle_pbcs'
   },
   {
     id: 'budget-ns-3',
@@ -597,7 +742,40 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'NetSuite Saved Searches for NSPB integration must use the prefix "customsearch_nspbcs" for proper EPM Connector recognition.',
-    topic: 'NetSuite EPM'
+    topic: 'NetSuite EPM',
+    tool: 'netsuite'
+  },
+  {
+    id: 'budget-tagetik-3',
+    category: 'budget',
+    difficulty: 'advanced',
+    question: 'What is a Data Transformation Package (DTP) in CCH Tagetik\'s AIH?',
+    options: [
+      'A data compression algorithm',
+      'A configurable operation for tasks like analytical allocation using custom drivers',
+      'A data encryption method',
+      'A backup procedure'
+    ],
+    correctIndex: 1,
+    explanation: 'DTPs in the Analytic Information Hub perform operations like analytical allocations (e.g., allocating overhead costs using custom drivers) on granular data.',
+    topic: 'Tagetik AIH',
+    tool: 'tagetik'
+  },
+  {
+    id: 'budget-tagetik-4',
+    category: 'budget',
+    difficulty: 'advanced',
+    question: 'Which ERP has a native connector in CCH Tagetik?',
+    options: [
+      'Oracle E-Business Suite only',
+      'SAP S/4HANA',
+      'Microsoft Dynamics only',
+      'QuickBooks'
+    ],
+    correctIndex: 1,
+    explanation: 'CCH Tagetik has a native SAP S/4HANA connector, plus RESTful/OData APIs for connecting with other systems like Workday.',
+    topic: 'Tagetik Integration',
+    tool: 'tagetik'
   },
 
   // ==========================================
@@ -810,6 +988,22 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     explanation: 'Dimensions are categories like Time, Account, Entity, and Scenario that define how data is organized and analyzed in multi-dimensional databases.',
     topic: 'EPM Concepts'
   },
+  {
+    id: 'gen-tagetik-1',
+    category: 'general',
+    difficulty: 'beginner',
+    question: 'What are the standard system dimensions in CCH Tagetik?',
+    options: [
+      'Only Account and Entity',
+      'Period, Scenario, Currency, Entity, Account, and Category',
+      'Only Time and Version',
+      'Custom dimensions only'
+    ],
+    correctIndex: 1,
+    explanation: 'Tagetik\'s standard system dimensions include Period, Scenario, Currency, Entity, Account, and Category, with the ability to add unlimited custom dimensions.',
+    topic: 'Tagetik Dimensions',
+    tool: 'tagetik'
+  },
 
   // General - Intermediate
   {
@@ -855,7 +1049,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'BSO supports data input and calculations; ASO handles large sparse datasets for reporting. PBCS often uses both together with Smart Push.',
-    topic: 'Oracle Technology'
+    topic: 'Oracle Technology',
+    tool: 'oracle_pbcs'
   },
   {
     id: 'gen-ns-close',
@@ -870,7 +1065,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'The Period Close Checklist is a dashboard with role-based tasks for the financial close, tracking activities like data collection, verification, and certification.',
-    topic: 'NetSuite Close Management'
+    topic: 'NetSuite Close Management',
+    tool: 'netsuite'
   },
   {
     id: 'gen-fdm',
@@ -885,7 +1081,24 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'Data Management handles data loading from various sources (Oracle Financials Cloud, HCM Cloud, flat files) using a workflow of Import, Validate, Export, and Check.',
-    topic: 'Oracle EPM'
+    topic: 'Oracle EPM',
+    tool: 'oracle_pbcs'
+  },
+  {
+    id: 'gen-tagetik-2',
+    category: 'general',
+    difficulty: 'intermediate',
+    question: 'What is "Intelligent Disclosure" in CCH Tagetik?',
+    options: [
+      'AI-powered data validation',
+      'Integration linking consolidated data directly to Microsoft Word and PowerPoint for board reporting',
+      'Automatic audit trail generation',
+      'Smart data masking'
+    ],
+    correctIndex: 1,
+    explanation: 'Intelligent Disclosure integrates consolidated financial data directly with Microsoft Word and PowerPoint for seamless board and regulatory reporting.',
+    topic: 'Tagetik Reporting',
+    tool: 'tagetik'
   },
 
   // General - Advanced
@@ -917,7 +1130,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'Supplemental Data Manager collects supporting documentation (invoices, receipts) to build comprehensive statement balances and financial footnotes.',
-    topic: 'Oracle FCCS'
+    topic: 'Oracle FCCS',
+    tool: 'oracle_fccs'
   },
   {
     id: 'gen-jedox-twin',
@@ -932,7 +1146,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'Jedox\'s Digital Business Twin creates a dynamic replica of business operations, enabling real-time scenario modeling and what-if analysis.',
-    topic: 'Jedox Technology'
+    topic: 'Jedox Technology',
+    tool: 'jedox'
   },
   {
     id: 'gen-audit',
@@ -962,7 +1177,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'Entity, Account, and Data Source dimensions have security set to "None" by default, requiring explicit access grants for users.',
-    topic: 'Oracle FCCS Security'
+    topic: 'Oracle FCCS Security',
+    tool: 'oracle_fccs'
   },
   {
     id: 'gen-ns-tba',
@@ -977,7 +1193,8 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     ],
     correctIndex: 1,
     explanation: 'Oracle EPM Cloud connects to NetSuite using Token-Based Authentication (TBA) and retrieves data via Saved Searches with the "customsearch_nspbcs" prefix.',
-    topic: 'NetSuite Integration'
+    topic: 'NetSuite Integration',
+    tool: 'netsuite'
   },
   {
     id: 'gen-groovy',
@@ -993,19 +1210,80 @@ export const CONSOLIDATION_QUESTIONS: QuizQuestion[] = [
     correctIndex: 1,
     explanation: 'Groovy is a scripting language used in Oracle EPM Calculation Manager and Jedox Integrator for implementing complex business logic and ETL processes.',
     topic: 'EPM Technology'
+  },
+  {
+    id: 'gen-tagetik-3',
+    category: 'general',
+    difficulty: 'advanced',
+    question: 'What secure protocol does CCH Tagetik recommend for connecting to external REST services?',
+    options: [
+      'Basic Authentication',
+      'OAuth 2.0 using access tokens',
+      'API Keys only',
+      'NTLM Authentication'
+    ],
+    correctIndex: 1,
+    explanation: 'Tagetik recommends OAuth 2.0 with access tokens for secure connections to external REST services and APIs.',
+    topic: 'Tagetik Security',
+    tool: 'tagetik'
+  },
+  {
+    id: 'gen-tagetik-4',
+    category: 'general',
+    difficulty: 'advanced',
+    question: 'What is CCH Tagetik\'s key differentiator compared to Oracle FCCS?',
+    options: [
+      'Lower cost',
+      'Stronger focus on specialized regulatory Starter Kits (IFRS 17, Solvency II, BEPS) and native SAP integration',
+      'Better Excel support',
+      'More users supported'
+    ],
+    correctIndex: 1,
+    explanation: 'Tagetik differentiates with pre-built regulatory Starter Kits for complex standards (IFRS 17, Solvency II, BEPS Pillar Two) and native SAP S/4HANA integration.',
+    topic: 'EPM Comparison',
+    tool: 'tagetik'
+  },
+  {
+    id: 'gen-tagetik-5',
+    category: 'general',
+    difficulty: 'advanced',
+    question: 'What does the "Dataset" concept represent in CCH Tagetik?',
+    options: [
+      'A backup copy of data',
+      'A defined collection of data within the Analytical Workspace organized by dimensions',
+      'An export file format',
+      'A user group'
+    ],
+    correctIndex: 1,
+    explanation: 'Datasets in Tagetik are defined data collections within the Analytical Workspace, organized by the selected dimensions and aggregation structures.',
+    topic: 'Tagetik Architecture',
+    tool: 'tagetik'
   }
 ];
 
+// Get questions by category
 export const getQuestionsByCategory = (category?: 'budget' | 'consolidation' | 'kpi' | 'general') => {
   if (!category) return CONSOLIDATION_QUESTIONS;
   return CONSOLIDATION_QUESTIONS.filter(q => q.category === category);
 };
 
+// Get questions by EPM tool
+export const getQuestionsByTool = (tool: EPMTool) => {
+  return CONSOLIDATION_QUESTIONS.filter(q => q.tool === tool);
+};
+
+// Get questions by difficulty
 export const getQuestionsByDifficulty = (difficulty: 'beginner' | 'intermediate' | 'advanced') => {
   return CONSOLIDATION_QUESTIONS.filter(q => q.difficulty === difficulty);
 };
 
+// Shuffle and limit questions
 export const shuffleQuestions = (questions: QuizQuestion[], count: number = 10): QuizQuestion[] => {
   const shuffled = [...questions].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
+};
+
+// Get tool question count
+export const getToolQuestionCount = (tool: EPMTool): number => {
+  return CONSOLIDATION_QUESTIONS.filter(q => q.tool === tool).length;
 };
