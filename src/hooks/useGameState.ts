@@ -40,6 +40,25 @@ const generateMultipleChoiceOptions = (correctKeys: string[], allShortcuts: Shor
   return shuffleArray(options);
 };
 
+// Check if a shortcut contains OS-reserved keys that cannot be reliably captured
+const isOSReservedShortcut = (keys: string[]): boolean => {
+  const upperKeys = keys.map(k => k.toUpperCase());
+  
+  // Win key shortcuts cannot be captured
+  if (upperKeys.includes('WIN')) return true;
+  
+  // Alt+Tab switches windows
+  if (upperKeys.includes('ALT') && upperKeys.includes('TAB')) return true;
+  
+  // Escape often exits fullscreen or other browser behaviors
+  if (upperKeys.includes('ESCAPE') || upperKeys.includes('ESC')) return true;
+  
+  // Alt+F4 closes windows
+  if (upperKeys.includes('ALT') && upperKeys.includes('F4')) return true;
+  
+  return false;
+};
+
 export const useGameState = (userEmail?: string) => {
   const [state, setState] = useState<GameState>(initialState);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
@@ -99,7 +118,8 @@ export const useGameState = (userEmail?: string) => {
     const available = getShortcutsByLevelAndCategory(level);
     const gameShortcuts = shuffleArray(available).slice(0, levelConfig.questionsCount);
     
-    // First question is always keyboard type
+    // First question: determine if it needs to be multiple choice (OS-reserved)
+    const firstIsOSReserved = isOSReservedShortcut(gameShortcuts[0].keys);
     const firstOptions = generateMultipleChoiceOptions(gameShortcuts[0].keys, shortcutChallenges);
     
     setState({
@@ -116,7 +136,7 @@ export const useGameState = (userEmail?: string) => {
       shortcuts: gameShortcuts,
       currentStreak: 0,
       bestStreak: 0,
-      questionType: 'keyboard',
+      questionType: firstIsOSReserved ? 'multipleChoice' : 'keyboard',
       lastAnswerCorrect: null,
       waitingForNext: false,
       multipleChoiceOptions: firstOptions,
@@ -210,9 +230,17 @@ export const useGameState = (userEmail?: string) => {
       const nextIndex = prev.currentShortcutIndex + 1;
       const nextShortcut = prev.shortcuts[nextIndex];
       
-      // If last answer was wrong, next question is multiple choice
+      // Check if next shortcut is OS-reserved - force multiple choice
+      const isReserved = isOSReservedShortcut(nextShortcut.keys);
+      
+      // If last answer was wrong OR shortcut is OS-reserved, use multiple choice
       // Otherwise, randomly choose (70% keyboard, 30% multiple choice)
-      const nextQuestionType = !wasCorrect ? 'multipleChoice' : (Math.random() > 0.3 ? 'keyboard' : 'multipleChoice');
+      let nextQuestionType: 'keyboard' | 'multipleChoice';
+      if (isReserved || !wasCorrect) {
+        nextQuestionType = 'multipleChoice';
+      } else {
+        nextQuestionType = Math.random() > 0.3 ? 'keyboard' : 'multipleChoice';
+      }
       
       const options = generateMultipleChoiceOptions(nextShortcut.keys, shortcutChallenges);
       

@@ -72,12 +72,11 @@ export const useKeyboardCapture = (isActive: boolean, onCombination: (keys: stri
       const raw = normalizeKeyFromEvent(e);
       if (!raw) return;
 
-      // Some keys/combinations are effectively uncapturable in browsers.
-      // - Windows/Meta key often opens OS UI
-      // - Alt+Tab switches applications
-      // We'll allow the game to *teach* these via multiple-choice instead.
+      // OS-reserved keys that cannot be reliably captured - skip entirely
+      // These shortcuts will be handled via multiple-choice questions instead
       if (e.key === 'Meta' || e.key === 'OS' || e.metaKey) return;
       if (e.altKey && e.key === 'Tab') return;
+      if (e.key === 'Escape') return; // Escape often exits fullscreen
 
       // Normalize to canonical token, then to a stable display label.
       const canonical = normalizeKeyToken(raw);
@@ -86,7 +85,7 @@ export const useKeyboardCapture = (isActive: boolean, onCombination: (keys: stri
       // Skip Win key tracking entirely (it will open the Start menu and steal focus)
       if (canonical === 'WIN') return;
 
-      // Update pressed keys
+      // Update pressed keys (track what's held down)
       const next = new Set(pressedKeysRef.current);
       next.add(display);
       pressedKeysRef.current = next;
@@ -94,23 +93,22 @@ export const useKeyboardCapture = (isActive: boolean, onCombination: (keys: stri
       const combo = Array.from(next);
       setState({ pressedKeys: next, lastCombination: combo });
 
-      // Keyup is not reliable for some shortcuts (Escape exiting fullscreen, Alt+F4, browser refresh/close).
-      // Submit on keydown when a non-modifier is pressed.
-      if (!isModifierToken(display)) {
-        submitCombination(combo);
-      }
+      // DO NOT submit on keydown - wait for keyup for reliable detection
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
       e.preventDefault();
       e.stopPropagation();
 
+      // Get the current combination before clearing
       const combo = Array.from(pressedKeysRef.current);
+      
+      // Only submit if we have keys pressed
       if (combo.length > 0) {
         submitCombination(combo);
       }
 
-      // Reset
+      // Reset after submission
       pressedKeysRef.current = new Set();
       lastSubmittedSigRef.current = '';
       setState({ pressedKeys: new Set(), lastCombination: [] });
