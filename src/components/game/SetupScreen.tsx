@@ -28,14 +28,14 @@ export const SetupScreen = ({ onStart, onBack }: SetupScreenProps) => {
   const [category, setCategory] = useState<Category | null>(null);
   const [level, setLevel] = useState<DifficultyLevel | null>(null);
 
-  const categories: { value: Category; config: typeof CATEGORY_CONFIG.windows }[] = [
+  const categories: { value: Category; config: (typeof CATEGORY_CONFIG)[Category] }[] = [
     { value: 'windows', config: CATEGORY_CONFIG.windows },
     { value: 'excel', config: CATEGORY_CONFIG.excel },
     { value: 'powerpoint', config: CATEGORY_CONFIG.powerpoint },
     { value: 'general', config: CATEGORY_CONFIG.general },
   ];
 
-  const levels: { value: DifficultyLevel; config: typeof LEVEL_CONFIG.essentials }[] = [
+  const levels: { value: DifficultyLevel; config: (typeof LEVEL_CONFIG)[DifficultyLevel] }[] = [
     { value: 'essentials', config: LEVEL_CONFIG.essentials },
     { value: 'implementation', config: LEVEL_CONFIG.implementation },
     { value: 'architect', config: LEVEL_CONFIG.architect },
