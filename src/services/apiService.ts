@@ -3,7 +3,13 @@
  * Falls back to localStorage when API is unavailable (offline support)
  */
 
-const API_BASE = '/api';
+// Use production backend for Lovable preview, otherwise use relative path
+const isLovablePreview = window.location.hostname.includes('lovable');
+const API_BASE = isLovablePreview 
+  ? 'https://game.elufasys.com/api' 
+  : '/api';
+
+console.log('🔌 API Base:', API_BASE, isLovablePreview ? '(Lovable Preview → Production)' : '(Local)');
 
 interface ApiResponse<T> {
   data: T | null;
