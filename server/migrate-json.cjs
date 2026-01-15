@@ -5,7 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const db = require('./database');
+const db = require('./database.cjs');
 
 const DATA_DIR = process.env.NODE_ENV === 'production' 
   ? '/opt/shortcut-game/public/data'

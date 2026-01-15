@@ -205,7 +205,7 @@ migrate_data_to_sqlite() {
     if [ ! -f "$SQLITE_DATA_DIR/game.db" ]; then
         log_info "No SQLite database found, running migration..."
         cd "$INSTALL_DIR"
-        node server/migrate-json.js || log_warn "Migration script failed or no data to migrate"
+        node server/migrate-json.cjs || log_warn "Migration script failed or no data to migrate"
         log_info "Migration complete"
     else
         log_info "SQLite database already exists, skipping migration"
@@ -225,7 +225,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=$INSTALL_DIR
-ExecStart=/usr/bin/node $INSTALL_DIR/server/index.js
+ExecStart=/usr/bin/node $INSTALL_DIR/server/index.cjs
 Restart=always
 RestartSec=5
 Environment=NODE_ENV=production
