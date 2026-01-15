@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { GameState, DIFFICULTY_CONFIG, LEVEL_CONFIG } from '@/types/game';
 import { useKeyboardCapture, useFullscreen } from '@/hooks/useKeyboardCapture';
 import { cn } from '@/lib/utils';
-import { Timer, Target, CheckCircle2, XCircle, Flame, Lightbulb, Minimize2, Clock, AlertTriangle, Play } from 'lucide-react';
+import { Timer, Target, CheckCircle2, XCircle, Flame, Lightbulb, Minimize2, Clock, AlertTriangle, Play, Zap, Star, Trophy } from 'lucide-react';
 
 interface GameplayScreenProps {
   state: GameState;
@@ -194,9 +194,22 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onMultipleChoiceAnsw
           <span>Question {state.currentShortcutIndex + 1} of {state.totalQuestions}</span>
           <div className="flex items-center gap-4">
             {state.currentStreak > 0 && (
-              <div className={cn('streak-counter', state.currentStreak >= 3 && 'active')}>
-                <Flame className={cn('h-4 w-4', state.currentStreak >= 3 ? 'streak-fire' : 'text-muted-foreground')} />
-                <span className="font-semibold text-secondary">{state.currentStreak} streak</span>
+              <div className={cn(
+                'streak-counter flex items-center gap-1',
+                state.currentStreak >= 3 && 'active',
+                state.currentStreak >= 3 && state.currentStreak < 5 && 'streak-3',
+                state.currentStreak >= 5 && state.currentStreak < 10 && 'streak-5',
+                state.currentStreak >= 10 && 'streak-10 streak-milestone'
+              )}>
+                <Flame className={cn(
+                  'h-4 w-4',
+                  state.currentStreak >= 10 ? 'text-primary' : 
+                  state.currentStreak >= 5 ? 'text-secondary' : 
+                  state.currentStreak >= 3 ? 'text-warning streak-fire' : 'text-muted-foreground'
+                )} />
+                <span className="font-semibold">{state.currentStreak}x</span>
+                {state.currentStreak >= 10 && <Trophy className="h-4 w-4 ml-1" />}
+                {state.currentStreak >= 5 && state.currentStreak < 10 && <Star className="h-4 w-4 ml-1" />}
               </div>
             )}
             <span className="font-semibold text-foreground">Score: {state.score}</span>
@@ -357,22 +370,64 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onMultipleChoiceAnsw
               </div>
             )}
 
-            {/* Feedback Display */}
+            {/* Feedback Display with Score Breakdown */}
             {feedback && (
-              <div className={cn(
-                'flex items-center gap-2 mt-4 px-6 py-3 rounded-full font-medium animate-scale-in',
-                feedback === 'correct' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
-              )}>
-                {feedback === 'correct' ? (
-                  <>
-                    <CheckCircle2 className="h-5 w-5" />
-                    <span>Correct! {state.currentStreak > 1 ? 'Streak bonus!' : ''}</span>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="h-5 w-5" />
-                    <span>Wrong! It was: {currentShortcut.keys.join(' + ')}</span>
-                  </>
+              <div className="flex flex-col items-center gap-3 mt-4 animate-scale-in">
+                {/* Main feedback */}
+                <div className={cn(
+                  'flex items-center gap-2 px-6 py-3 rounded-full font-medium',
+                  feedback === 'correct' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
+                )}>
+                  {feedback === 'correct' ? (
+                    <>
+                      <CheckCircle2 className="h-5 w-5" />
+                      <span>Correct!</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-5 w-5" />
+                      <span>Wrong! It was: {currentShortcut.keys.join(' + ')}</span>
+                    </>
+                  )}
+                </div>
+
+                {/* Score breakdown for correct answers */}
+                {feedback === 'correct' && (
+                  <div className="flex items-center gap-4 text-sm animate-fade-in">
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Target className="h-4 w-4" />
+                      <span>+{config.pointsPerCorrect} base</span>
+                    </div>
+                    {state.currentStreak > 0 && (
+                      <div className="flex items-center gap-1 text-warning">
+                        <Zap className="h-4 w-4" />
+                        <span>+{state.currentStreak} streak</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1 font-bold text-primary">
+                      <span>= {config.pointsPerCorrect + state.currentStreak} pts</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Streak milestone badges */}
+                {feedback === 'correct' && state.currentStreak === 3 && (
+                  <div className="combo-badge flex items-center gap-2">
+                    <Flame className="h-4 w-4" />
+                    <span>3x COMBO!</span>
+                  </div>
+                )}
+                {feedback === 'correct' && state.currentStreak === 5 && (
+                  <div className="combo-badge flex items-center gap-2" style={{ background: 'linear-gradient(135deg, hsl(0 100% 45%) 0%, hsl(330 100% 50%) 100%)' }}>
+                    <Star className="h-4 w-4" />
+                    <span>5x SUPER COMBO!</span>
+                  </div>
+                )}
+                {feedback === 'correct' && state.currentStreak === 10 && (
+                  <div className="combo-badge flex items-center gap-2" style={{ background: 'linear-gradient(135deg, hsl(210 100% 35%) 0%, hsl(280 100% 50%) 100%)' }}>
+                    <Trophy className="h-4 w-4" />
+                    <span>10x LEGENDARY!</span>
+                  </div>
                 )}
               </div>
             )}
