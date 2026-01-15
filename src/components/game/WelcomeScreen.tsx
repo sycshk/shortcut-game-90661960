@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Keyboard, Trophy, Zap, Medal } from 'lucide-react';
+import { Keyboard, Trophy, Zap, Medal, LogOut } from 'lucide-react';
 import { LeaderboardEntry } from '@/types/game';
 import { leaderboardService } from '@/services/leaderboardService';
 import { cn } from '@/lib/utils';
 
 interface WelcomeScreenProps {
   onStart: () => void;
+  userEmail?: string;
+  onLogout?: () => void;
 }
 
-export const WelcomeScreen = ({ onStart }: WelcomeScreenProps) => {
+export const WelcomeScreen = ({ onStart, userEmail, onLogout }: WelcomeScreenProps) => {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -30,12 +32,25 @@ export const WelcomeScreen = ({ onStart }: WelcomeScreenProps) => {
     return 'text-muted-foreground';
   };
 
+  // Get username from email
+  const userName = userEmail ? userEmail.split('@')[0] : '';
+
   return (
     <div className="flex min-h-screen items-center justify-center animated-bg p-4">
       <div className="w-full max-w-4xl grid md:grid-cols-2 gap-6">
         {/* Welcome Card */}
         <Card className="text-center glass-card animate-fade-in">
           <CardHeader className="space-y-4">
+            {/* User info and logout */}
+            {userEmail && onLogout && (
+              <div className="flex items-center justify-between text-sm text-muted-foreground -mt-2">
+                <span className="truncate">Welcome, <span className="font-medium text-foreground">{userName}</span></span>
+                <Button variant="ghost" size="sm" onClick={onLogout} className="text-muted-foreground hover:text-destructive">
+                  <LogOut className="h-4 w-4 mr-1" />
+                  Logout
+                </Button>
+              </div>
+            )}
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 glow-primary">
               <Keyboard className="h-10 w-10 text-primary" />
             </div>
@@ -57,7 +72,7 @@ export const WelcomeScreen = ({ onStart }: WelcomeScreenProps) => {
                 <span className="font-medium text-xs">70+ Shortcuts</span>
               </div>
               <div className="stat-card flex flex-col items-center gap-1 p-2">
-                <Trophy className="h-5 w-5 text-primary" />
+                <Trophy className="h-5 w-5 text-secondary" />
                 <span className="font-medium text-xs">Compete</span>
               </div>
             </div>

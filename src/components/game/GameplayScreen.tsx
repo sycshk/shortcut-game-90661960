@@ -1,10 +1,11 @@
+import { useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { GameState, DIFFICULTY_CONFIG, LEVEL_CONFIG } from '@/types/game';
-import { useKeyboardCapture } from '@/hooks/useKeyboardCapture';
+import { useKeyboardCapture, useFullscreen } from '@/hooks/useKeyboardCapture';
 import { cn } from '@/lib/utils';
-import { Timer, Target, CheckCircle2, XCircle, Flame, Lightbulb } from 'lucide-react';
+import { Timer, Target, CheckCircle2, XCircle, Flame, Lightbulb, Minimize2 } from 'lucide-react';
 
 interface GameplayScreenProps {
   state: GameState;
@@ -20,11 +21,35 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onToggleHint }: Game
   const timeProgress = (state.timeRemaining / config.timePerQuestion) * 100;
 
   const { lastCombination } = useKeyboardCapture(state.status === 'playing' && !feedback, onAnswer);
+  const { isFullscreen, enterFullscreen, exitFullscreen } = useFullscreen();
+
+  // Enter fullscreen when gameplay starts
+  useEffect(() => {
+    if (state.status === 'playing' && !isFullscreen) {
+      enterFullscreen();
+    }
+  }, [state.status, isFullscreen, enterFullscreen]);
 
   if (!currentShortcut) return null;
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center animated-bg p-4">
+    <div className={cn(
+      "flex min-h-screen flex-col items-center justify-center animated-bg p-4",
+      isFullscreen && "fullscreen-mode"
+    )}>
+      {/* Fullscreen indicator */}
+      {isFullscreen && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={exitFullscreen}
+          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+        >
+          <Minimize2 className="h-4 w-4 mr-1" />
+          Exit Fullscreen
+        </Button>
+      )}
+
       {/* Header Stats */}
       <div className="mb-6 w-full max-w-2xl animate-fade-in">
         <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
@@ -33,7 +58,7 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onToggleHint }: Game
             {state.currentStreak > 0 && (
               <div className={cn('streak-counter', state.currentStreak >= 3 && 'active')}>
                 <Flame className={cn('h-4 w-4', state.currentStreak >= 3 ? 'streak-fire' : 'text-muted-foreground')} />
-                <span className="font-semibold text-warning">{state.currentStreak} streak</span>
+                <span className="font-semibold text-secondary">{state.currentStreak} streak</span>
               </div>
             )}
             <span className="font-semibold text-foreground">Score: {state.score}</span>
@@ -164,12 +189,12 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onToggleHint }: Game
         </div>
         <div className="flex items-center gap-2">
           <span>Best Streak:</span>
-          <span className="font-semibold text-warning">{state.bestStreak}</span>
+          <span className="font-semibold text-secondary">{state.bestStreak}</span>
         </div>
         {state.level && (
           <div className="flex items-center gap-2">
             <span>Level:</span>
-            <span className={cn('font-semibold', LEVEL_CONFIG[state.level].color)}>
+            <span className="font-semibold text-primary">
               {LEVEL_CONFIG[state.level].label}
             </span>
           </div>
