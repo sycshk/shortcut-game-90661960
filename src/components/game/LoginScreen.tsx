@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Mail, LogIn, AlertCircle } from 'lucide-react';
+import { LogIn, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Allowed email domains (not shown to users)
@@ -12,6 +12,22 @@ const ALLOWED_DOMAINS = ['elufasys.com', 'tw.elufasys.com', '3peaks.tech', 'novu
 interface LoginScreenProps {
   onLogin: (email: string) => void;
 }
+
+// Custom Keyboard Shortcut Icon Component
+const ShortcutKeyIcon = () => (
+  <div className="relative flex items-center gap-1">
+    {/* Ctrl Key */}
+    <div className="shortcut-icon-key w-12 h-10 rounded-lg text-xs text-primary" style={{ animationDelay: '0s' }}>
+      Ctrl
+    </div>
+    {/* Plus symbol */}
+    <span className="text-primary/60 text-lg font-light mx-0.5">+</span>
+    {/* S Key */}
+    <div className="shortcut-icon-key w-10 h-10 rounded-lg text-lg text-primary" style={{ animationDelay: '0.5s' }}>
+      S
+    </div>
+  </div>
+);
 
 export const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   const [email, setEmail] = useState('');
@@ -53,13 +69,13 @@ export const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   return (
     <div className="flex min-h-screen items-center justify-center animated-bg p-4">
       <Card className="w-full max-w-md glass-card animate-fade-in">
-        <CardHeader className="text-center space-y-4">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 glow-primary">
-            <Mail className="h-8 w-8 text-primary" />
+        <CardHeader className="text-center space-y-6">
+          <div className="mx-auto flex h-24 w-auto items-center justify-center rounded-2xl bg-primary/5 p-4 glow-primary">
+            <ShortcutKeyIcon />
           </div>
           <div>
             <CardTitle className="text-2xl font-display font-bold text-gradient">
-              Welcome
+              Shortcut Master
             </CardTitle>
             <CardDescription className="mt-2">
               Sign in with your organization email to continue
@@ -80,7 +96,7 @@ export const LoginScreen = ({ onLogin }: LoginScreenProps) => {
                   setError('');
                 }}
                 className={cn(
-                  'h-12',
+                  'h-12 glass-button',
                   error && 'border-destructive focus-visible:ring-destructive'
                 )}
                 disabled={isLoading}

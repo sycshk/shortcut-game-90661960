@@ -6,6 +6,7 @@
 
 /* Elufa Shortcut Master - Design System
    Corporate Colors: Swire Blue & Coca-Cola Red
+   Liquid Glass UI Effect
    All colors in HSL format for theming
 */
 
@@ -53,10 +54,12 @@
 
     --radius: 0.75rem;
 
-    /* Glassmorphism */
-    --glass-bg: 0 0% 100% / 0.7;
-    --glass-border: 0 0% 100% / 0.2;
-    --glass-shadow: 210 40% 10% / 0.1;
+    /* Liquid Glass Effect */
+    --glass-bg: 0 0% 100% / 0.25;
+    --glass-border: 0 0% 100% / 0.4;
+    --glass-shadow: 210 40% 10% / 0.08;
+    --glass-blur: 20px;
+    --glass-shine: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%);
 
     /* Sidebar */
     --sidebar-background: 210 20% 98%;
@@ -81,18 +84,18 @@
     --popover-foreground: 210 20% 95%;
 
     /* Primary: Swire Blue */
-    --primary: 210 100% 45%;
+    --primary: 210 100% 55%;
     --primary-foreground: 0 0% 100%;
 
     /* Secondary: Coca-Cola Red */
-    --secondary: 0 100% 50%;
+    --secondary: 0 100% 55%;
     --secondary-foreground: 0 0% 100%;
 
     --muted: 220 20% 18%;
     --muted-foreground: 210 15% 60%;
 
     /* Accent: Coca-Cola Red */
-    --accent: 0 100% 50%;
+    --accent: 0 100% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 50%;
@@ -108,22 +111,23 @@
 
     --border: 220 20% 20%;
     --input: 220 20% 20%;
-    --ring: 210 100% 45%;
+    --ring: 210 100% 55%;
 
-    /* Glassmorphism - Dark */
-    --glass-bg: 220 25% 12% / 0.8;
-    --glass-border: 220 20% 25% / 0.3;
+    /* Liquid Glass Effect - Dark */
+    --glass-bg: 220 25% 15% / 0.4;
+    --glass-border: 220 20% 30% / 0.5;
     --glass-shadow: 0 0% 0% / 0.3;
+    --glass-shine: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0) 100%);
 
     /* Sidebar - Dark */
     --sidebar-background: 220 25% 10%;
     --sidebar-foreground: 210 20% 95%;
-    --sidebar-primary: 210 100% 45%;
+    --sidebar-primary: 210 100% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 20% 18%;
     --sidebar-accent-foreground: 210 20% 95%;
     --sidebar-border: 220 20% 20%;
-    --sidebar-ring: 210 100% 45%;
+    --sidebar-ring: 210 100% 55%;
   }
 }
 
@@ -143,52 +147,131 @@
 }
 
 @layer components {
-  /* Glassmorphism Card */
+  /* Liquid Glass Card - Main Effect */
   .glass-card {
-    @apply rounded-xl border backdrop-blur-xl;
+    @apply rounded-2xl border;
     background: hsl(var(--glass-bg));
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
     border-color: hsl(var(--glass-border));
-    box-shadow: 0 8px 32px hsl(var(--glass-shadow));
+    box-shadow: 
+      0 8px 32px hsl(var(--glass-shadow)),
+      inset 0 1px 1px rgba(255, 255, 255, 0.2),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
   }
 
-  /* Elufa Brand Button - Swire Blue */
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: var(--glass-shine);
+    pointer-events: none;
+    border-radius: inherit;
+  }
+
+  /* Liquid Glass Button */
+  .glass-button {
+    @apply rounded-xl px-6 py-3 font-medium;
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--glass-border));
+    box-shadow: 
+      0 4px 16px hsl(var(--glass-shadow)),
+      inset 0 1px 1px rgba(255, 255, 255, 0.15);
+    transition: all 0.3s ease;
+  }
+
+  .glass-button:hover {
+    background: hsl(var(--glass-bg));
+    box-shadow: 
+      0 8px 32px hsl(var(--glass-shadow)),
+      inset 0 1px 1px rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+  }
+
+  /* Elufa Brand Button - Swire Blue with Glass Effect */
   .btn-elufa {
-    @apply bg-primary text-primary-foreground font-medium px-6 py-3 rounded-lg;
+    @apply bg-primary text-primary-foreground font-medium px-6 py-3 rounded-xl;
     @apply transition-all duration-300 ease-out;
-    @apply hover:shadow-lg hover:shadow-primary/30 hover:scale-[1.02];
-    @apply active:scale-[0.98];
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(210 100% 45%) 100%);
+    box-shadow: 
+      0 4px 20px hsl(var(--primary) / 0.4),
+      inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  }
+
+  .btn-elufa:hover {
+    @apply scale-[1.02];
+    box-shadow: 
+      0 8px 30px hsl(var(--primary) / 0.5),
+      inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  }
+
+  .btn-elufa:active {
+    @apply scale-[0.98];
   }
 
   /* Secondary Brand Button - Coca-Cola Red */
   .btn-coca-cola {
-    @apply bg-secondary text-secondary-foreground font-medium px-6 py-3 rounded-lg;
+    @apply bg-secondary text-secondary-foreground font-medium px-6 py-3 rounded-xl;
     @apply transition-all duration-300 ease-out;
-    @apply hover:shadow-lg hover:shadow-secondary/30 hover:scale-[1.02];
-    @apply active:scale-[0.98];
+    background: linear-gradient(135deg, hsl(var(--secondary)) 0%, hsl(0 100% 55%) 100%);
+    box-shadow: 
+      0 4px 20px hsl(var(--secondary) / 0.4),
+      inset 0 1px 1px rgba(255, 255, 255, 0.2);
   }
 
-  /* Keyboard Key Visual */
+  /* Keyboard Key Visual - Liquid Glass Style */
   .kbd-key {
     @apply inline-flex items-center justify-center min-w-[2.5rem] px-3 py-2;
     @apply font-mono text-sm font-semibold;
-    @apply bg-muted border-2 border-border rounded-lg;
-    @apply shadow-[0_2px_0_0] shadow-border;
-    @apply transition-all duration-150;
+    @apply rounded-lg;
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(8px);
+    border: 1px solid hsl(var(--glass-border));
+    box-shadow: 
+      0 4px 8px hsl(var(--glass-shadow)),
+      0 2px 0 hsl(var(--border)),
+      inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    transition: all 0.15s ease;
   }
 
   .kbd-key-active {
-    @apply bg-primary text-primary-foreground border-primary;
-    @apply shadow-[0_0_0_0] translate-y-0.5;
+    @apply bg-primary text-primary-foreground;
+    box-shadow: 
+      0 0 0 0 hsl(var(--glass-shadow)),
+      0 0 0 hsl(var(--border)),
+      inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    transform: translateY(2px);
   }
 
   .kbd-key-correct {
-    @apply bg-success text-success-foreground border-success;
-    @apply ring-2 ring-success/50;
+    @apply bg-success text-success-foreground;
+    box-shadow: 
+      0 0 20px hsl(var(--success) / 0.5),
+      inset 0 1px 1px rgba(255, 255, 255, 0.2);
   }
 
   .kbd-key-incorrect {
-    @apply bg-destructive text-destructive-foreground border-destructive;
-    @apply ring-2 ring-destructive/50;
+    @apply bg-destructive text-destructive-foreground;
+    box-shadow: 
+      0 0 20px hsl(var(--destructive) / 0.5),
+      inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  }
+
+  /* Mini keyboard key for icons */
+  .kbd-mini {
+    @apply inline-flex items-center justify-center text-xs font-mono font-bold;
+    @apply rounded px-1.5 py-0.5;
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(4px);
+    border: 1px solid hsl(var(--glass-border));
+    box-shadow: 0 2px 4px hsl(var(--glass-shadow));
   }
 
   /* Streak Counter Animation */
@@ -212,60 +295,91 @@
     );
   }
 
-  /* Stat Card */
+  /* Stat Card - Liquid Glass */
   .stat-card {
-    @apply p-4 rounded-xl border bg-card;
-    @apply transition-all duration-300;
-    @apply hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5;
+    @apply p-4 rounded-xl;
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--glass-border));
+    box-shadow: 
+      0 4px 16px hsl(var(--glass-shadow)),
+      inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
   }
 
-  /* Level Badge */
+  .stat-card:hover {
+    box-shadow: 
+      0 8px 24px hsl(var(--glass-shadow)),
+      inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+  }
+
+  /* Level Badge - Liquid Glass */
   .level-badge {
     @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium;
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(8px);
+    border: 1px solid hsl(var(--glass-border));
   }
 
   .level-essentials {
-    @apply bg-primary/10 text-primary border border-primary/20;
+    @apply text-primary;
+    border-color: hsl(var(--primary) / 0.3);
   }
 
   .level-implementation {
-    @apply bg-secondary/10 text-secondary border border-secondary/20;
+    @apply text-secondary;
+    border-color: hsl(var(--secondary) / 0.3);
   }
 
   .level-architect {
-    @apply bg-primary/10 text-primary border border-primary/20;
+    @apply text-primary;
+    border-color: hsl(var(--primary) / 0.3);
   }
 
   .level-guru {
-    @apply bg-secondary/10 text-secondary border border-secondary/20;
+    @apply text-secondary;
+    border-color: hsl(var(--secondary) / 0.3);
   }
 
   /* Category Icon Container */
   .category-icon {
     @apply w-12 h-12 rounded-xl flex items-center justify-center;
-    @apply bg-primary/10 text-primary;
-    @apply transition-all duration-300;
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(8px);
+    border: 1px solid hsl(var(--glass-border));
+    transition: all 0.3s ease;
   }
 
   .category-icon:hover {
-    @apply bg-primary/20 scale-110;
+    transform: scale(1.1);
+    box-shadow: 0 8px 24px hsl(var(--glass-shadow));
   }
 
-  /* Animated Background - Swire Blue gradient */
+  /* Animated Background - Liquid Gradient */
   .animated-bg {
-    background: linear-gradient(
-      135deg,
-      hsl(var(--background)) 0%,
-      hsl(var(--primary) / 0.05) 50%,
-      hsl(var(--background)) 100%
-    );
-    background-size: 400% 400%;
-    animation: gradient-shift 15s ease infinite;
+    background: 
+      radial-gradient(ellipse at 20% 20%, hsl(var(--primary) / 0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, hsl(var(--secondary) / 0.1) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, hsl(var(--primary) / 0.05) 0%, transparent 70%),
+      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background)) 100%);
+    background-size: 200% 200%, 200% 200%, 100% 100%, 100% 100%;
+    animation: liquid-bg 20s ease infinite;
   }
 
-  @keyframes gradient-shift {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
+  @keyframes liquid-bg {
+    0%, 100% { 
+      background-position: 0% 0%, 100% 100%, 50% 50%, 0% 0%;
+    }
+    25% {
+      background-position: 100% 0%, 0% 100%, 50% 50%, 0% 0%;
+    }
+    50% { 
+      background-position: 100% 100%, 0% 0%, 50% 50%, 0% 0%;
+    }
+    75% {
+      background-position: 0% 100%, 100% 0%, 50% 50%, 0% 0%;
+    }
   }
 
   /* Fullscreen immersive mode */
@@ -276,20 +390,19 @@
     right: 0;
     bottom: 0;
     z-index: 9999;
-    background: hsl(var(--background));
   }
 
   /* Fade animations */
   .animate-fade-in {
-    animation: fade-in 0.3s ease-out;
+    animation: fade-in 0.4s ease-out;
   }
 
   .animate-scale-in {
-    animation: scale-in 0.2s ease-out;
+    animation: scale-in 0.3s ease-out;
   }
 
   .animate-slide-up {
-    animation: slide-up 0.3s ease-out;
+    animation: slide-up 0.4s ease-out;
   }
 
   @keyframes fade-in {
@@ -325,15 +438,33 @@
 
   @keyframes success-pulse {
     0% { box-shadow: 0 0 0 0 hsl(var(--success) / 0.4); }
-    70% { box-shadow: 0 0 0 15px hsl(var(--success) / 0); }
+    70% { box-shadow: 0 0 0 20px hsl(var(--success) / 0); }
     100% { box-shadow: 0 0 0 0 hsl(var(--success) / 0); }
   }
 
-  /* Glow effect - Swire Blue */
+  /* Glow effect - Liquid Swire Blue */
   .glow-primary {
-    box-shadow: 0 0 20px hsl(var(--primary) / 0.3),
-                0 0 40px hsl(var(--primary) / 0.2),
-                0 0 60px hsl(var(--primary) / 0.1);
+    box-shadow: 
+      0 0 30px hsl(var(--primary) / 0.4),
+      0 0 60px hsl(var(--primary) / 0.2),
+      inset 0 0 20px hsl(var(--primary) / 0.1);
+  }
+
+  /* Shortcut Key Icon Animation */
+  .shortcut-icon-key {
+    @apply inline-flex items-center justify-center font-mono font-bold;
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(8px);
+    border: 2px solid hsl(var(--primary) / 0.5);
+    box-shadow: 
+      0 4px 8px hsl(var(--glass-shadow)),
+      inset 0 1px 1px rgba(255, 255, 255, 0.3);
+    animation: key-float 3s ease-in-out infinite;
+  }
+
+  @keyframes key-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
   }
 }
 
