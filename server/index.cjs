@@ -139,7 +139,19 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📁 Serving static files from: ${distPath}`);
 });
+
+// Ensure we have a reference to keep the process alive
+server.on('error', (err) => {
+  console.error('❌ Server error:', err);
+});
+
+// Log when connections happen (debug)
+server.on('connection', () => {
+  console.log('📡 New connection');
+});
+
+console.log('✅ Server setup complete, event loop should stay active');
