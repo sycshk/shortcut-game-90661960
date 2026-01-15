@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Keyboard, Trophy, Zap, Medal, LogOut, BarChart3, Edit2, Check, X } from 'lucide-react';
-import { LeaderboardEntry } from '@/types/game';
+import { Trophy, Zap, Medal, LogOut, BarChart3, Edit2, Check, X, Gamepad2 } from 'lucide-react';
 import { leaderboardService } from '@/services/leaderboardService';
 import { cn } from '@/lib/utils';
 
@@ -14,42 +13,64 @@ interface WelcomeScreenProps {
   onLogout?: () => void;
 }
 
+// Custom Keyboard Shortcut Icon Component (matches login screen)
+const ShortcutKeyIcon = () => (
+  <div className="relative flex items-center gap-1">
+    {/* Ctrl Key */}
+    <div className="shortcut-icon-key w-10 h-8 rounded-lg text-xs text-primary" style={{ animationDelay: '0s' }}>
+      Ctrl
+    </div>
+    {/* Plus symbol */}
+    <span className="text-primary/60 text-sm font-light mx-0.5">+</span>
+    {/* S Key */}
+    <div className="shortcut-icon-key w-8 h-8 rounded-lg text-sm text-primary" style={{ animationDelay: '0.5s' }}>
+      S
+    </div>
+  </div>
+);
+
 export const WelcomeScreen = ({ onStart, onAnalytics, userEmail, onLogout }: WelcomeScreenProps) => {
-  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [aggregatedLeaderboard, setAggregatedLeaderboard] = useState<{ name: string; totalScore: number; gamesPlayed: number; avgAccuracy: number }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [displayName, setDisplayName] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
 
-  useEffect(() => {
-    const loadData = async () => {
-      await leaderboardService.init();
-      setEntries(leaderboardService.getTop(10));
-      
-      // Load or create profile
-      if (userEmail) {
-        let profile = leaderboardService.getProfile(userEmail);
-        if (!profile) {
-          profile = {
-            email: userEmail,
-            displayName: userEmail.split('@')[0],
-            createdAt: new Date().toISOString(),
-            lastActive: new Date().toISOString(),
-          };
-          leaderboardService.saveProfile(profile);
-        }
-        setDisplayName(profile.displayName);
+  const loadData = async () => {
+    await leaderboardService.init();
+    setAggregatedLeaderboard(leaderboardService.getAggregatedLeaderboard(10));
+    
+    // Load or create profile
+    if (userEmail) {
+      let profile = leaderboardService.getProfile(userEmail);
+      if (!profile) {
+        profile = {
+          email: userEmail,
+          displayName: userEmail.split('@')[0],
+          createdAt: new Date().toISOString(),
+          lastActive: new Date().toISOString(),
+        };
+        leaderboardService.saveProfile(profile);
       }
-      
-      setIsLoading(false);
-    };
+      setDisplayName(profile.displayName);
+    }
+    
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
     loadData();
   }, [userEmail]);
 
   const handleSaveName = () => {
-    if (tempName.trim() && userEmail) {
-      leaderboardService.updateDisplayName(userEmail, tempName.trim());
+    if (tempName.trim() && userEmail && tempName.trim() !== displayName) {
+      const oldName = displayName;
+      leaderboardService.updateDisplayName(userEmail, tempName.trim(), oldName);
       setDisplayName(tempName.trim());
+      setIsEditingName(false);
+      // Refresh leaderboard to show updated names
+      setAggregatedLeaderboard(leaderboardService.getAggregatedLeaderboard(10));
+    } else {
       setIsEditingName(false);
     }
   };
@@ -88,6 +109,10 @@ export const WelcomeScreen = ({ onStart, onAnalytics, userEmail, onLogout }: Wel
                       className="h-8 w-32"
                       maxLength={20}
                       autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveName();
+                        if (e.key === 'Escape') handleCancelEdit();
+                      }}
                     />
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleSaveName}>
                       <Check className="h-4 w-4 text-success" />
@@ -110,11 +135,11 @@ export const WelcomeScreen = ({ onStart, onAnalytics, userEmail, onLogout }: Wel
                 </Button>
               </div>
             )}
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 glow-primary">
-              <Keyboard className="h-10 w-10 text-primary" />
+            <div className="mx-auto flex h-20 w-auto items-center justify-center rounded-2xl bg-primary/5 p-4 glow-primary">
+              <ShortcutKeyIcon />
             </div>
             <CardTitle className="text-3xl font-display font-bold text-gradient">
-              Elufa Shortcut Master
+              Shortcut Master
             </CardTitle>
             <CardDescription className="text-base">
               Master keyboard shortcuts through fun, interactive challenges
@@ -127,7 +152,7 @@ export const WelcomeScreen = ({ onStart, onAnalytics, userEmail, onLogout }: Wel
                 <span className="font-medium text-xs">4 Levels</span>
               </div>
               <div className="stat-card flex flex-col items-center gap-1 p-2">
-                <Keyboard className="h-5 w-5 text-primary" />
+                <Gamepad2 className="h-5 w-5 text-primary" />
                 <span className="font-medium text-xs">70+ Shortcuts</span>
               </div>
               <div className="stat-card flex flex-col items-center gap-1 p-2">
@@ -140,7 +165,7 @@ export const WelcomeScreen = ({ onStart, onAnalytics, userEmail, onLogout }: Wel
               <Button onClick={onStart} size="lg" className="btn-elufa w-full text-lg">
                 Start Game
               </Button>
-              <Button onClick={onAnalytics} variant="outline" size="lg" className="w-full">
+              <Button onClick={onAnalytics} variant="outline" size="lg" className="w-full glass-button">
                 <BarChart3 className="mr-2 h-4 w-4" />
                 View Analytics
               </Button>
@@ -159,7 +184,7 @@ export const WelcomeScreen = ({ onStart, onAnalytics, userEmail, onLogout }: Wel
               <Trophy className="h-6 w-6 text-yellow-500" />
               <div>
                 <CardTitle className="text-xl">Leaderboard</CardTitle>
-                <CardDescription className="text-sm">Top 10 scores</CardDescription>
+                <CardDescription className="text-sm">Total points from all games</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -169,20 +194,20 @@ export const WelcomeScreen = ({ onStart, onAnalytics, userEmail, onLogout }: Wel
                 <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
                 <p className="text-sm">Loading...</p>
               </div>
-            ) : entries.length === 0 ? (
+            ) : aggregatedLeaderboard.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Trophy className="h-10 w-10 mx-auto mb-3 opacity-20" />
                 <p className="text-sm">No scores yet!</p>
                 <p className="text-xs">Be the first to complete a challenge.</p>
               </div>
             ) : (
-              <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
-                {entries.map((entry, index) => (
+              <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 scrollbar-thin">
+                {aggregatedLeaderboard.map((entry, index) => (
                   <div
-                    key={entry.id}
+                    key={entry.name}
                     className={cn(
-                      'flex items-center gap-3 rounded-lg border p-3 transition-colors',
-                      index < 3 && 'bg-muted/50'
+                      'flex items-center gap-3 rounded-xl border p-3 transition-all glass-button',
+                      index < 3 && 'bg-primary/5'
                     )}
                   >
                     <div className={cn('flex h-7 w-7 items-center justify-center font-bold text-sm', getMedalColor(index))}>
@@ -195,12 +220,12 @@ export const WelcomeScreen = ({ onStart, onAnalytics, userEmail, onLogout }: Wel
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm truncate">{entry.name}</div>
                       <div className="text-xs text-muted-foreground">
-                        {entry.level || 'Mixed'} • {entry.accuracy}%
+                        {entry.gamesPlayed} games • {entry.avgAccuracy}% avg
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-primary">{entry.score}</div>
-                      <div className="text-xs text-muted-foreground">pts</div>
+                      <div className="font-bold text-primary">{entry.totalScore.toLocaleString()}</div>
+                      <div className="text-xs text-muted-foreground">total pts</div>
                     </div>
                   </div>
                 ))}

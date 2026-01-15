@@ -248,13 +248,58 @@ export const leaderboardService = {
     }
   },
 
-  updateDisplayName: (email: string, newName: string): void => {
+  updateDisplayName: (email: string, newName: string, oldName?: string): void => {
     const profile = leaderboardService.getProfile(email);
     if (profile) {
+      const previousName = oldName || profile.displayName;
       profile.displayName = newName;
       profile.lastActive = new Date().toISOString();
       leaderboardService.saveProfile(profile);
+      
+      // Update all leaderboard entries with the old name to the new name
+      leaderboardService.updateEntriesName(previousName, newName);
     }
+  },
+
+  // Update all leaderboard entries from old name to new name
+  updateEntriesName: (oldName: string, newName: string): void => {
+    const entries = leaderboardService.getAll();
+    const updated = entries.map(entry => {
+      if (entry.name.toLowerCase() === oldName.toLowerCase()) {
+        return { ...entry, name: newName };
+      }
+      return entry;
+    });
+    
+    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(updated));
+    cachedData = { entries: updated, lastUpdated: new Date().toISOString() };
+    leaderboardService.syncToFile();
+  },
+
+  // Get aggregated leaderboard (total points per user)
+  getAggregatedLeaderboard: (count: number = 10): { name: string; totalScore: number; gamesPlayed: number; avgAccuracy: number }[] => {
+    const entries = leaderboardService.getAll();
+    const userStats = new Map<string, { totalScore: number; gamesPlayed: number; totalAccuracy: number }>();
+    
+    entries.forEach(entry => {
+      const stats = userStats.get(entry.name) || { totalScore: 0, gamesPlayed: 0, totalAccuracy: 0 };
+      stats.totalScore += entry.score;
+      stats.gamesPlayed += 1;
+      stats.totalAccuracy += entry.accuracy;
+      userStats.set(entry.name, stats);
+    });
+    
+    const aggregated: { name: string; totalScore: number; gamesPlayed: number; avgAccuracy: number }[] = [];
+    userStats.forEach((stats, name) => {
+      aggregated.push({
+        name,
+        totalScore: stats.totalScore,
+        gamesPlayed: stats.gamesPlayed,
+        avgAccuracy: Math.round(stats.totalAccuracy / stats.gamesPlayed),
+      });
+    });
+    
+    return aggregated.sort((a, b) => b.totalScore - a.totalScore).slice(0, count);
   },
 
   // ============ Answer History ============
