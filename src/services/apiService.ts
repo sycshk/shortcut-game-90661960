@@ -3,13 +3,39 @@
  * Falls back to localStorage when API is unavailable (offline support)
  */
 
-// Use production backend for Lovable preview, otherwise use relative path
-const isLovablePreview = window.location.hostname.includes('lovable');
-const API_BASE = isLovablePreview 
-  ? 'https://game.elufasys.com/api' 
-  : '/api';
+// API environment management
+const STORAGE_KEY = 'shortcut-api-environment';
+const PRODUCTION_API = 'https://game.elufasys.com/api';
+const LOCAL_API = '/api';
 
-console.log('🔌 API Base:', API_BASE, isLovablePreview ? '(Lovable Preview → Production)' : '(Local)');
+function getApiBase(): string {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved === 'production') return PRODUCTION_API;
+  if (saved === 'local') return LOCAL_API;
+  // Auto-detect: use production for Lovable preview
+  return window.location.hostname.includes('lovable') ? PRODUCTION_API : LOCAL_API;
+}
+
+export function getApiEnvironment(): 'production' | 'local' | 'auto' {
+  return (localStorage.getItem(STORAGE_KEY) as 'production' | 'local') || 'auto';
+}
+
+export function setApiEnvironment(env: 'production' | 'local' | 'auto'): void {
+  if (env === 'auto') {
+    localStorage.removeItem(STORAGE_KEY);
+  } else {
+    localStorage.setItem(STORAGE_KEY, env);
+  }
+  // Reload to apply changes
+  window.location.reload();
+}
+
+export function getApiBaseUrl(): string {
+  return getApiBase();
+}
+
+const API_BASE = getApiBase();
+console.log('🔌 API Base:', API_BASE, `(${getApiEnvironment()})`);
 
 interface ApiResponse<T> {
   data: T | null;
