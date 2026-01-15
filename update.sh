@@ -139,7 +139,7 @@ update_repository() {
 # Build the application
 build_app() {
     log_info "========================================"
-    log_info "INSTALLING DEPENDENCIES"
+    log_info "INSTALLING DEPENDENCIES & BUILDING"
     log_info "========================================"
     
     cd "$INSTALL_DIR"
@@ -148,7 +148,11 @@ build_app() {
     log_info "Installing npm dependencies..."
     npm install
     
-    log_info "Dependencies installed"
+    # Build the frontend
+    log_info "Building frontend..."
+    npm run build
+    
+    log_info "Dependencies installed and frontend built"
 }
 
 # Restore database from backup if needed

@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const fs = require('fs');
 
 // --- Process diagnostics (helps debug systemd restarts) ---
 process.on('uncaughtException', (err) => {
@@ -32,6 +33,10 @@ const dailyRoutes = require('./routes/daily.cjs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Path to built frontend
+const distPath = path.join(__dirname, '..', 'dist');
+const hasBuiltFrontend = fs.existsSync(distPath);
+
 // Middleware
 app.use(cors({
   origin: [
@@ -59,6 +64,19 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Serve static frontend files if built
+if (hasBuiltFrontend) {
+  app.use(express.static(distPath));
+  
+  // SPA fallback - serve index.html for all non-API routes
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+  
+  console.log(`📁 Serving frontend from: ${distPath}`);
+} else {
+  console.log('⚠️ No built frontend found - API-only mode');
+}
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -68,13 +86,15 @@ app.use((err, req, res, next) => {
 
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📁 Serving static files from: ${distPath}`);
+  if (hasBuiltFrontend) {
+    console.log(`🌐 Frontend: http://localhost:${PORT}`);
+  }
+  console.log(`📡 API: http://localhost:${PORT}/health`);
 });
 
 // Ensure we have a reference to keep the process alive
 server.on('error', (err) => {
   console.error('❌ Server error:', err);
-  // If we cannot bind to the port (common during deploys), exit non-zero so systemd reports a real failure.
   process.exit(1);
 });
 
