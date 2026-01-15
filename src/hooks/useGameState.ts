@@ -24,6 +24,7 @@ const initialState: GameState = {
   lastAnswerCorrect: null,
   waitingForNext: false,
   multipleChoiceOptions: undefined,
+  isOSReservedShortcut: false,
 };
 
 // Generate multiple choice options for a shortcut
@@ -89,6 +90,7 @@ export const useGameState = (userEmail?: string) => {
   }, []);
 
   const startDailyChallenge = useCallback((dailyShortcuts: ShortcutChallenge[]) => {
+    const firstIsOSReserved = isOSReservedShortcut(dailyShortcuts[0].keys);
     const firstOptions = generateMultipleChoiceOptions(dailyShortcuts[0].keys, shortcutChallenges);
     
     setState({
@@ -105,10 +107,11 @@ export const useGameState = (userEmail?: string) => {
       shortcuts: dailyShortcuts,
       currentStreak: 0,
       bestStreak: 0,
-      questionType: 'keyboard',
+      questionType: firstIsOSReserved ? 'multipleChoice' : 'keyboard',
       lastAnswerCorrect: null,
       waitingForNext: false,
       multipleChoiceOptions: firstOptions,
+      isOSReservedShortcut: firstIsOSReserved,
     });
   }, []);
 
@@ -140,6 +143,7 @@ export const useGameState = (userEmail?: string) => {
       lastAnswerCorrect: null,
       waitingForNext: false,
       multipleChoiceOptions: firstOptions,
+      isOSReservedShortcut: firstIsOSReserved,
     });
   }, []);
 
@@ -253,6 +257,7 @@ export const useGameState = (userEmail?: string) => {
         lastAnswerCorrect: null,
         waitingForNext: false,
         multipleChoiceOptions: options,
+        isOSReservedShortcut: isReserved,
       };
     });
   }, []);
