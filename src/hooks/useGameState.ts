@@ -65,6 +65,10 @@ export const useGameState = () => {
     setState(prev => ({ ...prev, status: 'profile' }));
   }, []);
 
+  const goToMiniGames = useCallback(() => {
+    setState(prev => ({ ...prev, status: 'miniGames' }));
+  }, []);
+
   const startDailyChallenge = useCallback((dailyShortcuts: ShortcutChallenge[]) => {
     const firstOptions = generateMultipleChoiceOptions(dailyShortcuts[0].keys, shortcutChallenges);
     
@@ -329,6 +333,7 @@ export const useGameState = () => {
     goToAnalytics,
     goToDailyChallenge,
     goToProfile,
+    goToMiniGames,
     startDailyChallenge,
     setPlayerName,
     handlePause,

@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Crown, Star, Sparkles, Trophy, Zap, Target, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { leaderboardService } from '@/services/leaderboardService';
+import { PlayerAvatar } from './PlayerAvatar';
 
 interface HallOfFameEntry {
   name: string;
@@ -186,19 +187,22 @@ export const HallOfFame = () => {
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
                 )}
                 
-                {/* Rank indicator */}
-                <div className="flex-shrink-0">
+                {/* Avatar + Rank */}
+                <div className="flex-shrink-0 relative">
                   {isTop ? (
-                    <AnimatedCrown />
+                    <div className="relative">
+                      <PlayerAvatar email={legend.email} size="lg" />
+                      <div className="absolute -top-2 -right-2">
+                        <AnimatedCrown />
+                      </div>
+                    </div>
                   ) : (
-                    <div className={cn(
-                      'flex h-9 w-9 items-center justify-center rounded-full',
-                      index < 3 ? 'bg-yellow-500/20' : 'bg-yellow-500/10'
-                    )}>
-                      {index < 3 ? (
-                        <Star className="h-4 w-4 text-yellow-500" />
-                      ) : (
-                        <Trophy className="h-4 w-4 text-yellow-600/60" />
+                    <div className="relative">
+                      <PlayerAvatar email={legend.email} size="md" />
+                      {index < 3 && (
+                        <div className="absolute -bottom-1 -right-1 bg-yellow-500 rounded-full p-0.5">
+                          <Star className="h-3 w-3 text-white" />
+                        </div>
                       )}
                     </div>
                   )}
