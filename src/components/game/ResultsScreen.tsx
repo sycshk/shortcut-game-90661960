@@ -1,22 +1,23 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { GameState, LEVEL_CONFIG } from '@/types/game';
-import { Trophy, RotateCcw, Home, Star, Target, Zap } from 'lucide-react';
+import { Trophy, RotateCcw, Home, Star, Target, Zap, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFullscreen } from '@/hooks/useKeyboardCapture';
+import { leaderboardService } from '@/services/leaderboardService';
 
 interface ResultsScreenProps {
   state: GameState;
   onPlayAgain: () => void;
   onHome: () => void;
   onSaveScore: (name: string) => void;
+  onAnalytics: () => void;
   userEmail?: string;
+  displayName?: string;
 }
 
-export const ResultsScreen = ({ state, onPlayAgain, onHome, onSaveScore, userEmail }: ResultsScreenProps) => {
-  const [playerName, setPlayerName] = useState('');
+export const ResultsScreen = ({ state, onPlayAgain, onHome, onSaveScore, onAnalytics, userEmail, displayName }: ResultsScreenProps) => {
   const [saved, setSaved] = useState(false);
   const { exitFullscreen } = useFullscreen();
   
@@ -27,12 +28,26 @@ export const ResultsScreen = ({ state, onPlayAgain, onHome, onSaveScore, userEma
     exitFullscreen();
   }, [exitFullscreen]);
 
-  // Pre-fill player name from email
+  // Auto-save to leaderboard
   useEffect(() => {
-    if (userEmail && !playerName) {
-      setPlayerName(userEmail.split('@')[0]);
+    if (!saved && displayName && state.score > 0) {
+      onSaveScore(displayName);
+      setSaved(true);
+      
+      // Also save game session
+      leaderboardService.addSession({
+        level: state.level || 'essentials',
+        category: 'general', // Mixed
+        mode: state.mode,
+        score: state.score,
+        correctAnswers: state.correctAnswers,
+        totalQuestions: state.totalQuestions,
+        accuracy,
+        timeSpent: 0,
+        streak: state.bestStreak,
+      });
     }
-  }, [userEmail, playerName]);
+  }, [saved, displayName, state, accuracy, onSaveScore]);
   
   const getPerformanceMessage = () => {
     if (accuracy >= 90) return { text: 'Outstanding!', icon: Trophy, color: 'text-yellow-500' };
@@ -43,13 +58,6 @@ export const ResultsScreen = ({ state, onPlayAgain, onHome, onSaveScore, userEma
 
   const performance = getPerformanceMessage();
   const PerformanceIcon = performance.icon;
-
-  const handleSave = () => {
-    if (playerName.trim()) {
-      onSaveScore(playerName.trim());
-      setSaved(true);
-    }
-  };
 
   const levelLabel = state.level ? LEVEL_CONFIG[state.level].label : 'Mixed';
 
@@ -82,40 +90,31 @@ export const ResultsScreen = ({ state, onPlayAgain, onHome, onSaveScore, userEma
             </div>
           </div>
 
-          {/* Save Score */}
-          {!saved ? (
-            <div className="space-y-3 rounded-lg border p-4">
-              <p className="text-sm text-muted-foreground">Save your score to the leaderboard</p>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Enter your name"
-                  value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
-                  maxLength={20}
-                />
-                <Button onClick={handleSave} disabled={!playerName.trim()} className="btn-elufa">
-                  Save
-                </Button>
-              </div>
-            </div>
-          ) : (
+          {/* Auto-saved notification */}
+          {saved && (
             <div className="rounded-lg border border-success/30 bg-success/10 p-4 text-success">
               <p className="flex items-center justify-center gap-2">
                 <Trophy className="h-4 w-4" />
-                Score saved to leaderboard!
+                Score saved as "{displayName}"
               </p>
             </div>
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3">
-            <Button onClick={onPlayAgain} size="lg" className="btn-elufa flex-1">
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Play Again
-            </Button>
-            <Button onClick={onHome} variant="outline" size="lg" className="flex-1">
-              <Home className="mr-2 h-4 w-4" />
-              Home
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <Button onClick={onPlayAgain} size="lg" className="btn-elufa flex-1">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Play Again
+              </Button>
+              <Button onClick={onHome} variant="outline" size="lg" className="flex-1">
+                <Home className="mr-2 h-4 w-4" />
+                Home
+              </Button>
+            </div>
+            <Button onClick={onAnalytics} variant="ghost" size="lg" className="w-full">
+              <BarChart3 className="mr-2 h-4 w-4" />
+              View Analytics
             </Button>
           </div>
         </CardContent>

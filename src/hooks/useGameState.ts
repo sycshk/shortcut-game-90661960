@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import { GameState, Difficulty, DIFFICULTY_CONFIG, LeaderboardEntry, DifficultyLevel, LEVEL_CONFIG } from '@/types/game';
-import { shuffleArray, getShortcutsByLevelAndCategory } from '@/data/shortcuts';
+import { GameState, Difficulty, DIFFICULTY_CONFIG, LeaderboardEntry, DifficultyLevel, LEVEL_CONFIG, ShortcutChallenge, Category } from '@/types/game';
+import { shuffleArray, getShortcutsByLevelAndCategory, shortcutChallenges } from '@/data/shortcuts';
 import { leaderboardService } from '@/services/leaderboardService';
 
 const initialState: GameState = {
@@ -20,14 +20,37 @@ const initialState: GameState = {
   hintsUsed: 0,
   showHint: false,
   isFullscreen: false,
+  questionType: 'keyboard',
+  lastAnswerCorrect: null,
+  waitingForNext: false,
+  multipleChoiceOptions: undefined,
+};
+
+// Generate multiple choice options for a shortcut
+const generateMultipleChoiceOptions = (correctKeys: string[], allShortcuts: ShortcutChallenge[]): string[][] => {
+  const options: string[][] = [correctKeys];
+  const otherShortcuts = allShortcuts.filter(s => s.keys.join('+') !== correctKeys.join('+'));
+  const shuffled = shuffleArray(otherShortcuts);
+  
+  // Add 3 wrong options
+  for (let i = 0; i < Math.min(3, shuffled.length); i++) {
+    options.push(shuffled[i].keys);
+  }
+  
+  return shuffleArray(options);
 };
 
 export const useGameState = () => {
   const [state, setState] = useState<GameState>(initialState);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
+  const [playerName, setPlayerName] = useState<string>('');
 
   const startSetup = useCallback(() => {
     setState(prev => ({ ...prev, status: 'setup' }));
+  }, []);
+
+  const goToAnalytics = useCallback(() => {
+    setState(prev => ({ ...prev, status: 'analytics' }));
   }, []);
 
   const startGame = useCallback((difficulty: Difficulty, level: DifficultyLevel) => {
@@ -35,6 +58,9 @@ export const useGameState = () => {
     // Get shortcuts from all categories (mixed)
     const available = getShortcutsByLevelAndCategory(level);
     const gameShortcuts = shuffleArray(available).slice(0, levelConfig.questionsCount);
+    
+    // First question is always keyboard type
+    const firstOptions = generateMultipleChoiceOptions(gameShortcuts[0].keys, shortcutChallenges);
     
     setState({
       ...initialState,
@@ -50,10 +76,35 @@ export const useGameState = () => {
       shortcuts: gameShortcuts,
       currentStreak: 0,
       bestStreak: 0,
+      questionType: 'keyboard',
+      lastAnswerCorrect: null,
+      waitingForNext: false,
+      multipleChoiceOptions: firstOptions,
     });
   }, []);
 
+  const recordAnswer = useCallback((isCorrect: boolean, userAnswer: string[]) => {
+    const currentShortcut = state.shortcuts[state.currentShortcutIndex];
+    if (!currentShortcut) return;
+
+    const config = state.level ? LEVEL_CONFIG[state.level] : DIFFICULTY_CONFIG[state.difficulty || 'easy'];
+    const timeSpent = config.timePerQuestion - state.timeRemaining;
+
+    leaderboardService.addAnswerRecord({
+      shortcutId: currentShortcut.id,
+      shortcutDescription: currentShortcut.description,
+      category: currentShortcut.category,
+      level: currentShortcut.level,
+      isCorrect,
+      userAnswer,
+      correctAnswer: currentShortcut.keys,
+      timeSpent,
+    });
+  }, [state.shortcuts, state.currentShortcutIndex, state.level, state.difficulty, state.timeRemaining]);
+
   const checkAnswer = useCallback((pressedKeys: string[]) => {
+    if (state.waitingForNext) return;
+    
     const currentShortcut = state.shortcuts[state.currentShortcutIndex];
     if (!currentShortcut || !state.difficulty) return;
 
@@ -65,6 +116,9 @@ export const useGameState = () => {
     const isCorrect = 
       normalizedPressed.length === normalizedExpected.length &&
       normalizedPressed.every((key, index) => key === normalizedExpected[index]);
+
+    // Record the answer
+    recordAnswer(isCorrect, pressedKeys);
 
     if (isCorrect) {
       const timeBonus = Math.floor(state.timeRemaining / 2);
@@ -79,42 +133,85 @@ export const useGameState = () => {
         correctAnswers: prev.correctAnswers + 1,
         currentStreak: prev.currentStreak + 1,
         bestStreak: Math.max(prev.bestStreak, prev.currentStreak + 1),
+        lastAnswerCorrect: true,
+        waitingForNext: true,
       }));
+
+      setTimeout(() => {
+        setFeedback(null);
+        moveToNext(true);
+      }, 800);
     } else {
       setFeedback('incorrect');
-      setState(prev => ({ ...prev, currentStreak: 0 }));
+      setState(prev => ({ 
+        ...prev, 
+        currentStreak: 0,
+        lastAnswerCorrect: false,
+        waitingForNext: true,
+      }));
+
+      // Wait 3 seconds on wrong answer so they don't accidentally submit again
+      setTimeout(() => {
+        setFeedback(null);
+        moveToNext(false);
+      }, 3000);
     }
+  }, [state.shortcuts, state.currentShortcutIndex, state.difficulty, state.timeRemaining, state.level, state.currentStreak, state.waitingForNext, recordAnswer]);
 
-    setTimeout(() => {
-      setFeedback(null);
-      moveToNext();
-    }, 800);
-  }, [state.shortcuts, state.currentShortcutIndex, state.difficulty, state.timeRemaining, state.level, state.currentStreak]);
-
-  const moveToNext = useCallback(() => {
+  const moveToNext = useCallback((wasCorrect: boolean) => {
     setState(prev => {
       if (prev.currentShortcutIndex >= prev.shortcuts.length - 1) {
-        return { ...prev, status: 'results' };
+        return { ...prev, status: 'results', waitingForNext: false };
       }
       
       const config = prev.level ? LEVEL_CONFIG[prev.level] : (prev.difficulty ? DIFFICULTY_CONFIG[prev.difficulty] : DIFFICULTY_CONFIG.easy);
+      const nextIndex = prev.currentShortcutIndex + 1;
+      const nextShortcut = prev.shortcuts[nextIndex];
+      
+      // If last answer was wrong, next question is multiple choice
+      // Otherwise, randomly choose (70% keyboard, 30% multiple choice)
+      const nextQuestionType = !wasCorrect ? 'multipleChoice' : (Math.random() > 0.3 ? 'keyboard' : 'multipleChoice');
+      
+      const options = generateMultipleChoiceOptions(nextShortcut.keys, shortcutChallenges);
+      
       return {
         ...prev,
-        currentShortcutIndex: prev.currentShortcutIndex + 1,
+        currentShortcutIndex: nextIndex,
         timeRemaining: config.timePerQuestion,
         showHint: false,
+        questionType: nextQuestionType,
+        lastAnswerCorrect: null,
+        waitingForNext: false,
+        multipleChoiceOptions: options,
       };
     });
   }, []);
 
+  const handleMultipleChoiceAnswer = useCallback((selectedKeys: string[]) => {
+    checkAnswer(selectedKeys);
+  }, [checkAnswer]);
+
   const timeOut = useCallback(() => {
+    if (state.waitingForNext) return;
+    
+    const currentShortcut = state.shortcuts[state.currentShortcutIndex];
+    if (currentShortcut) {
+      recordAnswer(false, []);
+    }
+    
     setFeedback('incorrect');
-    setState(prev => ({ ...prev, currentStreak: 0 }));
+    setState(prev => ({ 
+      ...prev, 
+      currentStreak: 0,
+      lastAnswerCorrect: false,
+      waitingForNext: true,
+    }));
+    
     setTimeout(() => {
       setFeedback(null);
-      moveToNext();
-    }, 800);
-  }, [moveToNext]);
+      moveToNext(false);
+    }, 3000);
+  }, [moveToNext, recordAnswer, state.shortcuts, state.currentShortcutIndex, state.waitingForNext]);
 
   const resetGame = useCallback(() => {
     setState(initialState);
@@ -135,20 +232,29 @@ export const useGameState = () => {
   const saveToLeaderboard = useCallback((name: string) => {
     if (!state.difficulty) return;
     
+    setPlayerName(name);
+    
     // Use leaderboard service to add and sync
     leaderboardService.addEntry({
       name,
       score: state.score,
       accuracy: Math.round((state.correctAnswers / state.totalQuestions) * 100),
-      category: state.category || 'general', // Mixed defaults to general
+      category: state.category as Category || 'general',
       difficulty: state.difficulty,
       level: state.level || undefined,
       streak: state.bestStreak,
     });
   }, [state]);
 
+  // Auto-save when game ends
   useEffect(() => {
-    if (state.status !== 'playing' || feedback || state.mode === 'practice') return;
+    if (state.status === 'results' && playerName && state.score > 0) {
+      // Already saved via saveToLeaderboard
+    }
+  }, [state.status, playerName, state.score]);
+
+  useEffect(() => {
+    if (state.status !== 'playing' || feedback || state.mode === 'practice' || state.waitingForNext) return;
 
     const timer = setInterval(() => {
       setState(prev => {
@@ -160,23 +266,27 @@ export const useGameState = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [state.status, feedback, state.mode]);
+  }, [state.status, feedback, state.mode, state.waitingForNext]);
 
   useEffect(() => {
-    if (state.status === 'playing' && state.timeRemaining === 0 && !feedback && state.mode !== 'practice') {
+    if (state.status === 'playing' && state.timeRemaining === 0 && !feedback && state.mode !== 'practice' && !state.waitingForNext) {
       timeOut();
     }
-  }, [state.status, state.timeRemaining, feedback, timeOut, state.mode]);
+  }, [state.status, state.timeRemaining, feedback, timeOut, state.mode, state.waitingForNext]);
 
   return {
     state,
     feedback,
+    playerName,
     startSetup,
     startGame,
     checkAnswer,
+    handleMultipleChoiceAnswer,
     resetGame,
     toggleHint,
     getLeaderboard,
     saveToLeaderboard,
+    goToAnalytics,
+    setPlayerName,
   };
 };

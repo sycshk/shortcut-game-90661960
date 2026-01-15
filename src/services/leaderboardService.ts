@@ -1,7 +1,9 @@
-import { LeaderboardEntry, Category, DifficultyLevel, GameSession } from '@/types/game';
+import { LeaderboardEntry, Category, DifficultyLevel, GameSession, ShortcutChallenge } from '@/types/game';
 
 const LEADERBOARD_KEY = 'elufa-leaderboard';
 const SESSIONS_KEY = 'elufa-game-sessions';
+const PROFILES_KEY = 'elufa-user-profiles';
+const ANSWER_HISTORY_KEY = 'elufa-answer-history';
 const DATA_FILE_PATH = '/data/leaderboard.json';
 const MAX_ENTRIES = 100;
 const MAX_SESSIONS = 50;
@@ -10,6 +12,26 @@ export interface LeaderboardFilters {
   category?: Category;
   level?: DifficultyLevel;
   timeframe?: 'today' | 'week' | 'month' | 'all';
+}
+
+export interface AnswerRecord {
+  id: string;
+  date: string;
+  shortcutId: string;
+  shortcutDescription: string;
+  category: Category;
+  level: DifficultyLevel;
+  isCorrect: boolean;
+  userAnswer: string[];
+  correctAnswer: string[];
+  timeSpent: number;
+}
+
+export interface UserProfileData {
+  email: string;
+  displayName: string;
+  createdAt: string;
+  lastActive: string;
 }
 
 interface LeaderboardData {
@@ -52,10 +74,10 @@ export const leaderboardService = {
     
     // Add file entries first
     fileEntries.forEach(entry => entryMap.set(entry.id, entry));
-    
+
     // Override/add local entries (they're more recent)
     localEntries.forEach(entry => entryMap.set(entry.id, entry));
-    
+
     return Array.from(entryMap.values())
       .sort((a, b) => b.score - a.score)
       .slice(0, MAX_ENTRIES);
@@ -140,24 +162,21 @@ export const leaderboardService = {
     // Update cache
     cachedData = { entries: updated, lastUpdated: new Date().toISOString() };
 
-    // Trigger sync to persist (in a real server environment, this would write to the file)
+    // Trigger sync to persist
     leaderboardService.syncToFile();
 
     return newEntry;
   },
 
-  // Sync data to file (for export/download)
+  // Sync data to file
   syncToFile: (): void => {
     const data: LeaderboardData = {
       entries: leaderboardService.getAll(),
       lastUpdated: new Date().toISOString()
     };
     
-    // Store the data that should be synced via GitHub
-    // In a local Debian environment, this will be available for manual export
     localStorage.setItem('elufa-leaderboard-export', JSON.stringify(data, null, 2));
-    
-    console.log('Leaderboard data ready for sync. Export available in localStorage.');
+    console.log('Leaderboard data synced.');
   },
 
   // Export leaderboard as JSON file download
@@ -176,18 +195,6 @@ export const leaderboardService = {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  },
-
-  // Import leaderboard from JSON file
-  importFromFile: async (file: File): Promise<void> => {
-    const text = await file.text();
-    const data: LeaderboardData = JSON.parse(text);
-    
-    const current = leaderboardService.getAll();
-    const merged = leaderboardService.mergeEntries(data.entries, current);
-    
-    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(merged));
-    cachedData = { entries: merged, lastUpdated: new Date().toISOString() };
   },
 
   // Get personal best for user
@@ -220,9 +227,131 @@ export const leaderboardService = {
     cachedData = { entries: [], lastUpdated: new Date().toISOString() };
   },
 
+  // ============ User Profiles ============
+  
+  getProfile: (email: string): UserProfileData | null => {
+    try {
+      const profiles = JSON.parse(localStorage.getItem(PROFILES_KEY) || '{}');
+      return profiles[email] || null;
+    } catch {
+      return null;
+    }
+  },
+
+  saveProfile: (profile: UserProfileData): void => {
+    try {
+      const profiles = JSON.parse(localStorage.getItem(PROFILES_KEY) || '{}');
+      profiles[profile.email] = profile;
+      localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
+    } catch {
+      console.error('Failed to save profile');
+    }
+  },
+
+  updateDisplayName: (email: string, newName: string): void => {
+    const profile = leaderboardService.getProfile(email);
+    if (profile) {
+      profile.displayName = newName;
+      profile.lastActive = new Date().toISOString();
+      leaderboardService.saveProfile(profile);
+    }
+  },
+
+  // ============ Answer History ============
+
+  getAnswerHistory: (email?: string): AnswerRecord[] => {
+    try {
+      const stored = localStorage.getItem(ANSWER_HISTORY_KEY);
+      const allHistory: AnswerRecord[] = stored ? JSON.parse(stored) : [];
+      return allHistory;
+    } catch {
+      return [];
+    }
+  },
+
+  addAnswerRecord: (record: Omit<AnswerRecord, 'id' | 'date'>): void => {
+    try {
+      const history = leaderboardService.getAnswerHistory();
+      const newRecord: AnswerRecord = {
+        ...record,
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+      };
+      
+      // Keep last 500 answers
+      const updated = [newRecord, ...history].slice(0, 500);
+      localStorage.setItem(ANSWER_HISTORY_KEY, JSON.stringify(updated));
+    } catch {
+      console.error('Failed to save answer record');
+    }
+  },
+
+  // Get category performance analysis
+  getCategoryAnalysis: (): Record<Category, { correct: number; total: number; accuracy: number; weakShortcuts: string[] }> => {
+    const history = leaderboardService.getAnswerHistory();
+    const categories: Category[] = ['windows', 'excel', 'powerpoint', 'general'];
+    
+    const analysis: Record<Category, { correct: number; total: number; accuracy: number; weakShortcuts: string[] }> = {} as any;
+    
+    categories.forEach(cat => {
+      const catAnswers = history.filter(h => h.category === cat);
+      const correct = catAnswers.filter(h => h.isCorrect).length;
+      const total = catAnswers.length;
+      
+      // Find weak shortcuts (wrong more than 50% of time)
+      const shortcutStats = new Map<string, { correct: number; total: number; description: string }>();
+      catAnswers.forEach(a => {
+        const stats = shortcutStats.get(a.shortcutId) || { correct: 0, total: 0, description: a.shortcutDescription };
+        stats.total++;
+        if (a.isCorrect) stats.correct++;
+        shortcutStats.set(a.shortcutId, stats);
+      });
+      
+      const weakShortcuts: string[] = [];
+      shortcutStats.forEach((stats, id) => {
+        if (stats.total >= 2 && (stats.correct / stats.total) < 0.5) {
+          weakShortcuts.push(stats.description);
+        }
+      });
+      
+      analysis[cat] = {
+        correct,
+        total,
+        accuracy: total > 0 ? Math.round((correct / total) * 100) : 0,
+        weakShortcuts,
+      };
+    });
+    
+    return analysis;
+  },
+
+  // Get shortcuts that need practice
+  getWeakShortcuts: (): { description: string; category: Category; accuracy: number }[] => {
+    const history = leaderboardService.getAnswerHistory();
+    const shortcutStats = new Map<string, { correct: number; total: number; description: string; category: Category }>();
+    
+    history.forEach(a => {
+      const stats = shortcutStats.get(a.shortcutId) || { correct: 0, total: 0, description: a.shortcutDescription, category: a.category };
+      stats.total++;
+      if (a.isCorrect) stats.correct++;
+      shortcutStats.set(a.shortcutId, stats);
+    });
+    
+    const weak: { description: string; category: Category; accuracy: number }[] = [];
+    shortcutStats.forEach((stats) => {
+      if (stats.total >= 2) {
+        const accuracy = Math.round((stats.correct / stats.total) * 100);
+        if (accuracy < 60) {
+          weak.push({ description: stats.description, category: stats.category, accuracy });
+        }
+      }
+    });
+    
+    return weak.sort((a, b) => a.accuracy - b.accuracy).slice(0, 10);
+  },
+
   // ============ Game Sessions ============
 
-  // Get all game sessions
   getSessions: (): GameSession[] => {
     try {
       const stored = localStorage.getItem(SESSIONS_KEY);
@@ -232,7 +361,6 @@ export const leaderboardService = {
     }
   },
 
-  // Add game session
   addSession: (session: Omit<GameSession, 'id' | 'date'>): GameSession => {
     const newSession: GameSession = {
       ...session,
@@ -247,38 +375,13 @@ export const leaderboardService = {
     return newSession;
   },
 
-  // Get recent sessions
   getRecentSessions: (count: number = 10): GameSession[] => {
     return leaderboardService.getSessions().slice(0, count);
   },
 
-  // Get sessions by category
-  getSessionsByCategory: (category: Category): GameSession[] => {
-    return leaderboardService.getSessions().filter(s => s.category === category);
-  },
-
-  // Calculate category performance
-  getCategoryPerformance: (): Record<Category, { accuracy: number; games: number }> => {
-    const sessions = leaderboardService.getSessions();
-    const categories: Category[] = ['windows', 'excel', 'powerpoint', 'general'];
-
-    const performance: Record<Category, { accuracy: number; games: number }> = {} as any;
-
-    categories.forEach(cat => {
-      const catSessions = sessions.filter(s => s.category === cat);
-      const totalAccuracy = catSessions.reduce((sum, s) => sum + s.accuracy, 0);
-      performance[cat] = {
-        accuracy: catSessions.length > 0 ? Math.round(totalAccuracy / catSessions.length) : 0,
-        games: catSessions.length,
-      };
-    });
-
-    return performance;
-  },
-
-  // Get overall stats
   getOverallStats: () => {
     const sessions = leaderboardService.getSessions();
+    const history = leaderboardService.getAnswerHistory();
     
     if (sessions.length === 0) {
       return {
@@ -286,7 +389,8 @@ export const leaderboardService = {
         totalScore: 0,
         averageAccuracy: 0,
         bestStreak: 0,
-        totalTime: 0,
+        totalAnswers: history.length,
+        correctAnswers: history.filter(h => h.isCorrect).length,
       };
     }
 
@@ -297,7 +401,8 @@ export const leaderboardService = {
         sessions.reduce((sum, s) => sum + s.accuracy, 0) / sessions.length
       ),
       bestStreak: Math.max(...sessions.map(s => s.streak)),
-      totalTime: sessions.reduce((sum, s) => sum + s.timeSpent, 0),
+      totalAnswers: history.length,
+      correctAnswers: history.filter(h => h.isCorrect).length,
     };
   },
 };

@@ -1,29 +1,68 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Keyboard, Trophy, Zap, Medal, LogOut } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Keyboard, Trophy, Zap, Medal, LogOut, BarChart3, Edit2, Check, X } from 'lucide-react';
 import { LeaderboardEntry } from '@/types/game';
 import { leaderboardService } from '@/services/leaderboardService';
 import { cn } from '@/lib/utils';
 
 interface WelcomeScreenProps {
   onStart: () => void;
+  onAnalytics: () => void;
   userEmail?: string;
   onLogout?: () => void;
 }
 
-export const WelcomeScreen = ({ onStart, userEmail, onLogout }: WelcomeScreenProps) => {
+export const WelcomeScreen = ({ onStart, onAnalytics, userEmail, onLogout }: WelcomeScreenProps) => {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [displayName, setDisplayName] = useState('');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState('');
 
   useEffect(() => {
-    const loadLeaderboard = async () => {
+    const loadData = async () => {
       await leaderboardService.init();
       setEntries(leaderboardService.getTop(10));
+      
+      // Load or create profile
+      if (userEmail) {
+        let profile = leaderboardService.getProfile(userEmail);
+        if (!profile) {
+          profile = {
+            email: userEmail,
+            displayName: userEmail.split('@')[0],
+            createdAt: new Date().toISOString(),
+            lastActive: new Date().toISOString(),
+          };
+          leaderboardService.saveProfile(profile);
+        }
+        setDisplayName(profile.displayName);
+      }
+      
       setIsLoading(false);
     };
-    loadLeaderboard();
-  }, []);
+    loadData();
+  }, [userEmail]);
+
+  const handleSaveName = () => {
+    if (tempName.trim() && userEmail) {
+      leaderboardService.updateDisplayName(userEmail, tempName.trim());
+      setDisplayName(tempName.trim());
+      setIsEditingName(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setTempName(displayName);
+    setIsEditingName(false);
+  };
+
+  const startEditName = () => {
+    setTempName(displayName);
+    setIsEditingName(true);
+  };
 
   const getMedalColor = (index: number) => {
     if (index === 0) return 'text-yellow-500';
@@ -31,9 +70,6 @@ export const WelcomeScreen = ({ onStart, userEmail, onLogout }: WelcomeScreenPro
     if (index === 2) return 'text-amber-600';
     return 'text-muted-foreground';
   };
-
-  // Get username from email
-  const userName = userEmail ? userEmail.split('@')[0] : '';
 
   return (
     <div className="flex min-h-screen items-center justify-center animated-bg p-4">
@@ -44,7 +80,30 @@ export const WelcomeScreen = ({ onStart, userEmail, onLogout }: WelcomeScreenPro
             {/* User info and logout */}
             {userEmail && onLogout && (
               <div className="flex items-center justify-between text-sm text-muted-foreground -mt-2">
-                <span className="truncate">Welcome, <span className="font-medium text-foreground">{userName}</span></span>
+                {isEditingName ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={tempName}
+                      onChange={(e) => setTempName(e.target.value)}
+                      className="h-8 w-32"
+                      maxLength={20}
+                      autoFocus
+                    />
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleSaveName}>
+                      <Check className="h-4 w-4 text-success" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCancelEdit}>
+                      <X className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="truncate">Welcome, <span className="font-medium text-foreground">{displayName}</span></span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={startEditName}>
+                      <Edit2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
                 <Button variant="ghost" size="sm" onClick={onLogout} className="text-muted-foreground hover:text-destructive">
                   <LogOut className="h-4 w-4 mr-1" />
                   Logout
@@ -77,9 +136,15 @@ export const WelcomeScreen = ({ onStart, userEmail, onLogout }: WelcomeScreenPro
               </div>
             </div>
             
-            <Button onClick={onStart} size="lg" className="btn-elufa w-full text-lg">
-              Start Game
-            </Button>
+            <div className="space-y-3">
+              <Button onClick={onStart} size="lg" className="btn-elufa w-full text-lg">
+                Start Game
+              </Button>
+              <Button onClick={onAnalytics} variant="outline" size="lg" className="w-full">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                View Analytics
+              </Button>
+            </div>
             
             <p className="text-xs text-muted-foreground">
               Windows • Excel • PowerPoint • General shortcuts
