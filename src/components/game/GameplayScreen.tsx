@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { GameState, DIFFICULTY_CONFIG, LEVEL_CONFIG } from '@/types/game';
 import { useKeyboardCapture, useFullscreen } from '@/hooks/useKeyboardCapture';
 import { cn } from '@/lib/utils';
-import { Timer, Target, CheckCircle2, XCircle, Flame, Lightbulb, Minimize2, Clock, AlertTriangle, Play, Zap, Star, Trophy } from 'lucide-react';
+import { Timer, Target, CheckCircle2, XCircle, Flame, Lightbulb, Minimize2, Clock, AlertTriangle, Play, Zap, Star, Trophy, ShieldAlert } from 'lucide-react';
 import { triggerStreakConfetti } from '@/utils/confetti';
 
 interface GameplayScreenProps {
@@ -298,7 +298,13 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onMultipleChoiceAnsw
                   {LEVEL_CONFIG[state.level].label}
                 </span>
               )}
-              {isMultipleChoice && (
+              {isMultipleChoice && state.isOSReservedShortcut && (
+                <span className="text-xs bg-warning/20 text-warning px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <ShieldAlert className="h-3 w-3" />
+                  OS-Reserved Key
+                </span>
+              )}
+              {isMultipleChoice && !state.isOSReservedShortcut && (
                 <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">Multiple Choice</span>
               )}
             </div>

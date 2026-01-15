@@ -90,6 +90,7 @@ export interface GameState {
   lastAnswerCorrect: boolean | null;
   waitingForNext: boolean;
   multipleChoiceOptions?: string[][];
+  isOSReservedShortcut?: boolean;
 }
 
 export interface LeaderboardEntry {
