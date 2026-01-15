@@ -7,7 +7,6 @@ import { GameplayScreen } from './GameplayScreen';
 import { ResultsScreen } from './ResultsScreen';
 import { AnalyticsScreen } from './AnalyticsScreen';
 import { DailyChallengeScreen } from './DailyChallengeScreen';
-import { DebugPanel } from './DebugPanel';
 import { leaderboardService, UserProfileData } from '@/services/leaderboardService';
 import { getDailyShortcuts, saveDailyChallengeCompletion } from '@/services/dailyChallengeService';
 
@@ -117,12 +116,7 @@ export const ShortcutGame = () => {
 
   // Show login if not authenticated
   if (!userEmail) {
-    return (
-      <>
-        <LoginScreen onLogin={handleLogin} />
-        <DebugPanel />
-      </>
-    );
+    return <LoginScreen onLogin={handleLogin} />;
   }
 
   const renderScreen = () => {
@@ -194,10 +188,5 @@ export const ShortcutGame = () => {
     }
   };
 
-  return (
-    <>
-      {renderScreen()}
-      <DebugPanel />
-    </>
-  );
+  return renderScreen();
 };
