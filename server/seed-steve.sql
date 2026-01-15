@@ -7,6 +7,25 @@
 INSERT OR REPLACE INTO users (id, email, display_name, organization, created_at, last_active)
 VALUES (1, 'steve.yeung@elufasys.com', 'steve.yeung', 'Elufasys', datetime('now', '-30 days'), datetime('now'));
 
+-- ============ MINI GAMES ============
+-- Snake: Legendary high score
+INSERT INTO mini_games (user_id, email, game_type, high_score, games_played, best_accuracy, last_played)
+VALUES (1, 'steve.yeung@elufasys.com', 'snake', 750, 50, NULL, datetime('now'))
+ON CONFLICT(email, game_type) DO UPDATE SET
+  high_score = MAX(mini_games.high_score, 750),
+  games_played = 50,
+  last_played = datetime('now');
+
+-- EPM Quiz: Legendary high score with perfect accuracy
+INSERT INTO mini_games (user_id, email, game_type, high_score, games_played, best_accuracy, last_played)
+VALUES (1, 'steve.yeung@elufasys.com', 'epm', 200, 30, 100, datetime('now'))
+ON CONFLICT(email, game_type) DO UPDATE SET
+  high_score = MAX(mini_games.high_score, 200),
+  games_played = 30,
+  best_accuracy = 100,
+  last_played = datetime('now');
+
+-- ============ MAIN GAME LEADERBOARD ============
 -- Legendary leaderboard entries for all levels
 -- Essentials level
 INSERT INTO leaderboard (user_id, name, email, score, accuracy, category, level, difficulty, streak, created_at)
@@ -52,6 +71,7 @@ VALUES
 (1, 'steve.yeung@elufasys.com', date('now', '-2 days'), 1, 100, 100, datetime('now', '-2 days'));
 
 -- Verify the data
+SELECT 'Mini games:' as info, game_type, high_score FROM mini_games WHERE email = 'steve.yeung@elufasys.com';
 SELECT 'Leaderboard entries:' as info, COUNT(*) as count FROM leaderboard WHERE email = 'steve.yeung@elufasys.com';
 SELECT 'Sessions:' as info, COUNT(*) as count FROM sessions WHERE email = 'steve.yeung@elufasys.com';
 SELECT 'Daily streak:' as info, current_streak, longest_streak FROM daily_streaks WHERE email = 'steve.yeung@elufasys.com';

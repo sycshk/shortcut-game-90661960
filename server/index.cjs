@@ -29,6 +29,7 @@ const usersRoutes = require('./routes/users.cjs');
 const sessionsRoutes = require('./routes/sessions.cjs');
 const historyRoutes = require('./routes/history.cjs');
 const dailyRoutes = require('./routes/daily.cjs');
+const minigamesRoutes = require('./routes/minigames.cjs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -58,6 +59,7 @@ app.use('/users', usersRoutes);
 app.use('/sessions', sessionsRoutes);
 app.use('/history', historyRoutes);
 app.use('/daily', dailyRoutes);
+app.use('/minigames', minigamesRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

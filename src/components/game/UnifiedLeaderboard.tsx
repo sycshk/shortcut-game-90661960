@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Trophy, Medal, Gamepad2, Brain, Keyboard, Crown, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PlayerAvatar } from './PlayerAvatar';
+import { apiService } from '@/services/apiService';
 
 interface UnifiedLeaderboardProps {
   onBack: () => void;
@@ -23,42 +24,89 @@ interface LeaderboardEntry {
 
 type GameType = 'all' | 'shortcuts' | 'snake' | 'epm';
 
-const MINI_GAME_STORAGE_KEY = 'mini-game-scores';
-
-// Get mini game scores from localStorage
-const getMiniGameScores = (): Record<string, { snake: number; epm: number; snakeGames: number; epmGames: number; epmAccuracy: number }> => {
+// Save mini game score to server (with localStorage fallback)
+export const saveMiniGameScore = async (
+  email: string, 
+  game: 'snake' | 'epm', 
+  score: number, 
+  accuracy?: number
+): Promise<void> => {
+  try {
+    // Try to save to server first
+    const result = await apiService.saveMiniGameScore({
+      email,
+      game_type: game,
+      score,
+      accuracy
+    });
+    
+    if (result.data) {
+      console.log(`✅ Mini game score saved to server: ${game} = ${score}`, result.data);
+      return;
+    }
+  } catch (error) {
+    console.warn('Failed to save to server, falling back to localStorage:', error);
+  }
+  
+  // Fallback to localStorage if server unavailable
+  const MINI_GAME_STORAGE_KEY = 'mini-game-scores';
   try {
     const stored = localStorage.getItem(MINI_GAME_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : {};
-  } catch {
-    return {};
-  }
-};
-
-// Save mini game score
-export const saveMiniGameScore = (email: string, game: 'snake' | 'epm', score: number, accuracy?: number) => {
-  const scores = getMiniGameScores();
-  const userScores = scores[email] || { snake: 0, epm: 0, snakeGames: 0, epmGames: 0, epmAccuracy: 0 };
-  
-  if (game === 'snake') {
-    userScores.snake = Math.max(userScores.snake, score);
-    userScores.snakeGames = (userScores.snakeGames || 0) + 1;
-  } else if (game === 'epm') {
-    userScores.epm = Math.max(userScores.epm, score);
-    userScores.epmGames = (userScores.epmGames || 0) + 1;
-    if (accuracy !== undefined) {
-      userScores.epmAccuracy = Math.max(userScores.epmAccuracy || 0, accuracy);
+    const scores = stored ? JSON.parse(stored) : {};
+    const userScores = scores[email] || { snake: 0, epm: 0, snakeGames: 0, epmGames: 0, epmAccuracy: 0 };
+    
+    if (game === 'snake') {
+      userScores.snake = Math.max(userScores.snake, score);
+      userScores.snakeGames = (userScores.snakeGames || 0) + 1;
+    } else if (game === 'epm') {
+      userScores.epm = Math.max(userScores.epm, score);
+      userScores.epmGames = (userScores.epmGames || 0) + 1;
+      if (accuracy !== undefined) {
+        userScores.epmAccuracy = Math.max(userScores.epmAccuracy || 0, accuracy);
+      }
     }
+    
+    scores[email] = userScores;
+    localStorage.setItem(MINI_GAME_STORAGE_KEY, JSON.stringify(scores));
+  } catch {
+    console.error('Failed to save to localStorage');
   }
-  
-  scores[email] = userScores;
-  localStorage.setItem(MINI_GAME_STORAGE_KEY, JSON.stringify(scores));
 };
 
-// Get user's mini game stats
-export const getUserMiniGameStats = (email: string) => {
-  const scores = getMiniGameScores();
-  return scores[email] || { snake: 0, epm: 0, snakeGames: 0, epmGames: 0, epmAccuracy: 0 };
+// Get user's mini game stats from server (with localStorage fallback)
+export const getUserMiniGameStats = async (email: string): Promise<{
+  snake: number;
+  epm: number;
+  snakeGames: number;
+  epmGames: number;
+  epmAccuracy: number;
+}> => {
+  try {
+    const result = await apiService.getMiniGameScores(email);
+    
+    if (result.data?.scores) {
+      const scores = result.data.scores;
+      return {
+        snake: scores.snake?.highScore || 0,
+        epm: scores.epm?.highScore || 0,
+        snakeGames: scores.snake?.gamesPlayed || 0,
+        epmGames: scores.epm?.gamesPlayed || 0,
+        epmAccuracy: scores.epm?.bestAccuracy || 0
+      };
+    }
+  } catch (error) {
+    console.warn('Failed to fetch from server, falling back to localStorage:', error);
+  }
+  
+  // Fallback to localStorage
+  const MINI_GAME_STORAGE_KEY = 'mini-game-scores';
+  try {
+    const stored = localStorage.getItem(MINI_GAME_STORAGE_KEY);
+    const scores = stored ? JSON.parse(stored) : {};
+    return scores[email] || { snake: 0, epm: 0, snakeGames: 0, epmGames: 0, epmAccuracy: 0 };
+  } catch {
+    return { snake: 0, epm: 0, snakeGames: 0, epmGames: 0, epmAccuracy: 0 };
+  }
 };
 
 export const UnifiedLeaderboard = ({ onBack, userEmail }: UnifiedLeaderboardProps) => {
@@ -75,7 +123,51 @@ export const UnifiedLeaderboard = ({ onBack, userEmail }: UnifiedLeaderboardProp
     setIsLoading(true);
     
     try {
-      const miniGameScores = getMiniGameScores();
+      // Try to get mini game leaderboard from server
+      let miniGameData: Map<string, { snake: number; epm: number; snakeGames: number; epmGames: number; epmAccuracy: number }> = new Map();
+      
+      if (gameType === 'snake') {
+        const result = await apiService.getMiniGameLeaderboard('snake');
+        if (result.data?.entries) {
+          result.data.entries.forEach(entry => {
+            miniGameData.set(entry.email, {
+              snake: entry.highScore,
+              epm: 0,
+              snakeGames: entry.gamesPlayed,
+              epmGames: 0,
+              epmAccuracy: 0
+            });
+          });
+        }
+      } else if (gameType === 'epm') {
+        const result = await apiService.getMiniGameLeaderboard('epm');
+        if (result.data?.entries) {
+          result.data.entries.forEach(entry => {
+            miniGameData.set(entry.email, {
+              snake: 0,
+              epm: entry.highScore,
+              snakeGames: 0,
+              epmGames: entry.gamesPlayed,
+              epmAccuracy: entry.bestAccuracy || 0
+            });
+          });
+        }
+      } else {
+        // For 'all', get unified leaderboard
+        const result = await apiService.getUnifiedMiniGameLeaderboard();
+        if (result.data?.entries) {
+          result.data.entries.forEach(entry => {
+            miniGameData.set(entry.email, {
+              snake: entry.snakeScore,
+              epm: entry.epmScore,
+              snakeGames: entry.totalGames,
+              epmGames: 0,
+              epmAccuracy: entry.epmAccuracy || 0
+            });
+          });
+        }
+      }
+      
       const allUsers = new Map<string, { 
         name: string; 
         email: string;
@@ -87,28 +179,30 @@ export const UnifiedLeaderboard = ({ onBack, userEmail }: UnifiedLeaderboardProp
         accuracy: number;
       }>();
 
-      // Get shortcut game data from localStorage
-      const shortcutLeaderboard = JSON.parse(localStorage.getItem('shortcut-leaderboard') || '[]');
-      shortcutLeaderboard.forEach((entry: any) => {
-        const existing = allUsers.get(entry.name) || {
-          name: entry.name,
-          email: entry.email || entry.name,
-          shortcutScore: 0,
-          snakeScore: 0,
-          epmScore: 0,
-          gamesPlayed: 0,
-          bestStreak: 0,
-          accuracy: 0
-        };
-        existing.shortcutScore += entry.score;
-        existing.gamesPlayed += 1;
-        existing.bestStreak = Math.max(existing.bestStreak, entry.streak || 0);
-        existing.accuracy = Math.max(existing.accuracy, entry.accuracy || 0);
-        allUsers.set(entry.name, existing);
-      });
+      // Get shortcut game data from API or localStorage
+      const shortcutResult = await apiService.getAggregatedLeaderboard();
+      if (shortcutResult.data?.entries) {
+        shortcutResult.data.entries.forEach((entry: any) => {
+          const existing = allUsers.get(entry.name) || {
+            name: entry.name,
+            email: entry.email || entry.name,
+            shortcutScore: 0,
+            snakeScore: 0,
+            epmScore: 0,
+            gamesPlayed: 0,
+            bestStreak: 0,
+            accuracy: 0
+          };
+          existing.shortcutScore = entry.best_score || entry.bestScore || 0;
+          existing.gamesPlayed = entry.games_played || entry.gamesPlayed || 0;
+          existing.bestStreak = entry.best_streak || entry.bestStreak || 0;
+          existing.accuracy = entry.best_accuracy || entry.bestAccuracy || 0;
+          allUsers.set(entry.name, existing);
+        });
+      }
 
-      // Add mini game scores
-      Object.entries(miniGameScores).forEach(([email, scores]) => {
+      // Add mini game scores from server
+      miniGameData.forEach((scores, email) => {
         const name = email.split('@')[0];
         const existing = allUsers.get(name) || {
           name,
@@ -120,8 +214,8 @@ export const UnifiedLeaderboard = ({ onBack, userEmail }: UnifiedLeaderboardProp
           bestStreak: 0,
           accuracy: 0
         };
-        existing.snakeScore = scores.snake || 0;
-        existing.epmScore = scores.epm || 0;
+        existing.snakeScore = Math.max(existing.snakeScore, scores.snake || 0);
+        existing.epmScore = Math.max(existing.epmScore, scores.epm || 0);
         existing.gamesPlayed += (scores.snakeGames || 0) + (scores.epmGames || 0);
         allUsers.set(name, existing);
       });
