@@ -25,8 +25,18 @@ class ApiService {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
-      this.isOnline = response.ok;
-      return this.isOnline;
+      if (!response.ok) {
+        this.isOnline = false;
+        return false;
+      }
+      // Verify it's actually JSON from our API, not HTML from Vite
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        this.isOnline = false;
+        return false;
+      }
+      this.isOnline = true;
+      return true;
     } catch {
       this.isOnline = false;
       return false;
