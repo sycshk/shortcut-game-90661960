@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LogIn, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import elufaLogo from '@/assets/elufa-logo.png';
 
 // Allowed email domains (not shown to users)
 const ALLOWED_DOMAINS = ['elufasys.com', 'tw.elufasys.com', '3peaks.tech', 'novus-consulting.com'];
@@ -70,6 +71,14 @@ export const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     <div className="flex min-h-screen items-center justify-center animated-bg p-4">
       <Card className="w-full max-w-md glass-card animate-fade-in">
         <CardHeader className="text-center space-y-6">
+          {/* Organization Logo */}
+          <div className="mx-auto">
+            <img 
+              src={elufaLogo} 
+              alt="Elufa" 
+              className="h-16 w-auto object-contain"
+            />
+          </div>
           <div className="mx-auto flex h-24 w-auto items-center justify-center rounded-2xl bg-primary/5 p-4 glow-primary">
             <ShortcutKeyIcon />
           </div>

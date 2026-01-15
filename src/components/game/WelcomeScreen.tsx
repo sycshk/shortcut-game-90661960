@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { isDailyChallengeCompleted, getDailyStreakDataSync } from '@/services/da
 import { cn } from '@/lib/utils';
 import { HallOfFame } from './HallOfFame';
 import { PlayerAvatar } from './PlayerAvatar';
+import elufaLogo from '@/assets/elufa-logo.png';
 
 interface WelcomeScreenProps {
   onStart: () => void;
@@ -43,8 +44,10 @@ export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, onProfil
   const [tempName, setTempName] = useState('');
   const [dailyCompleted, setDailyCompleted] = useState(false);
   const [dailyStreak, setDailyStreak] = useState(0);
+  const [dataKey, setDataKey] = useState(0); // Key to force re-render of child components
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
     await leaderboardService.init();
     const leaderboard = await leaderboardService.getAggregatedLeaderboard(10);
     setAggregatedLeaderboard(leaderboard);
@@ -70,11 +73,13 @@ export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, onProfil
     setDailyStreak(getDailyStreakDataSync().currentStreak);
     
     setIsLoading(false);
-  };
+    // Increment key to force HallOfFame to re-render with fresh data
+    setDataKey(prev => prev + 1);
+  }, [userEmail]);
 
   useEffect(() => {
     loadData();
-  }, [userEmail]);
+  }, [loadData]);
 
   const handleSaveName = async () => {
     if (tempName.trim() && userEmail && tempName.trim() !== displayName) {
@@ -150,6 +155,14 @@ export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, onProfil
                 </Button>
               </div>
             )}
+            {/* Organization Logo */}
+            <div className="mx-auto">
+              <img 
+                src={elufaLogo} 
+                alt="Elufa" 
+                className="h-12 w-auto object-contain"
+              />
+            </div>
             <div className="mx-auto flex h-20 w-auto items-center justify-center rounded-2xl bg-primary/5 p-4 glow-primary">
               <ShortcutKeyIcon />
             </div>
@@ -286,8 +299,8 @@ export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, onProfil
           </CardContent>
         </Card>
 
-        {/* Hall of Fame Card */}
-        <HallOfFame />
+        {/* Hall of Fame Card - use key to force refresh on data load */}
+        <HallOfFame key={dataKey} />
       </div>
     </div>
   );
