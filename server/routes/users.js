@@ -78,6 +78,7 @@ router.put('/:email/name', (req, res) => {
       return res.status(400).json({ error: 'Display name is required' });
     }
     
+    // Update user's display name
     const result = db.prepare(
       'UPDATE users SET display_name = ? WHERE email = ?'
     ).run(display_name, email);
@@ -85,6 +86,11 @@ router.put('/:email/name', (req, res) => {
     if (result.changes === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
+    
+    // Also update all leaderboard entries for this user
+    db.prepare(
+      'UPDATE leaderboard SET name = ? WHERE email = ?'
+    ).run(display_name, email);
     
     const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
     res.json(user);
