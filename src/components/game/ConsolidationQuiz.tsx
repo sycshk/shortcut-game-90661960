@@ -34,6 +34,8 @@ const CATEGORY_LABELS: Record<QuizCategory, { label: string; icon: string; color
   jedox: { label: 'Jedox', icon: '🟢', color: 'text-green-500' },
   netsuite: { label: 'NetSuite EPM', icon: '🟠', color: 'text-amber-500' },
   tagetik: { label: 'CCH Tagetik', icon: '🟣', color: 'text-purple-500' },
+  anaplan: { label: 'Anaplan', icon: '🔵', color: 'text-blue-500' },
+  workday_adaptive: { label: 'Workday Adaptive', icon: '🟡', color: 'text-yellow-500' },
 };
 
 const POINTS_PER_QUESTION = 10;

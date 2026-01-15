@@ -8,10 +8,11 @@ export interface Achievement {
   color: string;
   bgColor: string;
   requirement: {
-    type: 'games_played' | 'guru_completed' | 'perfect_score' | 'streak' | 'daily_streak' | 'total_score' | 'accuracy' | 'speed' | 'first_game' | 'snake_score' | 'epm_score' | 'epm_games' | 'epm_accuracy' | 'epm_mastery' | 'consolidation_perfect';
+    type: 'games_played' | 'guru_completed' | 'perfect_score' | 'streak' | 'daily_streak' | 'total_score' | 'accuracy' | 'speed' | 'first_game' | 'snake_score' | 'epm_score' | 'epm_games' | 'epm_accuracy' | 'epm_mastery' | 'consolidation_perfect' | 'epm_tool_mastery';
     value: number;
     category?: string;
     level?: string;
+    tool?: string;
   };
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 }
@@ -324,6 +325,98 @@ export const ACHIEVEMENTS: Achievement[] = [
     color: 'text-indigo-400',
     bgColor: 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20',
     requirement: { type: 'consolidation_perfect', value: 1 },
+    rarity: 'legendary'
+  },
+  
+  // EPM Tool-Specific Achievements
+  {
+    id: 'oracle_fccs_specialist',
+    name: 'FCCS Specialist',
+    description: 'Score 80%+ on Oracle FCCS questions',
+    icon: Award,
+    color: 'text-red-400',
+    bgColor: 'bg-red-500/20',
+    requirement: { type: 'epm_tool_mastery', value: 80, tool: 'oracle_fccs' },
+    rarity: 'rare'
+  },
+  {
+    id: 'oracle_pbcs_specialist',
+    name: 'PBCS Specialist',
+    description: 'Score 80%+ on Oracle PBCS questions',
+    icon: Award,
+    color: 'text-orange-400',
+    bgColor: 'bg-orange-500/20',
+    requirement: { type: 'epm_tool_mastery', value: 80, tool: 'oracle_pbcs' },
+    rarity: 'rare'
+  },
+  {
+    id: 'jedox_specialist',
+    name: 'Jedox Specialist',
+    description: 'Score 80%+ on Jedox questions',
+    icon: Award,
+    color: 'text-green-400',
+    bgColor: 'bg-green-500/20',
+    requirement: { type: 'epm_tool_mastery', value: 80, tool: 'jedox' },
+    rarity: 'rare'
+  },
+  {
+    id: 'netsuite_specialist',
+    name: 'NetSuite EPM Specialist',
+    description: 'Score 80%+ on NetSuite EPM questions',
+    icon: Award,
+    color: 'text-amber-400',
+    bgColor: 'bg-amber-500/20',
+    requirement: { type: 'epm_tool_mastery', value: 80, tool: 'netsuite' },
+    rarity: 'rare'
+  },
+  {
+    id: 'tagetik_specialist',
+    name: 'Tagetik Specialist',
+    description: 'Score 80%+ on CCH Tagetik questions',
+    icon: Award,
+    color: 'text-purple-400',
+    bgColor: 'bg-purple-500/20',
+    requirement: { type: 'epm_tool_mastery', value: 80, tool: 'tagetik' },
+    rarity: 'rare'
+  },
+  {
+    id: 'anaplan_specialist',
+    name: 'Anaplan Specialist',
+    description: 'Score 80%+ on Anaplan questions',
+    icon: Award,
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-500/20',
+    requirement: { type: 'epm_tool_mastery', value: 80, tool: 'anaplan' },
+    rarity: 'rare'
+  },
+  {
+    id: 'workday_adaptive_specialist',
+    name: 'Adaptive Planning Specialist',
+    description: 'Score 80%+ on Workday Adaptive questions',
+    icon: Award,
+    color: 'text-yellow-400',
+    bgColor: 'bg-yellow-500/20',
+    requirement: { type: 'epm_tool_mastery', value: 80, tool: 'workday_adaptive' },
+    rarity: 'rare'
+  },
+  {
+    id: 'epm_polyglot',
+    name: 'EPM Polyglot',
+    description: 'Master 3+ EPM tools with 80% accuracy',
+    icon: Sparkles,
+    color: 'text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400',
+    bgColor: 'bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20',
+    requirement: { type: 'epm_tool_mastery', value: 3 },
+    rarity: 'epic'
+  },
+  {
+    id: 'epm_architect',
+    name: 'EPM Architect',
+    description: 'Master all 7 EPM tools with 80% accuracy',
+    icon: Crown,
+    color: 'text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400',
+    bgColor: 'bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-red-500/20',
+    requirement: { type: 'epm_tool_mastery', value: 7 },
     rarity: 'legendary'
   },
 ];
