@@ -7,6 +7,7 @@ import { GameplayScreen } from './GameplayScreen';
 import { ResultsScreen } from './ResultsScreen';
 import { AnalyticsScreen } from './AnalyticsScreen';
 import { DailyChallengeScreen } from './DailyChallengeScreen';
+import { ProfilePage } from './ProfilePage';
 import { leaderboardService, UserProfileData } from '@/services/leaderboardService';
 import { getDailyShortcuts, saveDailyChallengeCompletion } from '@/services/dailyChallengeService';
 
@@ -31,6 +32,7 @@ export const ShortcutGame = () => {
     saveToLeaderboard,
     goToAnalytics,
     goToDailyChallenge,
+    goToProfile,
     handlePause,
   } = useGameState();
 
@@ -127,8 +129,18 @@ export const ShortcutGame = () => {
             onStart={startSetup}
             onAnalytics={goToAnalytics}
             onDailyChallenge={goToDailyChallenge}
+            onProfile={goToProfile}
             userEmail={userEmail}
             onLogout={handleLogout}
+          />
+        );
+      
+      case 'profile':
+        return (
+          <ProfilePage
+            onBack={resetGame}
+            userEmail={userEmail}
+            displayName={displayName}
           />
         );
       

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Trophy, Zap, Medal, LogOut, BarChart3, Edit2, Check, X, Gamepad2, Calendar, Flame, Star } from 'lucide-react';
+import { Trophy, Zap, Medal, LogOut, BarChart3, Edit2, Check, X, Gamepad2, Calendar, Flame, Star, User } from 'lucide-react';
 import { leaderboardService, UserProfileData } from '@/services/leaderboardService';
 import { isDailyChallengeCompleted, getDailyStreakDataSync } from '@/services/dailyChallengeService';
 import { cn } from '@/lib/utils';
@@ -12,6 +12,7 @@ interface WelcomeScreenProps {
   onStart: () => void;
   onAnalytics: () => void;
   onDailyChallenge: () => void;
+  onProfile: () => void;
   userEmail?: string;
   onLogout?: () => void;
 }
@@ -32,7 +33,7 @@ const ShortcutKeyIcon = () => (
   </div>
 );
 
-export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, userEmail, onLogout }: WelcomeScreenProps) => {
+export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, onProfile, userEmail, onLogout }: WelcomeScreenProps) => {
   const [aggregatedLeaderboard, setAggregatedLeaderboard] = useState<{ name: string; totalScore: number; gamesPlayed: number; avgAccuracy: number }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [displayName, setDisplayName] = useState('');
@@ -204,6 +205,10 @@ export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, userEmai
               <Button onClick={onAnalytics} variant="outline" size="lg" className="w-full glass-button">
                 <BarChart3 className="mr-2 h-4 w-4" />
                 View Analytics
+              </Button>
+              <Button onClick={onProfile} variant="ghost" size="lg" className="w-full">
+                <User className="mr-2 h-4 w-4" />
+                My Profile & Achievements
               </Button>
             </div>
             
