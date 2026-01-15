@@ -1,9 +1,41 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { displayKeyToken, isModifierToken, normalizeComboSignature, normalizeKeyToken } from '@/utils/keyboard';
 
 interface KeyboardState {
   pressedKeys: Set<string>;
   lastCombination: string[];
 }
+
+const normalizeKeyFromEvent = (e: KeyboardEvent): string | null => {
+  // Ignore auto-repeats; they cause flicker and duplicate submissions
+  if (e.repeat) return null;
+
+  // Prefer physical code for letters/digits so it stays stable across keyboard layouts
+  if (e.code?.startsWith('Key')) return e.code.replace('Key', '');
+  if (e.code?.startsWith('Digit')) return e.code.replace('Digit', '');
+
+  // Numpad special cases
+  if (e.code === 'NumpadAdd') return '+';
+  if (e.code === 'NumpadSubtract') return '-';
+  if (e.code === 'NumpadMultiply') return '*';
+  if (e.code === 'NumpadDivide') return '/';
+  if (e.code === 'NumpadDecimal') return '.';
+  if (e.code === 'NumpadEnter') return 'Enter';
+  if (e.code?.startsWith('Numpad')) return e.code.replace('Numpad', '');
+
+  // Arrow keys
+  if (e.key?.startsWith('Arrow')) return e.key.replace('Arrow', '');
+
+  // Space
+  if (e.code === 'Space' || e.key === ' ') return 'Space';
+
+  // Symbols where code is ambiguous due to Shift (e.g. '=' vs '+')
+  if (e.code === 'Equal') return e.key; // '=' or '+' depending on Shift
+  if (e.code === 'Minus') return e.key; // '-' or '_' depending on Shift
+
+  // F-keys and other named keys come through cleanly in e.key
+  return e.key || null;
+};
 
 export const useKeyboardCapture = (isActive: boolean, onCombination: (keys: string[]) => void) => {
   const [state, setState] = useState<KeyboardState>({
@@ -11,120 +43,91 @@ export const useKeyboardCapture = (isActive: boolean, onCombination: (keys: stri
     lastCombination: [],
   });
 
-  const normalizeKey = useCallback((key: string, code: string): string => {
-    // Normalize key names
-    if (key === 'Control') return 'Ctrl';
-    if (key === 'Meta') return 'Win';
-    if (code.startsWith('Key')) return code.replace('Key', '');
-    if (code.startsWith('Digit')) return code.replace('Digit', '');
-    if (code.startsWith('Numpad')) return code.replace('Numpad', '');
-    if (code === 'Equal') return '=';
-    if (code === 'Minus') return '-';
-    if (code === 'Period') return '.';
-    if (code === 'Comma') return ',';
-    if (code === 'Slash') return '/';
-    if (code === 'Backslash') return '\\';
-    if (code === 'BracketLeft') return '[';
-    if (code === 'BracketRight') return ']';
-    if (code === 'Semicolon') return ';';
-    if (code === 'Quote') return "'";
-    if (code === 'Backquote') return '`';
-    return key;
-  }, []);
+  // Refs to avoid stale state and allow immediate submission on keydown
+  const pressedKeysRef = useRef<Set<string>>(new Set());
+  const lastSubmittedSigRef = useRef<string>('');
+
+  const submitCombination = useCallback(
+    (keys: string[]) => {
+      const sig = normalizeComboSignature(keys);
+      if (!sig) return;
+
+      // Deduplicate submits between keydown + keyup
+      if (sig === lastSubmittedSigRef.current) return;
+      lastSubmittedSigRef.current = sig;
+
+      onCombination(keys);
+    },
+    [onCombination]
+  );
 
   useEffect(() => {
     if (!isActive) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Prevent ALL default browser behaviors to block system shortcuts
+      // Prevent browser actions where possible (not all OS/browser shortcuts can be blocked)
       e.preventDefault();
       e.stopPropagation();
-      e.stopImmediatePropagation();
-      
-      // Block Windows/Meta key - don't even track these
-      if (e.key === 'Meta' || e.key === 'OS' || e.metaKey) {
-        return false;
+
+      const raw = normalizeKeyFromEvent(e);
+      if (!raw) return;
+
+      // Some keys/combinations are effectively uncapturable in browsers.
+      // - Windows/Meta key often opens OS UI
+      // - Alt+Tab switches applications
+      // We'll allow the game to *teach* these via multiple-choice instead.
+      if (e.key === 'Meta' || e.key === 'OS' || e.metaKey) return;
+      if (e.altKey && e.key === 'Tab') return;
+
+      // Normalize to canonical token, then to a stable display label.
+      const canonical = normalizeKeyToken(raw);
+      const display = displayKeyToken(canonical);
+
+      // Skip Win key tracking entirely (it will open the Start menu and steal focus)
+      if (canonical === 'WIN') return;
+
+      // Update pressed keys
+      const next = new Set(pressedKeysRef.current);
+      next.add(display);
+      pressedKeysRef.current = next;
+
+      const combo = Array.from(next);
+      setState({ pressedKeys: next, lastCombination: combo });
+
+      // Keyup is not reliable for some shortcuts (Escape exiting fullscreen, Alt+F4, browser refresh/close).
+      // Submit on keydown when a non-modifier is pressed.
+      if (!isModifierToken(display)) {
+        submitCombination(combo);
       }
-      
-      // Block Alt+Tab - this is truly uncapturable
-      if (e.altKey && e.key === 'Tab') {
-        return false;
-      }
-      
-      // Special handling for Alt+F4 - browsers can't truly capture this as it closes the window
-      // But we can still register it if the user presses it before the OS intercepts
-      // The key will be 'F4' when Alt is held
-      if (e.altKey && (e.key === 'F4' || e.code === 'F4')) {
-        setState(prev => {
-          const newPressedKeys = new Set<string>();
-          newPressedKeys.add('Alt');
-          newPressedKeys.add('F4');
-          return {
-            pressedKeys: newPressedKeys,
-            lastCombination: ['Alt', 'F4'],
-          };
-        });
-        // Trigger the combination immediately since keyup might not fire
-        onCombination(['Alt', 'F4']);
-        return false;
-      }
-      
-      // Normalize the key (convert Win/Meta to something we can track but won't trigger OS)
-      const normalizedKey = normalizeKey(e.key, e.code);
-      
-      // Skip tracking modifier-only keys that might cause issues
-      if (normalizedKey === 'Win' || normalizedKey === 'Meta' || normalizedKey === 'OS') {
-        return false;
-      }
-      
-      setState(prev => {
-        const newPressedKeys = new Set(prev.pressedKeys);
-        newPressedKeys.add(normalizedKey);
-        return {
-          pressedKeys: newPressedKeys,
-          lastCombination: Array.from(newPressedKeys),
-        };
-      });
-      
-      return false;
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      e.stopImmediatePropagation();
-      
-      setState(prev => {
-        if (prev.pressedKeys.size > 0) {
-          // When releasing keys, check the combination
-          const combination = Array.from(prev.pressedKeys);
-          onCombination(combination);
-        }
-        
-        return {
-          pressedKeys: new Set(),
-          lastCombination: [],
-        };
-      });
-      
-      return false;
+
+      const combo = Array.from(pressedKeysRef.current);
+      if (combo.length > 0) {
+        submitCombination(combo);
+      }
+
+      // Reset
+      pressedKeysRef.current = new Set();
+      lastSubmittedSigRef.current = '';
+      setState({ pressedKeys: new Set(), lastCombination: [] });
     };
 
-    // Block context menu
     const handleContextMenu = (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
-      return false;
     };
 
-    // Block Alt key menu activation in browsers
+    // Block Alt key menu activation in browsers (best-effort)
     const handleAltKey = (e: KeyboardEvent) => {
       if (e.key === 'Alt' || e.altKey) {
         e.preventDefault();
       }
     };
 
-    // Use capture phase to intercept events before they bubble
     window.addEventListener('keydown', handleKeyDown, { capture: true });
     window.addEventListener('keyup', handleKeyUp, { capture: true });
     window.addEventListener('contextmenu', handleContextMenu, { capture: true });
@@ -136,15 +139,16 @@ export const useKeyboardCapture = (isActive: boolean, onCombination: (keys: stri
       window.removeEventListener('contextmenu', handleContextMenu, { capture: true });
       document.removeEventListener('keydown', handleAltKey, { capture: true });
     };
-  }, [isActive, normalizeKey, onCombination]);
+  }, [isActive, submitCombination]);
 
   return state;
 };
 
-// Hook for entering fullscreen mode with auto-recovery
+// Hook for entering fullscreen mode (note: browsers may force-exit fullscreen on Escape; it cannot be reliably blocked)
 export const useFullscreen = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isGameActive, setIsGameActive] = useState(false);
+  const [needsFullscreenRestore, setNeedsFullscreenRestore] = useState(false);
 
   const enterFullscreen = useCallback(async () => {
     try {
@@ -158,13 +162,15 @@ export const useFullscreen = () => {
       }
       setIsFullscreen(true);
       setIsGameActive(true);
+      setNeedsFullscreenRestore(false);
     } catch (err) {
       console.log('Fullscreen not available:', err);
     }
   }, []);
 
   const exitFullscreen = useCallback(async () => {
-    setIsGameActive(false); // Mark game as no longer active
+    setIsGameActive(false);
+    setNeedsFullscreenRestore(false);
     try {
       if (document.fullscreenElement) {
         if (document.exitFullscreen) {
@@ -181,20 +187,14 @@ export const useFullscreen = () => {
     }
   }, []);
 
-  // Auto-recover fullscreen when user presses ESC during active game
   useEffect(() => {
     const handleFullscreenChange = () => {
       const currentlyFullscreen = !!document.fullscreenElement;
       setIsFullscreen(currentlyFullscreen);
-      
-      // If game is active and user exited fullscreen (e.g., via ESC), prompt to re-enter
+
+      // If the game is active and fullscreen was exited (usually via Escape), we must ask for a click to re-enter.
       if (isGameActive && !currentlyFullscreen) {
-        // Small delay to avoid immediate re-trigger
-        setTimeout(() => {
-          if (isGameActive) {
-            enterFullscreen();
-          }
-        }, 100);
+        setNeedsFullscreenRestore(true);
       }
     };
 
@@ -205,35 +205,7 @@ export const useFullscreen = () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
     };
-  }, [isGameActive, enterFullscreen]);
-
-  // Intercept ESC key during game to prevent exit
-  // Enhanced ESC key blocking with multiple event phases
-  useEffect(() => {
-    if (!isGameActive) return;
-
-    const blockEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' || e.code === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        return false;
-      }
-    };
-
-    // Block at multiple levels for maximum interception
-    document.addEventListener('keydown', blockEscape, { capture: true });
-    document.addEventListener('keyup', blockEscape, { capture: true });
-    window.addEventListener('keydown', blockEscape, { capture: true });
-    window.addEventListener('keyup', blockEscape, { capture: true });
-
-    return () => {
-      document.removeEventListener('keydown', blockEscape, { capture: true });
-      document.removeEventListener('keyup', blockEscape, { capture: true });
-      window.removeEventListener('keydown', blockEscape, { capture: true });
-      window.removeEventListener('keyup', blockEscape, { capture: true });
-    };
   }, [isGameActive]);
 
-  return { isFullscreen, enterFullscreen, exitFullscreen, isGameActive };
+  return { isFullscreen, enterFullscreen, exitFullscreen, isGameActive, needsFullscreenRestore };
 };
