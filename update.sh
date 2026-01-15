@@ -60,11 +60,9 @@ install_dependencies() {
         apt-get install -y git
     fi
     
-    # Install serve globally for static file serving
-    if ! command -v serve &> /dev/null; then
-        log_info "Installing serve..."
-        npm install -g serve
-    fi
+# Install build tools for native modules
+    log_info "Installing build essentials for native modules..."
+    apt-get install -y build-essential python3
     
     log_info "Dependencies ready"
 }
@@ -195,23 +193,43 @@ restore_data() {
     fi
 }
 
+# Migrate JSON data to SQLite (first-time only)
+migrate_data_to_sqlite() {
+    log_info "========================================"
+    log_info "MIGRATING DATA TO SQLITE"
+    log_info "========================================"
+    
+    SQLITE_DATA_DIR="$INSTALL_DIR/data"
+    mkdir -p "$SQLITE_DATA_DIR"
+    
+    if [ ! -f "$SQLITE_DATA_DIR/game.db" ]; then
+        log_info "No SQLite database found, running migration..."
+        cd "$INSTALL_DIR"
+        node server/migrate-json.js || log_warn "Migration script failed or no data to migrate"
+        log_info "Migration complete"
+    else
+        log_info "SQLite database already exists, skipping migration"
+    fi
+}
+
 # Create/update systemd service
 create_service() {
     log_info "Creating systemd service on port $PORT..."
     
     cat > /etc/systemd/system/$SERVICE_NAME.service << EOF
 [Unit]
-Description=Shortcut Game Static Server
+Description=Shortcut Game Express + SQLite Server
 After=network.target
 
 [Service]
 Type=simple
 User=root
-WorkingDirectory=$INSTALL_DIR/dist
-ExecStart=/usr/bin/npx serve -s . -l $PORT
+WorkingDirectory=$INSTALL_DIR
+ExecStart=/usr/bin/node $INSTALL_DIR/server/index.js
 Restart=always
 RestartSec=5
 Environment=NODE_ENV=production
+Environment=PORT=$PORT
 
 [Install]
 WantedBy=multi-user.target
@@ -219,7 +237,7 @@ EOF
 
     systemctl daemon-reload
     systemctl enable $SERVICE_NAME
-    log_info "Service configured on port $PORT"
+    log_info "Service configured on port $PORT (Express + SQLite)"
 }
 
 # Start the service
@@ -293,6 +311,7 @@ main() {
     force_update_repository
     build_app
     restore_data
+    migrate_data_to_sqlite
     create_service
     start_service
     verify_deployment
