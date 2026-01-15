@@ -44,7 +44,11 @@ export const useGameState = () => {
   const [state, setState] = useState<GameState>(initialState);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [playerName, setPlayerName] = useState<string>('');
+  const [isPaused, setIsPaused] = useState(false);
 
+  const handlePause = useCallback((paused: boolean) => {
+    setIsPaused(paused);
+  }, []);
   const startSetup = useCallback(() => {
     setState(prev => ({ ...prev, status: 'setup' }));
   }, []);
@@ -254,8 +258,9 @@ export const useGameState = () => {
     }
   }, [state.status, playerName, state.score]);
 
+  // Timer effect - pauses when isPaused is true
   useEffect(() => {
-    if (state.status !== 'playing' || feedback || state.mode === 'practice' || state.waitingForNext) return;
+    if (state.status !== 'playing' || feedback || state.mode === 'practice' || state.waitingForNext || isPaused) return;
 
     const timer = setInterval(() => {
       setState(prev => {
@@ -267,18 +272,19 @@ export const useGameState = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [state.status, feedback, state.mode, state.waitingForNext]);
+  }, [state.status, feedback, state.mode, state.waitingForNext, isPaused]);
 
   useEffect(() => {
-    if (state.status === 'playing' && state.timeRemaining === 0 && !feedback && state.mode !== 'practice' && !state.waitingForNext) {
+    if (state.status === 'playing' && state.timeRemaining === 0 && !feedback && state.mode !== 'practice' && !state.waitingForNext && !isPaused) {
       timeOut();
     }
-  }, [state.status, state.timeRemaining, feedback, timeOut, state.mode, state.waitingForNext]);
+  }, [state.status, state.timeRemaining, feedback, timeOut, state.mode, state.waitingForNext, isPaused]);
 
   return {
     state,
     feedback,
     playerName,
+    isPaused,
     startSetup,
     startGame,
     checkAnswer,
@@ -289,5 +295,6 @@ export const useGameState = () => {
     saveToLeaderboard,
     goToAnalytics,
     setPlayerName,
+    handlePause,
   };
 };
