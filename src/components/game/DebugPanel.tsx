@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Bug, RefreshCw, Download, Trash2, CheckCircle, XCircle, AlertCircle, Wifi, WifiOff, Database, Server, TestTube } from 'lucide-react';
+import { Bug, RefreshCw, Download, Trash2, CheckCircle, XCircle, AlertCircle, Wifi, WifiOff, Database, Server, TestTube, Globe, Monitor } from 'lucide-react';
 import { leaderboardService } from '@/services/leaderboardService';
-import { apiService } from '@/services/apiService';
+import { apiService, getApiEnvironment, setApiEnvironment, getApiBaseUrl } from '@/services/apiService';
 
 interface DataStatus {
   name: string;
@@ -55,6 +55,7 @@ export const DebugPanel = () => {
   const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
   const [apiTestResult, setApiTestResult] = useState<ApiTestResult | null>(null);
   const [isTesting, setIsTesting] = useState(false);
+  const [currentEnv, setCurrentEnv] = useState<'production' | 'local' | 'auto'>(getApiEnvironment());
 
   const checkDataStatus = async () => {
     setIsRefreshing(true);
@@ -285,6 +286,44 @@ export const DebugPanel = () => {
         </div>
       </CardHeader>
       <CardContent className="space-y-4 text-xs">
+        {/* API Environment Toggle */}
+        <div className="space-y-2">
+          <div className="font-medium text-muted-foreground flex items-center gap-1">
+            <Globe className="h-3 w-3" />
+            API Environment
+          </div>
+          <div className="flex gap-1">
+            <Button
+              size="sm"
+              variant={currentEnv === 'auto' ? 'default' : 'outline'}
+              className="text-[10px] h-6 flex-1"
+              onClick={() => setApiEnvironment('auto')}
+            >
+              Auto
+            </Button>
+            <Button
+              size="sm"
+              variant={currentEnv === 'local' ? 'default' : 'outline'}
+              className="text-[10px] h-6 flex-1"
+              onClick={() => setApiEnvironment('local')}
+            >
+              <Monitor className="h-3 w-3 mr-1" />
+              Local
+            </Button>
+            <Button
+              size="sm"
+              variant={currentEnv === 'production' ? 'default' : 'outline'}
+              className="text-[10px] h-6 flex-1"
+              onClick={() => setApiEnvironment('production')}
+            >
+              <Globe className="h-3 w-3 mr-1" />
+              Production
+            </Button>
+          </div>
+          <div className="text-[10px] text-muted-foreground bg-muted/50 rounded p-1.5">
+            <span className="font-medium">Current:</span> {getApiBaseUrl()}
+          </div>
+        </div>
         {/* Server Info Section */}
         {debugInfo && (
           <div className="space-y-2">
