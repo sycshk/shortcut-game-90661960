@@ -86,11 +86,25 @@ router.post('/', (req, res) => {
       streak
     } = req.body;
     
-    // Get user_id if email provided
+    // Get or create user_id if email provided
     let userId = null;
     if (email) {
-      const user = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
-      userId = user?.id;
+      let user = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+
+      if (!user) {
+        const displayName = email.split('@')[0];
+        const domain = email.split('@')[1];
+        const organization = domain ? domain.split('.')[0].charAt(0).toUpperCase() + domain.split('.')[0].slice(1) : null;
+
+        const result = db.prepare(`
+          INSERT INTO users (email, display_name, organization)
+          VALUES (?, ?, ?)
+        `).run(email, displayName, organization);
+
+        user = { id: result.lastInsertRowid };
+      }
+
+      userId = user.id;
     }
     
     const result = db.prepare(`

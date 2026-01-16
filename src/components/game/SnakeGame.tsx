@@ -36,6 +36,7 @@ export const SnakeGame = ({ onBack, onScoreSave, userEmail, isDailyChallenge }: 
   
   const directionRef = useRef(direction);
   const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
+  const hasSavedScoreRef = useRef(false);
 
   // Load high score from API or localStorage
   useEffect(() => {
@@ -84,6 +85,7 @@ export const SnakeGame = ({ onBack, onScoreSave, userEmail, isDailyChallenge }: 
     setGameOver(false);
     setScore(0);
     setSpeed(INITIAL_SPEED);
+    hasSavedScoreRef.current = false;
   }, [generateFood]);
 
   // Game loop
@@ -183,42 +185,45 @@ export const SnakeGame = ({ onBack, onScoreSave, userEmail, isDailyChallenge }: 
   // Save score on game over - sync to server
   useEffect(() => {
     const saveScore = async () => {
-      if (gameOver && score > 0) {
-        const isNewHighScore = score > highScore;
-        
-        // Save to localStorage as backup
-        if (isNewHighScore) {
-          localStorage.setItem(`snake-highscore-${userEmail || 'guest'}`, score.toString());
-        }
-        
-        // Sync to server API
-        if (userEmail) {
-          try {
-            const result = await apiService.saveMiniGameScore({
-              email: userEmail,
-              game_type: 'snake',
-              score: score
-            });
-            
-            if (result.data?.isNewHighScore) {
-              toast({
-                title: "🎉 New High Score!",
-                description: `You scored ${score} points in Snake! Synced to server.`,
-              });
-            }
-          } catch (error) {
-            console.warn('Failed to save score to server:', error);
-          }
-        } else if (isNewHighScore) {
-          toast({
-            title: "🎉 New High Score!",
-            description: `You scored ${score} points in Snake!`,
-          });
-        }
-        
-        onScoreSave(score);
+      if (!gameOver || score <= 0) return;
+      if (hasSavedScoreRef.current) return;
+      hasSavedScoreRef.current = true;
+
+      const isNewHighScore = score > highScore;
+
+      // Save to localStorage as backup
+      if (isNewHighScore) {
+        localStorage.setItem(`snake-highscore-${userEmail || 'guest'}`, score.toString());
       }
+
+      // Sync to server API
+      if (userEmail) {
+        try {
+          const result = await apiService.saveMiniGameScore({
+            email: userEmail,
+            game_type: 'snake',
+            score: score,
+          });
+
+          if (result.data?.isNewHighScore) {
+            toast({
+              title: "🎉 New High Score!",
+              description: `You scored ${score} points in Snake! Synced to server.`,
+            });
+          }
+        } catch (error) {
+          console.warn('Failed to save score to server:', error);
+        }
+      } else if (isNewHighScore) {
+        toast({
+          title: "🎉 New High Score!",
+          description: `You scored ${score} points in Snake!`,
+        });
+      }
+
+      onScoreSave(score);
     };
+
     saveScore();
   }, [gameOver, score, onScoreSave, userEmail, highScore]);
 
