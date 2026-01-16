@@ -33,6 +33,8 @@ const normalizeKeyFromEvent = (e: KeyboardEvent): string | null => {
   // Use shiftKey to determine the correct symbol since e.key can be unreliable
   if (e.code === 'Equal') return e.shiftKey ? '+' : '=';
   if (e.code === 'Minus') return e.shiftKey ? '_' : '-';
+  if (e.code === 'BracketLeft') return e.shiftKey ? '{' : '[';
+  if (e.code === 'BracketRight') return e.shiftKey ? '}' : ']';
 
   // F-keys and other named keys come through cleanly in e.key
   return e.key || null;
