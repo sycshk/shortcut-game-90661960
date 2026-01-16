@@ -111,13 +111,14 @@ export const AnalyticsScreen = ({ onBack, userEmail }: AnalyticsScreenProps) => 
 
   const totalShortcuts = shortcutChallenges.length;
 
-  // Find weakest category
+  // Find weakest category (only from categories that have data)
   const weakestCategory = categoryAnalysis 
     ? categories.reduce((worst, cat) => {
         const catData = categoryAnalysis[cat];
         const worstData = categoryAnalysis[worst];
-        if (catData.total === 0) return worst;
-        if (worstData.total === 0) return cat;
+        // Skip categories without data
+        if (!catData || catData.total === 0) return worst;
+        if (!worstData || worstData.total === 0) return cat;
         return catData.accuracy < worstData.accuracy ? cat : worst;
       }, categories[0])
     : null;
@@ -218,7 +219,7 @@ export const AnalyticsScreen = ({ onBack, userEmail }: AnalyticsScreenProps) => 
                   Category Performance
                 </CardTitle>
                 <CardDescription>
-                  {weakestCategory && categoryAnalysis && categoryAnalysis[weakestCategory].total > 0 && (
+                  {weakestCategory && categoryAnalysis && categoryAnalysis[weakestCategory]?.total > 0 && (
                     <span className="text-secondary">
                       Focus on <strong>{CATEGORY_CONFIG[weakestCategory].label}</strong> - your weakest category at {categoryAnalysis[weakestCategory].accuracy}% accuracy
                     </span>
@@ -228,6 +229,8 @@ export const AnalyticsScreen = ({ onBack, userEmail }: AnalyticsScreenProps) => 
               <CardContent className="space-y-4">
                 {categoryAnalysis && categories.map(cat => {
                   const data = categoryAnalysis[cat];
+                  // Skip categories without data
+                  if (!data) return null;
                   const isWeakest = cat === weakestCategory && data.total > 0;
                   
                   return (
