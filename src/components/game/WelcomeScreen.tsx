@@ -198,10 +198,10 @@ export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, onProfil
               <button 
                 onClick={onDailyChallenge}
                 className={cn(
-                  "inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-11 rounded-md px-8 w-full text-lg",
+                  "inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-11 rounded-md px-8 w-full text-lg shadow-md hover:shadow-lg",
                   dailyCompleted 
                     ? "bg-success/20 border border-success text-success hover:bg-success/30" 
-                    : "bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90 animate-pulse hover:animate-none shadow-lg hover:shadow-xl transition-all duration-300"
+                    : "bg-gradient-to-r from-primary to-secondary text-white hover:opacity-95 hover:scale-[1.01] transition-transform duration-200"
                 )}
               >
                 <Calendar className="mr-2 h-5 w-5" />

@@ -271,7 +271,7 @@ export const DailyChallengeScreen = ({ onBack, onStartChallenge, onStartMiniGame
                     }
                   }} 
                   size="lg" 
-                  className="w-full bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90 animate-pulse hover:animate-none shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="w-full bg-gradient-to-r from-primary to-secondary text-white hover:opacity-95 hover:scale-[1.01] shadow-md hover:shadow-lg transition-all duration-200"
                 >
                   {challengeType === 'shortcuts' && <Star className="h-5 w-5 mr-2" />}
                   {challengeType === 'snake' && <Gamepad2 className="h-5 w-5 mr-2" />}

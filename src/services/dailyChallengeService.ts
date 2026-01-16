@@ -278,6 +278,12 @@ const updateDailyStreakLocal = (qualifies: boolean): void => {
   if (streak.currentStreak >= 30 && !streak.badges.includes('streak_30')) {
     newBadges.push('streak_30');
   }
+  if (streak.currentStreak >= 60 && !streak.badges.includes('streak_60')) {
+    newBadges.push('streak_60');
+  }
+  if (streak.currentStreak >= 100 && !streak.badges.includes('streak_100')) {
+    newBadges.push('streak_100');
+  }
   if (streak.totalDaysCompleted >= 10 && !streak.badges.includes('dedicated_10')) {
     newBadges.push('dedicated_10');
   }
@@ -300,9 +306,11 @@ export const DAILY_BADGES = {
   streak_7: { name: 'Week Warrior', description: '7-day daily streak', icon: '⚔️' },
   streak_14: { name: 'Fortnight Fighter', description: '14-day daily streak', icon: '🛡️' },
   streak_30: { name: 'Monthly Master', description: '30-day daily streak', icon: '👑' },
+  streak_60: { name: 'Two Month Titan', description: '60-day daily streak', icon: '💎' },
+  streak_100: { name: 'Century Champion', description: '100-day daily streak', icon: '🏆' },
   dedicated_10: { name: 'Dedicated', description: 'Complete 10 daily challenges', icon: '💪' },
   dedicated_50: { name: 'Committed', description: 'Complete 50 daily challenges', icon: '🏅' },
-  dedicated_100: { name: 'Legend', description: 'Complete 100 daily challenges', icon: '🏆' },
+  dedicated_100: { name: 'Legend', description: 'Complete 100 daily challenges', icon: '🎖️' },
 } as const;
 
 // Get time until next daily challenge
