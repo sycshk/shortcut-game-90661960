@@ -4,8 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { 
   getDailyShortcuts, 
-  isDailyChallengeCompleted, 
-  getDailyChallengeDataSync,
+  getDailyChallengeData,
+  getDailyStreakData,
   getDailyStreakDataSync,
   getTimeUntilNextChallenge,
   DAILY_BADGES,
@@ -26,14 +26,32 @@ export const DailyChallengeScreen = ({ onBack, onStartChallenge, userEmail }: Da
   const [challengeData, setChallengeData] = useState<DailyChallengeData | null>(null);
   const [streakData, setStreakData] = useState<DailyStreakData>(getDailyStreakDataSync());
   const [countdown, setCountdown] = useState(getTimeUntilNextChallenge());
+  const [isLoading, setIsLoading] = useState(true);
   
   const shortcuts = getDailyShortcuts();
   
+  // Load data from API when userEmail is available
   useEffect(() => {
-    setIsCompleted(isDailyChallengeCompleted());
-    setChallengeData(getDailyChallengeDataSync());
-    setStreakData(getDailyStreakDataSync());
-  }, []);
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        const [challenge, streak] = await Promise.all([
+          getDailyChallengeData(userEmail),
+          getDailyStreakData(userEmail)
+        ]);
+        
+        setChallengeData(challenge);
+        setStreakData(streak);
+        setIsCompleted(challenge?.completed ?? false);
+      } catch (error) {
+        console.error('Failed to load daily challenge data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [userEmail]);
   
   // Countdown timer
   useEffect(() => {
@@ -56,6 +74,17 @@ export const DailyChallengeScreen = ({ onBack, onStartChallenge, userEmail }: Da
     id,
     ...DAILY_BADGES[id as keyof typeof DAILY_BADGES]
   }));
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen animated-bg p-4 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
+          <p className="text-muted-foreground">Loading daily challenge...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen animated-bg p-4">
