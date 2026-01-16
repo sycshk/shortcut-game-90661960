@@ -30,8 +30,9 @@ const normalizeKeyFromEvent = (e: KeyboardEvent): string | null => {
   if (e.code === 'Space' || e.key === ' ') return 'Space';
 
   // Symbols where code is ambiguous due to Shift (e.g. '=' vs '+')
-  if (e.code === 'Equal') return e.key; // '=' or '+' depending on Shift
-  if (e.code === 'Minus') return e.key; // '-' or '_' depending on Shift
+  // Use shiftKey to determine the correct symbol since e.key can be unreliable
+  if (e.code === 'Equal') return e.shiftKey ? '+' : '=';
+  if (e.code === 'Minus') return e.shiftKey ? '_' : '-';
 
   // F-keys and other named keys come through cleanly in e.key
   return e.key || null;
