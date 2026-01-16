@@ -5,12 +5,15 @@ import { apiService } from './apiService';
 const DAILY_CHALLENGE_KEY = 'shortcut-daily-challenge';
 const DAILY_STREAK_KEY = 'shortcut-daily-streak';
 
+export type DailyChallengeType = 'shortcuts' | 'snake' | 'epm-quiz';
+
 export interface DailyChallengeData {
   date: string;
   completed: boolean;
   score: number;
   accuracy: number;
   shortcuts: string[]; // shortcut IDs for the day
+  challengeType?: DailyChallengeType;
 }
 
 export interface DailyStreakData {
@@ -25,6 +28,47 @@ export interface DailyStreakData {
 const seededRandom = (seed: number) => {
   const x = Math.sin(seed) * 10000;
   return x - Math.floor(x);
+};
+
+// Get the challenge type for a given date (rotates between shortcuts and mini-games)
+export const getDailyChallengeType = (date: Date = new Date()): DailyChallengeType => {
+  const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+  
+  // Rotate: 3 days shortcuts, 1 day snake, 3 days shortcuts, 1 day epm-quiz
+  const cycle = dayOfYear % 8;
+  
+  if (cycle === 3) return 'snake';
+  if (cycle === 7) return 'epm-quiz';
+  return 'shortcuts';
+};
+
+// Get challenge type info for display
+export const getDailyChallengeInfo = (date: Date = new Date()): { type: DailyChallengeType; title: string; description: string; icon: string } => {
+  const type = getDailyChallengeType(date);
+  
+  switch (type) {
+    case 'snake':
+      return {
+        type: 'snake',
+        title: 'Snake Challenge',
+        description: 'Score at least 50 points in Snake to complete today\'s challenge!',
+        icon: '🐍'
+      };
+    case 'epm-quiz':
+      return {
+        type: 'epm-quiz',
+        title: 'EPM Quiz Challenge',
+        description: 'Complete the EPM Knowledge Quiz with at least 60% accuracy!',
+        icon: '📊'
+      };
+    default:
+      return {
+        type: 'shortcuts',
+        title: 'Shortcut Challenge',
+        description: 'Complete 10 keyboard shortcuts to master today\'s challenge!',
+        icon: '⌨️'
+      };
+  }
 };
 
 // Get a deterministic set of shortcuts for a given date

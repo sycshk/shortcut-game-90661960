@@ -21,6 +21,7 @@ interface ConsolidationQuizProps {
   onBack: () => void;
   onScoreSave: (score: number, accuracy: number) => void;
   userEmail?: string;
+  isDailyChallenge?: boolean;
 }
 
 type QuizCategory = 'all' | 'budget' | 'consolidation' | 'kpi' | 'general' | EPMTool;
@@ -44,7 +45,7 @@ const CATEGORY_LABELS: Record<QuizCategory, { label: string; icon: string; color
 const POINTS_PER_QUESTION = 10;
 const TIME_PER_QUESTION = 30;
 
-export const ConsolidationQuiz = ({ onBack, onScoreSave, userEmail }: ConsolidationQuizProps) => {
+export const ConsolidationQuiz = ({ onBack, onScoreSave, userEmail, isDailyChallenge }: ConsolidationQuizProps) => {
   const [stage, setStage] = useState<'setup' | 'playing' | 'results'>('setup');
   const [selectedCategory, setSelectedCategory] = useState<QuizCategory>('all');
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -203,8 +204,17 @@ export const ConsolidationQuiz = ({ onBack, onScoreSave, userEmail }: Consolidat
                 <Brain className="h-6 w-6 text-white" />
               </div>
               <div>
-                <CardTitle className="text-2xl">EPM Knowledge Quiz</CardTitle>
-                <CardDescription>Test your Enterprise Performance Management expertise</CardDescription>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  EPM Knowledge Quiz
+                  {isDailyChallenge && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-primary to-secondary text-white animate-pulse">
+                      Daily Challenge
+                    </span>
+                  )}
+                </CardTitle>
+                <CardDescription>
+                  {isDailyChallenge ? 'Achieve 60%+ accuracy to complete today\'s challenge!' : 'Test your Enterprise Performance Management expertise'}
+                </CardDescription>
               </div>
             </div>
           </CardHeader>
