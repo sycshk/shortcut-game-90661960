@@ -6,6 +6,7 @@ import { ArrowLeft, Trophy, Brain, CheckCircle, XCircle, Lightbulb, Timer } from
 import { cn } from '@/lib/utils';
 import { apiService } from '@/services/apiService';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from '@/hooks/use-toast';
 import { 
   QuizQuestion, 
   CONSOLIDATION_QUESTIONS, 
@@ -142,7 +143,9 @@ export const ConsolidationQuiz = ({ onBack, onScoreSave, userEmail }: Consolidat
     if (currentIndex >= questions.length - 1) {
       // Quiz complete
       const finalAccuracy = Math.round((correctAnswers / questions.length) * 100);
-      if (score > highScore) {
+      const isNewHighScore = score > highScore;
+      
+      if (isNewHighScore) {
         setHighScore(score);
         // Save to localStorage as backup
         localStorage.setItem(`epm-quiz-highscore-${userEmail || 'guest'}`, score.toString());
@@ -157,10 +160,18 @@ export const ConsolidationQuiz = ({ onBack, onScoreSave, userEmail }: Consolidat
           accuracy: finalAccuracy
         }).then(result => {
           if (result.data?.isNewHighScore) {
-            console.log('🎉 New EPM high score saved to server!');
+            toast({
+              title: "🏆 New High Score!",
+              description: `You scored ${score} points with ${finalAccuracy}% accuracy! Synced to server.`,
+            });
           }
         }).catch(error => {
           console.warn('Failed to save EPM score to server:', error);
+        });
+      } else if (isNewHighScore) {
+        toast({
+          title: "🏆 New High Score!",
+          description: `You scored ${score} points with ${finalAccuracy}% accuracy!`,
         });
       }
       
