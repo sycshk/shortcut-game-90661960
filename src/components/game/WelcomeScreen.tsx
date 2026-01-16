@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Trophy, Zap, Medal, LogOut, BarChart3, Edit2, Check, X, Gamepad2, Calendar, Flame, User } from 'lucide-react';
 import { leaderboardService, UserProfileData } from '@/services/leaderboardService';
 import { getDailyChallengeData, getDailyStreakData, getDailyStreakDataSync } from '@/services/dailyChallengeService';
+import { apiService } from '@/services/apiService';
 import { cn } from '@/lib/utils';
 import { HallOfFame } from './HallOfFame';
 import { PlayerAvatar } from './PlayerAvatar';
@@ -49,8 +50,58 @@ export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, onProfil
   const loadData = useCallback(async () => {
     setIsLoading(true);
     await leaderboardService.init();
-    const leaderboard = await leaderboardService.getAggregatedLeaderboard(10);
-    setAggregatedLeaderboard(leaderboard);
+    
+    // Get shortcut game leaderboard
+    const shortcutLeaderboard = await leaderboardService.getAggregatedLeaderboard(50);
+    
+    // Get mini game leaderboard
+    let miniGameData: Map<string, { snakeScore: number; epmScore: number; totalGames: number }> = new Map();
+    try {
+      const miniGameResult = await apiService.getUnifiedMiniGameLeaderboard();
+      if (miniGameResult.data?.entries) {
+        miniGameResult.data.entries.forEach((entry: any) => {
+          const name = entry.name || entry.email?.split('@')[0] || '';
+          if (name) {
+            miniGameData.set(name, {
+              snakeScore: entry.snakeScore || 0,
+              epmScore: entry.epmScore || 0,
+              totalGames: entry.totalGames || 0
+            });
+          }
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to load mini game leaderboard:', error);
+    }
+    
+    // Combine shortcut and mini game scores
+    const combinedUsers = new Map<string, { totalScore: number; gamesPlayed: number; avgAccuracy: number }>();
+    
+    // Add shortcut scores
+    shortcutLeaderboard.forEach(entry => {
+      combinedUsers.set(entry.name, {
+        totalScore: entry.totalScore,
+        gamesPlayed: entry.gamesPlayed,
+        avgAccuracy: entry.avgAccuracy
+      });
+    });
+    
+    // Add mini game scores
+    miniGameData.forEach((scores, name) => {
+      const existing = combinedUsers.get(name) || { totalScore: 0, gamesPlayed: 0, avgAccuracy: 0 };
+      existing.totalScore += scores.snakeScore + scores.epmScore;
+      existing.gamesPlayed += scores.totalGames;
+      combinedUsers.set(name, existing);
+    });
+    
+    // Convert to array and sort
+    const combined: { name: string; totalScore: number; gamesPlayed: number; avgAccuracy: number }[] = [];
+    combinedUsers.forEach((stats, name) => {
+      combined.push({ name, ...stats });
+    });
+    combined.sort((a, b) => b.totalScore - a.totalScore);
+    
+    setAggregatedLeaderboard(combined.slice(0, 10));
     
     // Load or create profile
     if (userEmail) {
@@ -249,7 +300,7 @@ export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, onProfil
             <div className="flex items-center gap-3">
               <Trophy className="h-6 w-6 text-yellow-500" />
               <div>
-                <CardTitle className="text-xl">Leaderboard</CardTitle>
+                <CardTitle className="text-xl">All-Time Leaderboard</CardTitle>
                 <CardDescription className="text-sm">Total points from all games</CardDescription>
               </div>
             </div>
