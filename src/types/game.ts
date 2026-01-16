@@ -2,7 +2,7 @@
 export type DifficultyLevel = 'essentials' | 'implementation' | 'architect' | 'guru';
 
 // Categories
-export type Category = 'windows' | 'excel' | 'powerpoint' | 'general';
+export type Category = 'windows' | 'excel' | 'powerpoint' | 'general' | 'google-sheets' | 'google-docs' | 'google-slides';
 
 // Game Modes
 export type GameMode = 'practice' | 'timed' | 'challenge';
@@ -69,7 +69,7 @@ export interface GameSession {
 }
 
 export interface GameState {
-  status: 'welcome' | 'login' | 'setup' | 'playing' | 'results' | 'dashboard' | 'analytics' | 'dailyChallenge' | 'profile' | 'miniGames';
+  status: 'welcome' | 'login' | 'setup' | 'playing' | 'results' | 'dashboard' | 'analytics' | 'dailyChallenge' | 'profile' | 'miniGames' | 'learning';
   category: Category | ShortcutCategory | null;
   difficulty: Difficulty | null;
   level: DifficultyLevel | null;
@@ -168,6 +168,21 @@ export const CATEGORY_CONFIG = {
     description: 'Cross-application shortcuts',
     icon: 'Keyboard'
   },
+  'google-sheets': {
+    label: 'Google Sheets',
+    description: 'Google Sheets shortcuts',
+    icon: 'Table2'
+  },
+  'google-docs': {
+    label: 'Google Docs',
+    description: 'Google Docs shortcuts',
+    icon: 'FileText'
+  },
+  'google-slides': {
+    label: 'Google Slides',
+    description: 'Google Slides shortcuts',
+    icon: 'Presentation'
+  },
 } as const;
 
 export const MODE_CONFIG = {
@@ -205,6 +220,9 @@ export const INITIAL_GAME_STATS: GameStats = {
     excel: { correct: 0, total: 0 },
     powerpoint: { correct: 0, total: 0 },
     general: { correct: 0, total: 0 },
+    'google-sheets': { correct: 0, total: 0 },
+    'google-docs': { correct: 0, total: 0 },
+    'google-slides': { correct: 0, total: 0 },
   },
   levelStats: {
     essentials: { correct: 0, total: 0 },
