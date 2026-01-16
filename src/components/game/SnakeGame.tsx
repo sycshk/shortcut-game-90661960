@@ -5,6 +5,7 @@ import { ArrowLeft, Play, Pause, Trophy, RefreshCw, ArrowUp, ArrowDown, ArrowLef
 import { cn } from '@/lib/utils';
 import { apiService } from '@/services/apiService';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from '@/hooks/use-toast';
 
 interface SnakeGameProps {
   onBack: () => void;
@@ -182,8 +183,10 @@ export const SnakeGame = ({ onBack, onScoreSave, userEmail }: SnakeGameProps) =>
   useEffect(() => {
     const saveScore = async () => {
       if (gameOver && score > 0) {
+        const isNewHighScore = score > highScore;
+        
         // Save to localStorage as backup
-        if (score > highScore) {
+        if (isNewHighScore) {
           localStorage.setItem(`snake-highscore-${userEmail || 'guest'}`, score.toString());
         }
         
@@ -197,11 +200,19 @@ export const SnakeGame = ({ onBack, onScoreSave, userEmail }: SnakeGameProps) =>
             });
             
             if (result.data?.isNewHighScore) {
-              console.log('🎉 New high score saved to server!');
+              toast({
+                title: "🎉 New High Score!",
+                description: `You scored ${score} points in Snake! Synced to server.`,
+              });
             }
           } catch (error) {
             console.warn('Failed to save score to server:', error);
           }
+        } else if (isNewHighScore) {
+          toast({
+            title: "🎉 New High Score!",
+            description: `You scored ${score} points in Snake!`,
+          });
         }
         
         onScoreSave(score);
