@@ -5,6 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, Trophy, Brain, CheckCircle, XCircle, Lightbulb, Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { apiService } from '@/services/apiService';
+import { Skeleton } from '@/components/ui/skeleton';
 import { 
   QuizQuestion, 
   CONSOLIDATION_QUESTIONS, 
@@ -53,15 +54,18 @@ export const ConsolidationQuiz = ({ onBack, onScoreSave, userEmail }: Consolidat
   const [showExplanation, setShowExplanation] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(TIME_PER_QUESTION);
   const [highScore, setHighScore] = useState(0);
+  const [isLoadingScore, setIsLoadingScore] = useState(true);
 
   // Load high score from API or localStorage
   useEffect(() => {
     const loadHighScore = async () => {
+      setIsLoadingScore(true);
       if (userEmail) {
         try {
           const result = await apiService.getMiniGameScores(userEmail);
           if (result.data?.scores?.epm) {
             setHighScore(result.data.scores.epm.highScore);
+            setIsLoadingScore(false);
             return;
           }
         } catch (error) {
@@ -71,6 +75,7 @@ export const ConsolidationQuiz = ({ onBack, onScoreSave, userEmail }: Consolidat
       // Fallback to localStorage
       const saved = localStorage.getItem(`epm-quiz-highscore-${userEmail || 'guest'}`);
       if (saved) setHighScore(parseInt(saved, 10));
+      setIsLoadingScore(false);
     };
     loadHighScore();
   }, [userEmail]);
@@ -195,10 +200,14 @@ export const ConsolidationQuiz = ({ onBack, onScoreSave, userEmail }: Consolidat
           <CardContent className="space-y-6">
             <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
               <span className="text-sm text-muted-foreground">High Score</span>
-              <span className="font-bold text-primary flex items-center gap-1">
-                <Trophy className="h-4 w-4 text-yellow-500" />
-                {highScore}
-              </span>
+              {isLoadingScore ? (
+                <Skeleton className="h-6 w-12" />
+              ) : (
+                <span className="font-bold text-primary flex items-center gap-1">
+                  <Trophy className="h-4 w-4 text-yellow-500" />
+                  {highScore}
+                </span>
+              )}
             </div>
 
             <div>
