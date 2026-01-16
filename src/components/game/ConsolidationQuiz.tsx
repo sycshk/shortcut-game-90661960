@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -58,6 +58,8 @@ export const ConsolidationQuiz = ({ onBack, onScoreSave, userEmail, isDailyChall
   const [highScore, setHighScore] = useState(0);
   const [isLoadingScore, setIsLoadingScore] = useState(true);
 
+  const hasSubmittedScoreRef = useRef(false);
+
   // Load high score from API or localStorage
   useEffect(() => {
     const loadHighScore = async () => {
@@ -84,8 +86,10 @@ export const ConsolidationQuiz = ({ onBack, onScoreSave, userEmail, isDailyChall
 
   // Start quiz
   const startQuiz = useCallback(() => {
+    hasSubmittedScoreRef.current = false;
+
     let categoryQuestions: QuizQuestion[];
-    
+
     if (selectedCategory === 'all') {
       categoryQuestions = CONSOLIDATION_QUESTIONS;
     } else if (['oracle_fccs', 'oracle_pbcs', 'jedox', 'netsuite', 'tagetik'].includes(selectedCategory)) {
@@ -93,7 +97,7 @@ export const ConsolidationQuiz = ({ onBack, onScoreSave, userEmail, isDailyChall
     } else {
       categoryQuestions = getQuestionsByCategory(selectedCategory as 'budget' | 'consolidation' | 'kpi' | 'general');
     }
-    
+
     const shuffled = shuffleQuestions(categoryQuestions, Math.min(10, categoryQuestions.length));
     setQuestions(shuffled);
     setCurrentIndex(0);
@@ -142,44 +146,50 @@ export const ConsolidationQuiz = ({ onBack, onScoreSave, userEmail, isDailyChall
   // Move to next question
   const nextQuestion = () => {
     if (currentIndex >= questions.length - 1) {
+      if (hasSubmittedScoreRef.current) return;
+      hasSubmittedScoreRef.current = true;
+
       // Quiz complete
       const finalAccuracy = Math.round((correctAnswers / questions.length) * 100);
       const isNewHighScore = score > highScore;
-      
+
       if (isNewHighScore) {
         setHighScore(score);
         // Save to localStorage as backup
         localStorage.setItem(`epm-quiz-highscore-${userEmail || 'guest'}`, score.toString());
       }
-      
+
       // Sync to server API
       if (userEmail) {
-        apiService.saveMiniGameScore({
-          email: userEmail,
-          game_type: 'epm',
-          score: score,
-          accuracy: finalAccuracy
-        }).then(result => {
-          if (result.data?.isNewHighScore) {
-            toast({
-              title: "🏆 New High Score!",
-              description: `You scored ${score} points with ${finalAccuracy}% accuracy! Synced to server.`,
-            });
-          }
-        }).catch(error => {
-          console.warn('Failed to save EPM score to server:', error);
-        });
+        apiService
+          .saveMiniGameScore({
+            email: userEmail,
+            game_type: 'epm',
+            score: score,
+            accuracy: finalAccuracy,
+          })
+          .then((result) => {
+            if (result.data?.isNewHighScore) {
+              toast({
+                title: "🏆 New High Score!",
+                description: `You scored ${score} points with ${finalAccuracy}% accuracy! Synced to server.`,
+              });
+            }
+          })
+          .catch((error) => {
+            console.warn('Failed to save EPM score to server:', error);
+          });
       } else if (isNewHighScore) {
         toast({
           title: "🏆 New High Score!",
           description: `You scored ${score} points with ${finalAccuracy}% accuracy!`,
         });
       }
-      
+
       onScoreSave(score, finalAccuracy);
       setStage('results');
     } else {
-      setCurrentIndex(prev => prev + 1);
+      setCurrentIndex((prev) => prev + 1);
       setSelectedAnswer(null);
       setShowExplanation(false);
       setTimeRemaining(TIME_PER_QUESTION);

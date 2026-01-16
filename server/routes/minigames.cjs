@@ -89,7 +89,7 @@ router.post('/', (req, res) => {
     
     // Check if entry exists
     const existing = db.prepare(`
-      SELECT id, high_score, games_played, best_accuracy
+      SELECT id, high_score, games_played, best_accuracy, last_played
       FROM mini_games
       WHERE email = ? AND game_type = ?
     `).get(email, game_type);
@@ -97,16 +97,28 @@ router.post('/', (req, res) => {
     if (existing) {
       // Update existing entry
       const newHighScore = Math.max(existing.high_score, score);
-      const newGamesPlayed = existing.games_played + 1;
       const newBestAccuracy = accuracy !== undefined 
         ? Math.max(existing.best_accuracy || 0, accuracy)
         : existing.best_accuracy;
-      
+
+      // De-dupe rapid duplicate submits (e.g. React dev strict-mode / double-click)
+      // Only increment games_played if the previous save wasn't within the last 3 seconds.
       db.prepare(`
         UPDATE mini_games
-        SET high_score = ?, games_played = ?, best_accuracy = ?, last_played = datetime('now'), user_id = COALESCE(?, user_id)
+        SET 
+          high_score = ?,
+          games_played = CASE
+            WHEN last_played IS NOT NULL AND last_played >= datetime('now', '-3 seconds') THEN games_played
+            ELSE games_played + 1
+          END,
+          best_accuracy = ?,
+          last_played = datetime('now'),
+          user_id = COALESCE(?, user_id)
         WHERE id = ?
-      `).run(newHighScore, newGamesPlayed, newBestAccuracy, userId, existing.id);
+      `).run(newHighScore, newBestAccuracy, userId, existing.id);
+
+      const updated = db.prepare('SELECT games_played FROM mini_games WHERE id = ?').get(existing.id);
+      const newGamesPlayed = updated?.games_played ?? existing.games_played + 1;
       
       res.json({ 
         message: 'Score updated',
