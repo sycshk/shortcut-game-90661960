@@ -31,7 +31,7 @@ router.get('/:email', (req, res) => {
 // POST create or update user
 router.post('/', (req, res) => {
   try {
-    const { email, display_name, organization } = req.body;
+    const { email, display_name, organization, avatar } = req.body;
     
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
@@ -46,9 +46,10 @@ router.post('/', (req, res) => {
         UPDATE users 
         SET display_name = COALESCE(?, display_name),
             organization = COALESCE(?, organization),
+            avatar = COALESCE(?, avatar),
             last_active = datetime('now')
         WHERE email = ?
-      `).run(display_name, organization, email);
+      `).run(display_name, organization, avatar, email);
       
       const updated = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
       return res.json(updated);
@@ -56,9 +57,9 @@ router.post('/', (req, res) => {
     
     // Create new user
     const result = db.prepare(`
-      INSERT INTO users (email, display_name, organization)
-      VALUES (?, ?, ?)
-    `).run(email, display_name || email.split('@')[0], organization);
+      INSERT INTO users (email, display_name, organization, avatar)
+      VALUES (?, ?, ?, ?)
+    `).run(email, display_name || email.split('@')[0], organization, avatar || 'default');
     
     const newUser = db.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(newUser);
