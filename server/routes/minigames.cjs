@@ -67,9 +67,25 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'email, game_type, and score are required' });
     }
     
-    // Get user_id if exists
-    const user = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
-    const userId = user?.id || null;
+    // Get or create user profile
+    let user = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    
+    if (!user) {
+      // Create user profile if it doesn't exist
+      const displayName = email.split('@')[0];
+      const domain = email.split('@')[1];
+      const organization = domain ? domain.split('.')[0].charAt(0).toUpperCase() + domain.split('.')[0].slice(1) : null;
+      
+      const result = db.prepare(`
+        INSERT INTO users (email, display_name, organization)
+        VALUES (?, ?, ?)
+      `).run(email, displayName, organization);
+      
+      user = { id: result.lastInsertRowid };
+      console.log('Created new user profile for:', email, 'id:', user.id);
+    }
+    
+    const userId = user.id;
     
     // Check if entry exists
     const existing = db.prepare(`

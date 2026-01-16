@@ -7,7 +7,7 @@ import { ArrowLeft, Gamepad2, Brain, Trophy, Award, TrendingUp, Target, BarChart
 import { cn } from '@/lib/utils';
 import { SnakeGame } from './SnakeGame';
 import { ConsolidationQuiz } from './ConsolidationQuiz';
-import { UnifiedLeaderboard, saveMiniGameScore, getUserMiniGameStats } from './UnifiedLeaderboard';
+import { UnifiedLeaderboard, getUserMiniGameStats } from './UnifiedLeaderboard';
 import { ACHIEVEMENTS, RARITY_COLORS } from '@/data/achievements';
 import { apiService } from '@/services/apiService';
 import { toast } from '@/hooks/use-toast';
@@ -162,14 +162,11 @@ export const GamesHub = ({ onBack, userEmail, dailyMiniGame, onDailyComplete }: 
       const previousHighScore = previousHighScores.snake || 0;
       const isNewHighScore = score > previousHighScore;
       
-      await saveMiniGameScore(userEmail, 'snake', score);
+      // Don't call saveMiniGameScore here - SnakeGame already saves to API
+      // Just update local state and handle UI feedback
       
       if (isNewHighScore) {
         setPreviousHighScores(prev => ({ ...prev, snake: score }));
-        toast({
-          title: "🎉 New High Score!",
-          description: `You scored ${score} points in Snake! That's ${score - previousHighScore} more than your previous best!`,
-        });
       }
       
       // Check if daily challenge completion (score >= 50)
@@ -216,14 +213,11 @@ export const GamesHub = ({ onBack, userEmail, dailyMiniGame, onDailyComplete }: 
       const previousHighScore = previousHighScores['epm-quiz'] || 0;
       const isNewHighScore = score > previousHighScore;
       
-      await saveMiniGameScore(userEmail, 'epm', score, accuracy);
+      // Don't call saveMiniGameScore here - ConsolidationQuiz already saves to API
+      // Just update local state and handle UI feedback
       
       if (isNewHighScore) {
         setPreviousHighScores(prev => ({ ...prev, 'epm-quiz': score }));
-        toast({
-          title: "🏆 New High Score!",
-          description: `You scored ${score} points with ${accuracy}% accuracy! That's a new personal best!`,
-        });
       }
       
       // Check if daily challenge completion (accuracy >= 60%)
