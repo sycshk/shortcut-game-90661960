@@ -10,7 +10,8 @@ import { DailyChallengeScreen } from './DailyChallengeScreen';
 import { ProfilePage } from './ProfilePage';
 import { GamesHub } from './GamesHub';
 import { leaderboardService, UserProfileData } from '@/services/leaderboardService';
-import { getDailyShortcuts, saveDailyChallengeCompletion, getDailyChallengeType } from '@/services/dailyChallengeService';
+import { getDailyShortcuts, saveDailyChallengeCompletion, getDailyChallengeType, DAILY_BADGES } from '@/services/dailyChallengeService';
+import { toast } from '@/hooks/use-toast';
 
 const USER_SESSION_KEY = 'shortcut-user-session';
 
@@ -100,13 +101,28 @@ export const ShortcutGame = () => {
     goToMiniGames();
   };
 
-  const handleDailyChallengeComplete = (name: string, email?: string) => {
+  const handleDailyChallengeComplete = async (name: string, email?: string) => {
     // Save to leaderboard
     saveToLeaderboard(name, email);
     
-    // Save daily challenge completion
+    // Save daily challenge completion and get new badges
     const accuracy = Math.round((state.correctAnswers / state.totalQuestions) * 100);
-    saveDailyChallengeCompletion(state.score, accuracy, email || userEmail || undefined);
+    const newBadges = await saveDailyChallengeCompletion(state.score, accuracy, email || userEmail || undefined);
+    
+    // Show toast for each new badge earned
+    if (newBadges && newBadges.length > 0) {
+      newBadges.forEach((badgeId, index) => {
+        const badge = DAILY_BADGES[badgeId as keyof typeof DAILY_BADGES];
+        if (badge) {
+          setTimeout(() => {
+            toast({
+              title: `${badge.icon} Badge Unlocked!`,
+              description: `You earned "${badge.name}" - ${badge.description}`,
+            });
+          }, index * 800); // Stagger notifications
+        }
+      });
+    }
     
     setIsDailyMode(false);
   };

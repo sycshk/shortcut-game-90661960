@@ -150,7 +150,7 @@ export const isDailyChallengeCompleted = (): boolean => {
 };
 
 // Save daily challenge completion
-export const saveDailyChallengeCompletion = async (score: number, accuracy: number, email?: string): Promise<void> => {
+export const saveDailyChallengeCompletion = async (score: number, accuracy: number, email?: string): Promise<string[]> => {
   const today = getTodayString();
   const shortcuts = getDailyShortcuts().map(s => s.id);
   
@@ -178,8 +178,9 @@ export const saveDailyChallengeCompletion = async (score: number, accuracy: numb
     }
   }
   
-  // Update streak locally
-  updateDailyStreakLocal(accuracy >= 80);
+  // Update streak locally and get new badges
+  const newBadges = updateDailyStreakLocal(accuracy >= 80);
+  return newBadges;
 };
 
 // Get streak data
@@ -232,15 +233,16 @@ export const getDailyStreakDataSync = (): DailyStreakData => {
 };
 
 // Update streak after completing daily challenge (local only)
-const updateDailyStreakLocal = (qualifies: boolean): void => {
+const updateDailyStreakLocal = (qualifies: boolean): string[] => {
   const streak = getDailyStreakDataSync();
   const today = getTodayString();
+  const newBadges: string[] = [];
   
   if (!qualifies) {
     // Didn't qualify, streak breaks
     streak.currentStreak = 0;
     localStorage.setItem(DAILY_STREAK_KEY, JSON.stringify(streak));
-    return;
+    return newBadges;
   }
   
   // Check if this continues the streak
@@ -260,43 +262,46 @@ const updateDailyStreakLocal = (qualifies: boolean): void => {
   streak.totalDaysCompleted += 1;
   streak.longestStreak = Math.max(streak.longestStreak, streak.currentStreak);
   
-  // Award badges
-  const newBadges: string[] = [];
+  // Award badges and track newly earned ones
+  const previousBadges = [...streak.badges];
   
   if (streak.totalDaysCompleted === 1 && !streak.badges.includes('first_daily')) {
-    newBadges.push('first_daily');
+    streak.badges.push('first_daily');
   }
   if (streak.currentStreak >= 3 && !streak.badges.includes('streak_3')) {
-    newBadges.push('streak_3');
+    streak.badges.push('streak_3');
   }
   if (streak.currentStreak >= 7 && !streak.badges.includes('streak_7')) {
-    newBadges.push('streak_7');
+    streak.badges.push('streak_7');
   }
   if (streak.currentStreak >= 14 && !streak.badges.includes('streak_14')) {
-    newBadges.push('streak_14');
+    streak.badges.push('streak_14');
   }
   if (streak.currentStreak >= 30 && !streak.badges.includes('streak_30')) {
-    newBadges.push('streak_30');
+    streak.badges.push('streak_30');
   }
   if (streak.currentStreak >= 60 && !streak.badges.includes('streak_60')) {
-    newBadges.push('streak_60');
+    streak.badges.push('streak_60');
   }
   if (streak.currentStreak >= 100 && !streak.badges.includes('streak_100')) {
-    newBadges.push('streak_100');
+    streak.badges.push('streak_100');
   }
   if (streak.totalDaysCompleted >= 10 && !streak.badges.includes('dedicated_10')) {
-    newBadges.push('dedicated_10');
+    streak.badges.push('dedicated_10');
   }
   if (streak.totalDaysCompleted >= 50 && !streak.badges.includes('dedicated_50')) {
-    newBadges.push('dedicated_50');
+    streak.badges.push('dedicated_50');
   }
   if (streak.totalDaysCompleted >= 100 && !streak.badges.includes('dedicated_100')) {
-    newBadges.push('dedicated_100');
+    streak.badges.push('dedicated_100');
   }
   
-  streak.badges = [...streak.badges, ...newBadges];
+  // Calculate newly earned badges
+  const earnedNewBadges = streak.badges.filter(b => !previousBadges.includes(b));
   
   localStorage.setItem(DAILY_STREAK_KEY, JSON.stringify(streak));
+  
+  return earnedNewBadges;
 };
 
 // Badge definitions
