@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Trophy, Medal, Gamepad2, Brain, Keyboard, Crown, Flame } from 'lucide-react';
+import { ArrowLeft, Trophy, Medal, Brain, Keyboard, Crown, Flame, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PlayerAvatar } from './PlayerAvatar';
 import { apiService } from '@/services/apiService';
@@ -23,6 +23,30 @@ interface LeaderboardEntry {
 }
 
 type GameType = 'all' | 'shortcuts' | 'snake' | 'epm';
+type TimeFrame = 'week' | 'lastweek' | 'alltime';
+
+// Helper to get week boundaries
+const getWeekBoundaries = (weeksAgo: number = 0): { start: Date; end: Date } => {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - diffToMonday - (weeksAgo * 7));
+  monday.setHours(0, 0, 0, 0);
+  
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  
+  return { start: monday, end: sunday };
+};
+
+// Format week range for display
+const formatWeekRange = (start: Date, end: Date): string => {
+  const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+  return `${start.toLocaleDateString('en-US', options)} - ${end.toLocaleDateString('en-US', options)}`;
+};
 
 // Save mini game score to server (with localStorage fallback)
 export const saveMiniGameScore = async (
@@ -111,141 +135,127 @@ export const getUserMiniGameStats = async (email: string): Promise<{
 
 export const UnifiedLeaderboard = ({ onBack, userEmail }: UnifiedLeaderboardProps) => {
   const [activeTab, setActiveTab] = useState<GameType>('all');
+  const [timeFrame, setTimeFrame] = useState<TimeFrame>('week');
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userRank, setUserRank] = useState<number | null>(null);
+  const [weekLabel, setWeekLabel] = useState<string>('');
 
   useEffect(() => {
-    loadLeaderboard(activeTab);
-  }, [activeTab]);
+    loadLeaderboard(activeTab, timeFrame);
+  }, [activeTab, timeFrame]);
 
-  const loadLeaderboard = async (gameType: GameType) => {
+  const loadLeaderboard = async (gameType: GameType, tf: TimeFrame) => {
     setIsLoading(true);
     
+    // Calculate date boundaries based on timeframe
+    let startDate: Date | null = null;
+    let endDate: Date | null = null;
+    
+    if (tf === 'week') {
+      const boundaries = getWeekBoundaries(0);
+      startDate = boundaries.start;
+      endDate = boundaries.end;
+      setWeekLabel(formatWeekRange(startDate, endDate));
+    } else if (tf === 'lastweek') {
+      const boundaries = getWeekBoundaries(1);
+      startDate = boundaries.start;
+      endDate = boundaries.end;
+      setWeekLabel(formatWeekRange(startDate, endDate));
+    } else {
+      setWeekLabel('All Time');
+    }
+    
     try {
-      // Try to get mini game leaderboard from server
-      let miniGameData: Map<string, { snake: number; epm: number; snakeGames: number; epmGames: number; epmAccuracy: number }> = new Map();
-      
-      if (gameType === 'snake') {
-        const result = await apiService.getMiniGameLeaderboard('snake');
-        if (result.data?.entries) {
-          result.data.entries.forEach(entry => {
-            miniGameData.set(entry.email, {
-              snake: entry.highScore,
-              epm: 0,
-              snakeGames: entry.gamesPlayed,
-              epmGames: 0,
-              epmAccuracy: 0
-            });
-          });
-        }
-      } else if (gameType === 'epm') {
-        const result = await apiService.getMiniGameLeaderboard('epm');
-        if (result.data?.entries) {
-          result.data.entries.forEach(entry => {
-            miniGameData.set(entry.email, {
-              snake: 0,
-              epm: entry.highScore,
-              snakeGames: 0,
-              epmGames: entry.gamesPlayed,
-              epmAccuracy: entry.bestAccuracy || 0
-            });
-          });
-        }
-      } else {
-        // For 'all', get unified leaderboard
-        const result = await apiService.getUnifiedMiniGameLeaderboard();
-        if (result.data?.entries) {
-          result.data.entries.forEach(entry => {
-            miniGameData.set(entry.email, {
-              snake: entry.snakeScore,
-              epm: entry.epmScore,
-              snakeGames: entry.totalGames,
-              epmGames: 0,
-              epmAccuracy: entry.epmAccuracy || 0
-            });
-          });
-        }
-      }
-      
       const allUsers = new Map<string, { 
         name: string; 
         email: string;
-        shortcutScore: number;
-        snakeScore: number;
-        epmScore: number;
+        totalScore: number;
         gamesPlayed: number;
         bestStreak: number;
         accuracy: number;
       }>();
 
-      // Get shortcut game data from API or localStorage
-      const shortcutResult = await apiService.getAggregatedLeaderboard();
-      if (shortcutResult.data?.entries) {
-        shortcutResult.data.entries.forEach((entry: any) => {
-          const existing = allUsers.get(entry.name) || {
-            name: entry.name,
-            email: entry.email || entry.name,
-            shortcutScore: 0,
-            snakeScore: 0,
-            epmScore: 0,
+      // Get all leaderboard entries (each represents a game session with its score)
+      const leaderboardResult = await apiService.getLeaderboard({ limit: 1000 });
+      if (leaderboardResult.data?.entries) {
+        leaderboardResult.data.entries.forEach((entry: any) => {
+          const entryDate = new Date(entry.created_at || entry.date);
+          
+          // Filter by date if timeframe is set
+          if (startDate && endDate) {
+            if (entryDate < startDate || entryDate > endDate) return;
+          }
+          
+          const email = entry.email || '';
+          const name = entry.name || email.split('@')[0] || 'Anonymous';
+          
+          if (!name) return;
+          
+          const existing = allUsers.get(name) || {
+            name,
+            email,
+            totalScore: 0,
             gamesPlayed: 0,
             bestStreak: 0,
             accuracy: 0
           };
-          existing.shortcutScore = entry.best_score || entry.bestScore || 0;
-          existing.gamesPlayed = entry.games_played || entry.gamesPlayed || 0;
-          existing.bestStreak = entry.best_streak || entry.bestStreak || 0;
-          existing.accuracy = entry.best_accuracy || entry.bestAccuracy || 0;
-          allUsers.set(entry.name, existing);
+          
+          // Filter by game type for shortcuts
+          if (gameType === 'all' || gameType === 'shortcuts') {
+            existing.totalScore += entry.score || 0;
+            existing.gamesPlayed += 1;
+            existing.bestStreak = Math.max(existing.bestStreak, entry.streak || 0);
+            existing.accuracy = Math.max(existing.accuracy, entry.accuracy || 0);
+          }
+          
+          allUsers.set(name, existing);
         });
       }
 
-      // Add mini game scores from server
-      miniGameData.forEach((scores, email) => {
-        const name = email.split('@')[0];
-        const existing = allUsers.get(name) || {
-          name,
-          email,
-          shortcutScore: 0,
-          snakeScore: 0,
-          epmScore: 0,
-          gamesPlayed: 0,
-          bestStreak: 0,
-          accuracy: 0
-        };
-        existing.snakeScore = Math.max(existing.snakeScore, scores.snake || 0);
-        existing.epmScore = Math.max(existing.epmScore, scores.epm || 0);
-        existing.gamesPlayed += (scores.snakeGames || 0) + (scores.epmGames || 0);
-        allUsers.set(name, existing);
-      });
+      // Get mini game scores
+      if (gameType === 'all' || gameType === 'snake' || gameType === 'epm') {
+        const miniGameResult = await apiService.getUnifiedMiniGameLeaderboard();
+        if (miniGameResult.data?.entries) {
+          miniGameResult.data.entries.forEach((entry: any) => {
+            const name = entry.name || entry.email?.split('@')[0] || '';
+            if (!name) return;
+            
+            const existing = allUsers.get(name) || {
+              name,
+              email: entry.email || name,
+              totalScore: 0,
+              gamesPlayed: 0,
+              bestStreak: 0,
+              accuracy: 0
+            };
+            
+            // Add mini game scores based on filter
+            // Note: Mini game scores are cumulative totals (sum of all games played)
+            if (gameType === 'all') {
+              existing.totalScore += (entry.snakeScore || 0) + (entry.epmScore || 0);
+            } else if (gameType === 'snake') {
+              existing.totalScore += entry.snakeScore || 0;
+            } else if (gameType === 'epm') {
+              existing.totalScore += entry.epmScore || 0;
+            }
+            existing.gamesPlayed += entry.totalGames || 0;
+            
+            allUsers.set(name, existing);
+          });
+        }
+      }
 
-      // Convert to entries based on game type
+      // Convert to entries
       let leaderboardEntries: LeaderboardEntry[] = [];
       
       allUsers.forEach((user) => {
-        let score = 0;
-        switch (gameType) {
-          case 'all':
-            score = user.shortcutScore + user.snakeScore + user.epmScore;
-            break;
-          case 'shortcuts':
-            score = user.shortcutScore;
-            break;
-          case 'snake':
-            score = user.snakeScore;
-            break;
-          case 'epm':
-            score = user.epmScore;
-            break;
-        }
-        
-        if (score > 0) {
+        if (user.totalScore > 0) {
           leaderboardEntries.push({
             rank: 0,
             name: user.name,
             email: user.email,
-            score,
+            score: user.totalScore,
             gamesPlayed: user.gamesPlayed,
             bestStreak: user.bestStreak,
             accuracy: user.accuracy
@@ -304,8 +314,11 @@ export const UnifiedLeaderboard = ({ onBack, userEmail }: UnifiedLeaderboardProp
                 <Trophy className="h-6 w-6 text-white" />
               </div>
               <div>
-                <CardTitle className="text-2xl">Unified Leaderboard</CardTitle>
-                <CardDescription>Rankings across all games</CardDescription>
+                <CardTitle className="text-2xl">Weekly Leaderboard</CardTitle>
+                <CardDescription className="flex items-center gap-2">
+                  <Calendar className="h-3 w-3" />
+                  {weekLabel} • Total points from all games
+                </CardDescription>
               </div>
             </div>
             {userRank && (
@@ -317,6 +330,33 @@ export const UnifiedLeaderboard = ({ onBack, userEmail }: UnifiedLeaderboardProp
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Timeframe Selector */}
+          <div className="flex gap-2 justify-center">
+            <Button
+              variant={timeFrame === 'week' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setTimeFrame('week')}
+              className="flex items-center gap-1"
+            >
+              <Calendar className="h-3 w-3" />
+              This Week
+            </Button>
+            <Button
+              variant={timeFrame === 'lastweek' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setTimeFrame('lastweek')}
+            >
+              Last Week
+            </Button>
+            <Button
+              variant={timeFrame === 'alltime' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setTimeFrame('alltime')}
+            >
+              All Time
+            </Button>
+          </div>
+
           {/* Game Type Tabs */}
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as GameType)}>
             <TabsList className="grid grid-cols-4 w-full">
