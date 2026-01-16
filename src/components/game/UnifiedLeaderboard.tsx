@@ -351,7 +351,7 @@ export const UnifiedLeaderboard = ({ onBack, userEmail }: UnifiedLeaderboardProp
                   <p className="text-sm">Be the first to play and get on the leaderboard.</p>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                <div className="space-y-2">
                   {entries.map((entry) => {
                     const isCurrentUser = userEmail && (entry.email === userEmail || entry.name === userEmail.split('@')[0]);
                     
