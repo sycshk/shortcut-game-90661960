@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArrowLeft, Play, Pause, Trophy, RefreshCw, ArrowUp, ArrowDown, ArrowLeftIcon, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { apiService } from '@/services/apiService';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface SnakeGameProps {
   onBack: () => void;
@@ -29,6 +30,7 @@ export const SnakeGame = ({ onBack, onScoreSave, userEmail }: SnakeGameProps) =>
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
   const [speed, setSpeed] = useState(INITIAL_SPEED);
+  const [isLoadingScore, setIsLoadingScore] = useState(true);
   
   const directionRef = useRef(direction);
   const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
@@ -36,11 +38,13 @@ export const SnakeGame = ({ onBack, onScoreSave, userEmail }: SnakeGameProps) =>
   // Load high score from API or localStorage
   useEffect(() => {
     const loadHighScore = async () => {
+      setIsLoadingScore(true);
       if (userEmail) {
         try {
           const result = await apiService.getMiniGameScores(userEmail);
           if (result.data?.scores?.snake) {
             setHighScore(result.data.scores.snake.highScore);
+            setIsLoadingScore(false);
             return;
           }
         } catch (error) {
@@ -50,6 +54,7 @@ export const SnakeGame = ({ onBack, onScoreSave, userEmail }: SnakeGameProps) =>
       // Fallback to localStorage
       const saved = localStorage.getItem(`snake-highscore-${userEmail || 'guest'}`);
       if (saved) setHighScore(parseInt(saved, 10));
+      setIsLoadingScore(false);
     };
     loadHighScore();
   }, [userEmail]);
@@ -233,10 +238,14 @@ export const SnakeGame = ({ onBack, onScoreSave, userEmail }: SnakeGameProps) =>
             </div>
             <div className="text-right">
               <div className="text-sm text-muted-foreground">High Score</div>
-              <div className="font-bold text-primary flex items-center gap-1">
-                <Trophy className="h-4 w-4 text-yellow-500" />
-                {highScore}
-              </div>
+              {isLoadingScore ? (
+                <Skeleton className="h-6 w-12 ml-auto" />
+              ) : (
+                <div className="font-bold text-primary flex items-center gap-1 justify-end">
+                  <Trophy className="h-4 w-4 text-yellow-500" />
+                  {highScore}
+                </div>
+              )}
             </div>
           </div>
         </CardHeader>
