@@ -89,9 +89,6 @@ export const useGameState = (userEmail?: string) => {
     setState(prev => ({ ...prev, status: 'miniGames' }));
   }, []);
 
-  const goToLearning = useCallback(() => {
-    setState(prev => ({ ...prev, status: 'learning' }));
-  }, []);
 
   const startDailyChallenge = useCallback((dailyShortcuts: ShortcutChallenge[]) => {
     const firstIsOSReserved = isOSReservedShortcut(dailyShortcuts[0].keys);
@@ -371,7 +368,6 @@ export const useGameState = (userEmail?: string) => {
     goToDailyChallenge,
     goToProfile,
     goToMiniGames,
-    goToLearning,
     startDailyChallenge,
     setPlayerName,
     handlePause,

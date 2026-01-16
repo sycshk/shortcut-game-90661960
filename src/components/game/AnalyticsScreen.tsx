@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { leaderboardService, AnswerRecord } from '@/services/leaderboardService';
-import { Category, CATEGORY_CONFIG } from '@/types/game';
-import { ArrowLeft, BarChart3, Target, TrendingUp, AlertTriangle, Trophy, Monitor, Table, Presentation, Keyboard, History, CheckCircle2, XCircle, Clock, Filter } from 'lucide-react';
+import { Category, CATEGORY_CONFIG, DifficultyLevel, LEVEL_CONFIG } from '@/types/game';
+import { shortcutChallenges } from '@/data/shortcuts';
+import { ArrowLeft, BarChart3, Target, TrendingUp, AlertTriangle, Trophy, Monitor, Table, Presentation, Keyboard, History, CheckCircle2, XCircle, Clock, Filter, Search, FileText, Table2, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AnalyticsScreenProps {
@@ -13,15 +16,25 @@ interface AnalyticsScreenProps {
   userEmail?: string;
 }
 
-const CategoryIcon = ({ category }: { category: Category }) => {
-  const icons = {
+const CategoryIcon = ({ category, className = "h-5 w-5" }: { category: Category; className?: string }) => {
+  const icons: Record<Category, any> = {
     windows: Monitor,
     excel: Table,
     powerpoint: Presentation,
     general: Keyboard,
+    'google-sheets': Table2,
+    'google-docs': FileText,
+    'google-slides': Presentation,
   };
-  const Icon = icons[category];
-  return <Icon className="h-5 w-5" />;
+  const Icon = icons[category] || Keyboard;
+  return <Icon className={className} />;
+};
+
+const LEVEL_COLORS: Record<DifficultyLevel, string> = {
+  essentials: 'bg-green-500/10 text-green-600 border-green-500/30',
+  implementation: 'bg-blue-500/10 text-blue-600 border-blue-500/30',
+  architect: 'bg-purple-500/10 text-purple-600 border-purple-500/30',
+  guru: 'bg-orange-500/10 text-orange-600 border-orange-500/30',
 };
 
 export const AnalyticsScreen = ({ onBack, userEmail }: AnalyticsScreenProps) => {
@@ -32,6 +45,11 @@ export const AnalyticsScreen = ({ onBack, userEmail }: AnalyticsScreenProps) => 
   const [answerHistory, setAnswerHistory] = useState<AnswerRecord[]>([]);
   const [historyFilter, setHistoryFilter] = useState<'all' | 'wrong' | 'correct'>('all');
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Shortcuts Library state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
+  const [selectedLevel, setSelectedLevel] = useState<DifficultyLevel | 'all'>('all');
 
   useEffect(() => {
     const loadData = async () => {
@@ -57,7 +75,41 @@ export const AnalyticsScreen = ({ onBack, userEmail }: AnalyticsScreenProps) => 
     loadData();
   }, [userEmail]);
 
-  const categories: Category[] = ['windows', 'excel', 'powerpoint', 'general'];
+  const categories: Category[] = ['windows', 'excel', 'powerpoint', 'general', 'google-sheets', 'google-docs', 'google-slides'];
+  
+  // Get all unique categories from shortcuts for library
+  const shortcutCategories = useMemo(() => {
+    const cats = new Set(shortcutChallenges.map(s => s.category));
+    return Array.from(cats) as Category[];
+  }, []);
+
+  // Filter shortcuts based on search, category, and level
+  const filteredShortcuts = useMemo(() => {
+    return shortcutChallenges.filter(shortcut => {
+      const matchesSearch = searchQuery === '' || 
+        shortcut.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        shortcut.keys.join(' ').toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesCategory = selectedCategory === 'all' || shortcut.category === selectedCategory;
+      const matchesLevel = selectedLevel === 'all' || shortcut.level === selectedLevel;
+      
+      return matchesSearch && matchesCategory && matchesLevel;
+    });
+  }, [searchQuery, selectedCategory, selectedLevel]);
+
+  // Group shortcuts by category
+  const groupedShortcuts = useMemo(() => {
+    const groups: Record<string, typeof shortcutChallenges> = {};
+    filteredShortcuts.forEach(shortcut => {
+      if (!groups[shortcut.category]) {
+        groups[shortcut.category] = [];
+      }
+      groups[shortcut.category].push(shortcut);
+    });
+    return groups;
+  }, [filteredShortcuts]);
+
+  const totalShortcuts = shortcutChallenges.length;
 
   // Find weakest category
   const weakestCategory = categoryAnalysis 
@@ -146,10 +198,14 @@ export const AnalyticsScreen = ({ onBack, userEmail }: AnalyticsScreenProps) => 
 
         {/* Tabs for different views */}
         <Tabs defaultValue="performance" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="performance">Performance</TabsTrigger>
-            <TabsTrigger value="history">Answer History</TabsTrigger>
-            <TabsTrigger value="practice">Practice Guide</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
+            <TabsTrigger value="practice">Practice</TabsTrigger>
+            <TabsTrigger value="library" className="gap-1">
+              <BookOpen className="h-3 w-3" />
+              Library
+            </TabsTrigger>
           </TabsList>
 
           {/* Performance Tab */}
@@ -385,6 +441,150 @@ export const AnalyticsScreen = ({ onBack, userEmail }: AnalyticsScreenProps) => 
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* Shortcuts Library Tab */}
+          <TabsContent value="library" className="space-y-4">
+            {/* Search and Filters */}
+            <Card className="glass-card">
+              <CardContent className="pt-4 space-y-3">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search shortcuts..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 h-9"
+                  />
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-wrap gap-2">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <Filter className="h-3 w-3 text-muted-foreground" />
+                    <Button
+                      variant={selectedCategory === 'all' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setSelectedCategory('all')}
+                      className="h-6 text-xs px-2"
+                    >
+                      All
+                    </Button>
+                    {shortcutCategories.map(category => (
+                      <Button
+                        key={category}
+                        variant={selectedCategory === category ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setSelectedCategory(category)}
+                        className="h-6 text-xs px-2 gap-1"
+                      >
+                        <CategoryIcon category={category} className="h-3 w-3" />
+                        {CATEGORY_CONFIG[category]?.label || category}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Level Filter */}
+                <div className="flex items-center gap-1 flex-wrap">
+                  <span className="text-xs text-muted-foreground">Level:</span>
+                  <Button
+                    variant={selectedLevel === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedLevel('all')}
+                    className="h-6 text-xs px-2"
+                  >
+                    All
+                  </Button>
+                  {(['essentials', 'implementation', 'architect', 'guru'] as DifficultyLevel[]).map(level => (
+                    <Button
+                      key={level}
+                      variant={selectedLevel === level ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setSelectedLevel(level)}
+                      className="h-6 text-xs px-2"
+                    >
+                      {LEVEL_CONFIG[level].label}
+                    </Button>
+                  ))}
+                </div>
+
+                <div className="text-xs text-muted-foreground">
+                  Showing {filteredShortcuts.length} of {totalShortcuts} shortcuts
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Shortcuts List */}
+            <div className="space-y-4 max-h-[500px] overflow-y-auto">
+              {Object.entries(groupedShortcuts).map(([category, shortcuts]) => (
+                <Card key={category} className="glass-card">
+                  <CardHeader className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      <CategoryIcon category={category as Category} className="h-4 w-4" />
+                      <CardTitle className="text-sm">
+                        {CATEGORY_CONFIG[category as Category]?.label || category}
+                      </CardTitle>
+                      <Badge variant="secondary" className="ml-auto text-xs">
+                        {shortcuts.length}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0 px-4 pb-3">
+                    <div className="grid gap-1.5">
+                      {shortcuts.map(shortcut => (
+                        <div
+                          key={shortcut.id}
+                          className="flex items-center justify-between p-2 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium">{shortcut.description}</span>
+                              <Badge 
+                                variant="outline" 
+                                className={cn('text-[10px] h-4 px-1', LEVEL_COLORS[shortcut.level])}
+                              >
+                                {LEVEL_CONFIG[shortcut.level].label}
+                              </Badge>
+                            </div>
+                            {shortcut.hint && (
+                              <p className="text-[10px] text-muted-foreground mt-0.5">
+                                💡 {shortcut.hint}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex gap-0.5 ml-2">
+                            {shortcut.keys.map((key, index) => (
+                              <span key={index} className="flex items-center">
+                                <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted rounded border shadow-sm">
+                                  {key}
+                                </kbd>
+                                {index < shortcut.keys.length - 1 && (
+                                  <span className="mx-0.5 text-muted-foreground text-xs">+</span>
+                                )}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {filteredShortcuts.length === 0 && (
+                <Card className="glass-card">
+                  <CardContent className="py-8 text-center">
+                    <Keyboard className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                    <h3 className="font-medium text-sm">No shortcuts found</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Try adjusting your search or filters
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </div>
