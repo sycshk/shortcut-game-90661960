@@ -167,7 +167,7 @@ export const HallOfFame = () => {
         </div>
       </CardHeader>
       <CardContent className="relative">
-        <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1 scrollbar-thin">
+        <div className="space-y-2">
           {legends.map((legend, index) => {
             const badges = getBadges(legend);
             const isTop = index === 0;
