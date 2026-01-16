@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Trophy, Award, User, Gamepad2, Target, Flame, Calendar, Crown, Check } from 'lucide-react';
+import { ArrowLeft, Trophy, Award, User, Gamepad2, Target, Flame, Calendar, Crown, Check, Star, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { leaderboardService } from '@/services/leaderboardService';
 import { apiService } from '@/services/apiService';
-import { getDailyStreakData } from '@/services/dailyChallengeService';
+import { getDailyStreakData, DAILY_BADGES, DailyStreakData } from '@/services/dailyChallengeService';
 import { AchievementBadge } from './AchievementBadge';
 import { ACHIEVEMENTS, AVATARS, RARITY_COLORS, Avatar } from '@/data/achievements';
 import { getUserMiniGameStats } from './UnifiedLeaderboard';
@@ -44,6 +44,8 @@ export const ProfilePage = ({ onBack, userEmail, displayName, onAvatarChange }: 
     epmHighScore: 0,
     epmBestAccuracy: 0
   });
+  const [dailyBadges, setDailyBadges] = useState<string[]>([]);
+  const [dailyStreakData, setDailyStreakData] = useState<DailyStreakData | null>(null);
   const [selectedAvatar, setSelectedAvatar] = useState<string>('default_smile');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -52,7 +54,7 @@ export const ProfilePage = ({ onBack, userEmail, displayName, onAvatarChange }: 
       try {
         // Get sessions data
         const sessions = await leaderboardService.getSessions(userEmail);
-        const history = await leaderboardService.getAnswerHistory(userEmail);
+        await leaderboardService.getAnswerHistory(userEmail); // For potential future use
         
         const gamesPlayed = sessions.length;
         const totalScore = sessions.reduce((sum, s) => sum + s.score, 0);
@@ -66,6 +68,8 @@ export const ProfilePage = ({ onBack, userEmail, displayName, onAvatarChange }: 
         // Get daily streak from API
         const streakData = await getDailyStreakData(userEmail);
         const dailyStreak = streakData.currentStreak;
+        setDailyStreakData(streakData);
+        setDailyBadges(streakData.badges || []);
         
         // Get mini game stats
         const miniGameStats = await getUserMiniGameStats(userEmail);
@@ -306,10 +310,14 @@ export const ProfilePage = ({ onBack, userEmail, displayName, onAvatarChange }: 
 
         {/* Tabs */}
         <Tabs defaultValue="achievements" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="achievements" className="flex items-center gap-2">
               <Award className="h-4 w-4" />
               Achievements
+            </TabsTrigger>
+            <TabsTrigger value="daily-badges" className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Daily Badges
             </TabsTrigger>
             <TabsTrigger value="avatars" className="flex items-center gap-2">
               <User className="h-4 w-4" />
@@ -361,6 +369,85 @@ export const ProfilePage = ({ onBack, userEmail, displayName, onAvatarChange }: 
                       progress={getAchievementProgress(achievement)}
                     />
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Daily Badges Tab */}
+          <TabsContent value="daily-badges" className="space-y-4 mt-4">
+            {/* Daily Stats */}
+            <Card className="glass-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Flame className="h-5 w-5 text-orange-500" />
+                  Daily Challenge Stats
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="p-3 rounded-lg bg-muted/50">
+                    <div className="text-2xl font-bold text-primary">{dailyStreakData?.currentStreak || 0}</div>
+                    <div className="text-xs text-muted-foreground">Current Streak</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/50">
+                    <div className="text-2xl font-bold text-secondary">{dailyStreakData?.longestStreak || 0}</div>
+                    <div className="text-xs text-muted-foreground">Best Streak</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/50">
+                    <div className="text-2xl font-bold">{dailyStreakData?.totalDaysCompleted || 0}</div>
+                    <div className="text-xs text-muted-foreground">Days Completed</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Earned Daily Badges */}
+            <Card className="glass-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Star className="h-5 w-5 text-yellow-500" />
+                  Earned Badges ({dailyBadges.length}/{Object.keys(DAILY_BADGES).length})
+                </CardTitle>
+                <CardDescription>
+                  Complete daily challenges consistently to earn badges
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {Object.entries(DAILY_BADGES).map(([id, badge]) => {
+                    const isEarned = dailyBadges.includes(id);
+                    return (
+                      <div 
+                        key={id}
+                        className={cn(
+                          'p-4 rounded-xl border-2 text-center transition-all',
+                          isEarned 
+                            ? 'bg-gradient-to-br from-primary/10 to-secondary/10 border-primary/30 shadow-md' 
+                            : 'bg-muted/20 border-muted/30 opacity-60'
+                        )}
+                      >
+                        <div className="text-3xl mb-2">
+                          {isEarned ? badge.icon : <Lock className="h-8 w-8 mx-auto text-muted-foreground" />}
+                        </div>
+                        <div className={cn(
+                          'font-semibold text-sm',
+                          isEarned ? 'text-foreground' : 'text-muted-foreground'
+                        )}>
+                          {badge.name}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {badge.description}
+                        </div>
+                        {isEarned && (
+                          <div className="mt-2 inline-flex items-center gap-1 text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                            <Check className="h-3 w-3" />
+                            Earned
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>

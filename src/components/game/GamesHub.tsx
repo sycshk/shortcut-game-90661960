@@ -174,8 +174,23 @@ export const GamesHub = ({ onBack, userEmail, dailyMiniGame, onDailyComplete }: 
       
       // Check if daily challenge completion (score >= 50)
       if (isDailyMode && score >= 50) {
-        import('@/services/dailyChallengeService').then(({ saveDailyChallengeCompletion }) => {
-          saveDailyChallengeCompletion(score, 100, userEmail);
+        import('@/services/dailyChallengeService').then(async ({ saveDailyChallengeCompletion, DAILY_BADGES }) => {
+          const newBadges = await saveDailyChallengeCompletion(score, 100, userEmail);
+          
+          // Show toast for newly earned badges
+          if (newBadges && newBadges.length > 0) {
+            newBadges.forEach((badgeId, index) => {
+              const badge = DAILY_BADGES[badgeId as keyof typeof DAILY_BADGES];
+              if (badge) {
+                setTimeout(() => {
+                  toast({
+                    title: `${badge.icon} Badge Unlocked!`,
+                    description: `You earned "${badge.name}" - ${badge.description}`,
+                  });
+                }, (index + 1) * 800);
+              }
+            });
+          }
         });
         toast({
           title: "🌟 Daily Challenge Complete!",
@@ -213,8 +228,23 @@ export const GamesHub = ({ onBack, userEmail, dailyMiniGame, onDailyComplete }: 
       
       // Check if daily challenge completion (accuracy >= 60%)
       if (isDailyMode && accuracy >= 60) {
-        import('@/services/dailyChallengeService').then(({ saveDailyChallengeCompletion }) => {
-          saveDailyChallengeCompletion(score, accuracy, userEmail);
+        import('@/services/dailyChallengeService').then(async ({ saveDailyChallengeCompletion, DAILY_BADGES }) => {
+          const newBadges = await saveDailyChallengeCompletion(score, accuracy, userEmail);
+          
+          // Show toast for newly earned badges
+          if (newBadges && newBadges.length > 0) {
+            newBadges.forEach((badgeId, index) => {
+              const badge = DAILY_BADGES[badgeId as keyof typeof DAILY_BADGES];
+              if (badge) {
+                setTimeout(() => {
+                  toast({
+                    title: `${badge.icon} Badge Unlocked!`,
+                    description: `You earned "${badge.name}" - ${badge.description}`,
+                  });
+                }, (index + 1) * 800);
+              }
+            });
+          }
         });
         toast({
           title: "🌟 Daily Challenge Complete!",
