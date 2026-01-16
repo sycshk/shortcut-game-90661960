@@ -8,20 +8,24 @@ import {
   getDailyStreakData,
   getDailyStreakDataSync,
   getTimeUntilNextChallenge,
+  getDailyChallengeInfo,
+  getDailyChallengeType,
   DAILY_BADGES,
   DailyChallengeData,
-  DailyStreakData
+  DailyStreakData,
+  DailyChallengeType
 } from '@/services/dailyChallengeService';
-import { ArrowLeft, Calendar, Trophy, Flame, Clock, Star, CheckCircle2, Lock, Gift } from 'lucide-react';
+import { ArrowLeft, Calendar, Trophy, Flame, Clock, Star, CheckCircle2, Lock, Gift, Gamepad2, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DailyChallengeScreenProps {
   onBack: () => void;
   onStartChallenge: () => void;
+  onStartMiniGame?: (game: 'snake' | 'epm-quiz') => void;
   userEmail?: string;
 }
 
-export const DailyChallengeScreen = ({ onBack, onStartChallenge, userEmail }: DailyChallengeScreenProps) => {
+export const DailyChallengeScreen = ({ onBack, onStartChallenge, onStartMiniGame, userEmail }: DailyChallengeScreenProps) => {
   const [isCompleted, setIsCompleted] = useState(false);
   const [challengeData, setChallengeData] = useState<DailyChallengeData | null>(null);
   const [streakData, setStreakData] = useState<DailyStreakData>(getDailyStreakDataSync());
@@ -29,6 +33,8 @@ export const DailyChallengeScreen = ({ onBack, onStartChallenge, userEmail }: Da
   const [isLoading, setIsLoading] = useState(true);
   
   const shortcuts = getDailyShortcuts();
+  const challengeInfo = getDailyChallengeInfo();
+  const challengeType = getDailyChallengeType();
   
   // Load data from API when userEmail is available
   useEffect(() => {
@@ -171,29 +177,68 @@ export const DailyChallengeScreen = ({ onBack, onStartChallenge, userEmail }: Da
               // Not completed state
               <div className="space-y-6">
                 <div className="text-center">
-                  <h2 className="text-xl font-bold mb-2">Today's Challenge Awaits!</h2>
+                  <div className="text-4xl mb-3">{challengeInfo.icon}</div>
+                  <h2 className="text-xl font-bold mb-2">{challengeInfo.title}</h2>
                   <p className="text-muted-foreground">
-                    Complete 10 unique shortcuts selected just for today
+                    {challengeInfo.description}
                   </p>
                 </div>
                 
-                {/* Challenge Preview */}
+                {/* Challenge Preview - varies by type */}
                 <div className="bg-muted/30 rounded-lg p-4">
                   <h3 className="font-medium mb-3 flex items-center gap-2">
                     <Gift className="h-4 w-4 text-secondary" />
-                    Today's Shortcuts Preview
+                    {challengeType === 'shortcuts' ? "Today's Shortcuts Preview" : 
+                     challengeType === 'snake' ? "Snake Challenge Info" : "EPM Quiz Info"}
                   </h3>
-                  <div className="space-y-2">
-                    {shortcuts.slice(0, 3).map((shortcut, index) => (
-                      <div key={index} className="flex items-center gap-2 text-sm">
-                        <span className="text-muted-foreground">{index + 1}.</span>
-                        <span>{shortcut.description}</span>
+                  
+                  {challengeType === 'shortcuts' && (
+                    <div className="space-y-2">
+                      {shortcuts.slice(0, 3).map((shortcut, index) => (
+                        <div key={index} className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground">{index + 1}.</span>
+                          <span>{shortcut.description}</span>
+                        </div>
+                      ))}
+                      <div className="text-sm text-muted-foreground italic">
+                        + {shortcuts.length - 3} more shortcuts...
                       </div>
-                    ))}
-                    <div className="text-sm text-muted-foreground italic">
-                      + {shortcuts.length - 3} more shortcuts...
                     </div>
-                  </div>
+                  )}
+                  
+                  {challengeType === 'snake' && (
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Gamepad2 className="h-4 w-4 text-green-500" />
+                        <span>Use arrow keys to control the snake</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Star className="h-4 w-4 text-yellow-500" />
+                        <span>Score 50+ points to complete the challenge</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Trophy className="h-4 w-4 text-primary" />
+                        <span>Higher scores earn bonus streak points!</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {challengeType === 'epm-quiz' && (
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Brain className="h-4 w-4 text-blue-500" />
+                        <span>Test your EPM knowledge across multiple topics</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Star className="h-4 w-4 text-yellow-500" />
+                        <span>Achieve 60%+ accuracy to complete the challenge</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Trophy className="h-4 w-4 text-primary" />
+                        <span>Perfect scores unlock special badges!</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 {/* Rewards info */}
@@ -202,7 +247,10 @@ export const DailyChallengeScreen = ({ onBack, onStartChallenge, userEmail }: Da
                     <Flame className="h-5 w-5 text-warning" />
                     <div>
                       <div className="font-medium">Build Streak</div>
-                      <div className="text-xs text-muted-foreground">80%+ accuracy counts</div>
+                      <div className="text-xs text-muted-foreground">
+                        {challengeType === 'shortcuts' ? '80%+ accuracy counts' : 
+                         challengeType === 'snake' ? '50+ points counts' : '60%+ accuracy counts'}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 p-3 rounded-lg border bg-card">
@@ -215,11 +263,19 @@ export const DailyChallengeScreen = ({ onBack, onStartChallenge, userEmail }: Da
                 </div>
                 
                 <Button 
-                  onClick={onStartChallenge} 
+                  onClick={() => {
+                    if (challengeType === 'shortcuts') {
+                      onStartChallenge();
+                    } else if (onStartMiniGame) {
+                      onStartMiniGame(challengeType);
+                    }
+                  }} 
                   size="lg" 
-                  className="w-full btn-elufa"
+                  className="w-full bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90 animate-pulse hover:animate-none shadow-lg hover:shadow-xl transition-all duration-300"
                 >
-                  <Star className="h-5 w-5 mr-2" />
+                  {challengeType === 'shortcuts' && <Star className="h-5 w-5 mr-2" />}
+                  {challengeType === 'snake' && <Gamepad2 className="h-5 w-5 mr-2" />}
+                  {challengeType === 'epm-quiz' && <Brain className="h-5 w-5 mr-2" />}
                   Start Today's Challenge
                 </Button>
               </div>

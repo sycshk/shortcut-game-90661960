@@ -11,6 +11,7 @@ interface SnakeGameProps {
   onBack: () => void;
   onScoreSave: (score: number) => void;
   userEmail?: string;
+  isDailyChallenge?: boolean;
 }
 
 type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
@@ -22,7 +23,7 @@ const INITIAL_SPEED = 150;
 const SPEED_INCREASE = 5;
 const MIN_SPEED = 50;
 
-export const SnakeGame = ({ onBack, onScoreSave, userEmail }: SnakeGameProps) => {
+export const SnakeGame = ({ onBack, onScoreSave, userEmail, isDailyChallenge }: SnakeGameProps) => {
   const [snake, setSnake] = useState<Position[]>([{ x: 10, y: 10 }]);
   const [food, setFood] = useState<Position>({ x: 15, y: 10 });
   const [direction, setDirection] = useState<Direction>('RIGHT');
@@ -244,8 +245,15 @@ export const SnakeGame = ({ onBack, onScoreSave, userEmail }: SnakeGameProps) =>
             <div>
               <CardTitle className="text-2xl flex items-center gap-2">
                 🐍 Snake
+                {isDailyChallenge && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-primary to-secondary text-white animate-pulse">
+                    Daily Challenge
+                  </span>
+                )}
               </CardTitle>
-              <CardDescription>Eat food, grow longer, don't crash!</CardDescription>
+              <CardDescription>
+                {isDailyChallenge ? 'Score 50+ points to complete today\'s challenge!' : 'Eat food, grow longer, don\'t crash!'}
+              </CardDescription>
             </div>
             <div className="text-right">
               <div className="text-sm text-muted-foreground">High Score</div>

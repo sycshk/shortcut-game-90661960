@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Gamepad2, Brain, Trophy, Award, TrendingUp, Clock, Target, Flame, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Gamepad2, Brain, Trophy, Award, TrendingUp, Target, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SnakeGame } from './SnakeGame';
 import { ConsolidationQuiz } from './ConsolidationQuiz';
@@ -15,6 +15,8 @@ import { toast } from '@/hooks/use-toast';
 interface GamesHubProps {
   onBack: () => void;
   userEmail?: string;
+  dailyMiniGame?: 'snake' | 'epm-quiz' | null;
+  onDailyComplete?: () => void;
 }
 
 type GameType = 'hub' | 'snake' | 'epm-quiz' | 'leaderboard';
@@ -92,14 +94,15 @@ const getUnlockedMiniGameAchievements = async (email: string) => {
   });
 };
 
-export const GamesHub = ({ onBack, userEmail }: GamesHubProps) => {
-  const [currentGame, setCurrentGame] = useState<GameType>('hub');
+export const GamesHub = ({ onBack, userEmail, dailyMiniGame, onDailyComplete }: GamesHubProps) => {
+  const [currentGame, setCurrentGame] = useState<GameType>(dailyMiniGame || 'hub');
   const [activeTab, setActiveTab] = useState<HubTab>('games');
   const [scores, setScores] = useState<Record<string, number>>({});
   const [unlockedAchievements, setUnlockedAchievements] = useState<typeof ACHIEVEMENTS>([]);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [isLoadingDashboard, setIsLoadingDashboard] = useState(false);
   const [previousHighScores, setPreviousHighScores] = useState<Record<string, number>>({});
+  const [isDailyMode] = useState(!!dailyMiniGame);
 
   useEffect(() => {
     const loadData = async () => {
@@ -134,8 +137,8 @@ export const GamesHub = ({ onBack, userEmail }: GamesHubProps) => {
     try {
       const stats = await getUserMiniGameStats(userEmail);
       
-      // Get user stats from API for more details
-      const userStatsResult = await apiService.getUserStats(userEmail);
+      // Get user stats from API for more details (future use)
+      await apiService.getUserStats(userEmail);
       
       setDashboardStats({
         totalGamesPlayed: stats.snakeGames + stats.epmGames,
@@ -169,6 +172,20 @@ export const GamesHub = ({ onBack, userEmail }: GamesHubProps) => {
         });
       }
       
+      // Check if daily challenge completion (score >= 50)
+      if (isDailyMode && score >= 50) {
+        import('@/services/dailyChallengeService').then(({ saveDailyChallengeCompletion }) => {
+          saveDailyChallengeCompletion(score, 100, userEmail);
+        });
+        toast({
+          title: "🌟 Daily Challenge Complete!",
+          description: "You've completed today's Snake challenge!",
+        });
+        if (onDailyComplete) {
+          setTimeout(onDailyComplete, 1500);
+        }
+      }
+      
       setScores(prev => ({
         ...prev,
         snake: Math.max(prev.snake || 0, score)
@@ -194,6 +211,20 @@ export const GamesHub = ({ onBack, userEmail }: GamesHubProps) => {
         });
       }
       
+      // Check if daily challenge completion (accuracy >= 60%)
+      if (isDailyMode && accuracy >= 60) {
+        import('@/services/dailyChallengeService').then(({ saveDailyChallengeCompletion }) => {
+          saveDailyChallengeCompletion(score, accuracy, userEmail);
+        });
+        toast({
+          title: "🌟 Daily Challenge Complete!",
+          description: "You've completed today's EPM Quiz challenge!",
+        });
+        if (onDailyComplete) {
+          setTimeout(onDailyComplete, 1500);
+        }
+      }
+      
       setScores(prev => ({
         ...prev,
         'epm-quiz': Math.max(prev['epm-quiz'] || 0, score)
@@ -207,9 +238,10 @@ export const GamesHub = ({ onBack, userEmail }: GamesHubProps) => {
   if (currentGame === 'snake') {
     return (
       <SnakeGame
-        onBack={() => setCurrentGame('hub')}
+        onBack={isDailyMode && onDailyComplete ? onDailyComplete : () => setCurrentGame('hub')}
         onScoreSave={handleSnakeScoreSave}
         userEmail={userEmail}
+        isDailyChallenge={isDailyMode}
       />
     );
   }
@@ -217,9 +249,10 @@ export const GamesHub = ({ onBack, userEmail }: GamesHubProps) => {
   if (currentGame === 'epm-quiz') {
     return (
       <ConsolidationQuiz
-        onBack={() => setCurrentGame('hub')}
+        onBack={isDailyMode && onDailyComplete ? onDailyComplete : () => setCurrentGame('hub')}
         onScoreSave={handleQuizScoreSave}
         userEmail={userEmail}
+        isDailyChallenge={isDailyMode}
       />
     );
   }

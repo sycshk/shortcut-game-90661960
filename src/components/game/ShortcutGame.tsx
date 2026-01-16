@@ -10,7 +10,7 @@ import { DailyChallengeScreen } from './DailyChallengeScreen';
 import { ProfilePage } from './ProfilePage';
 import { GamesHub } from './GamesHub';
 import { leaderboardService, UserProfileData } from '@/services/leaderboardService';
-import { getDailyShortcuts, saveDailyChallengeCompletion } from '@/services/dailyChallengeService';
+import { getDailyShortcuts, saveDailyChallengeCompletion, getDailyChallengeType } from '@/services/dailyChallengeService';
 
 const USER_SESSION_KEY = 'shortcut-user-session';
 
@@ -19,6 +19,7 @@ export const ShortcutGame = () => {
   const [displayName, setDisplayName] = useState<string>('');
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [isDailyMode, setIsDailyMode] = useState(false);
+  const [dailyMiniGame, setDailyMiniGame] = useState<'snake' | 'epm-quiz' | null>(null);
   
   const { 
     state, 
@@ -86,9 +87,17 @@ export const ShortcutGame = () => {
   };
 
   const handleStartDailyChallenge = () => {
-    setIsDailyMode(true);
-    const dailyShortcuts = getDailyShortcuts();
-    startDailyChallenge(dailyShortcuts);
+    const challengeType = getDailyChallengeType();
+    if (challengeType === 'shortcuts') {
+      setIsDailyMode(true);
+      const dailyShortcuts = getDailyShortcuts();
+      startDailyChallenge(dailyShortcuts);
+    }
+  };
+  
+  const handleStartDailyMiniGame = (game: 'snake' | 'epm-quiz') => {
+    setDailyMiniGame(game);
+    goToMiniGames();
   };
 
   const handleDailyChallengeComplete = (name: string, email?: string) => {
@@ -104,6 +113,7 @@ export const ShortcutGame = () => {
 
   const handleBackFromDaily = () => {
     setIsDailyMode(false);
+    setDailyMiniGame(null);
     resetGame();
   };
 
@@ -150,8 +160,10 @@ export const ShortcutGame = () => {
       case 'miniGames':
         return (
           <GamesHub
-            onBack={resetGame}
+            onBack={() => { setDailyMiniGame(null); resetGame(); }}
             userEmail={userEmail}
+            dailyMiniGame={dailyMiniGame}
+            onDailyComplete={() => { setDailyMiniGame(null); resetGame(); }}
           />
         );
       
@@ -160,6 +172,7 @@ export const ShortcutGame = () => {
           <DailyChallengeScreen
             onBack={handleBackFromDaily}
             onStartChallenge={handleStartDailyChallenge}
+            onStartMiniGame={handleStartDailyMiniGame}
             userEmail={userEmail}
           />
         );
