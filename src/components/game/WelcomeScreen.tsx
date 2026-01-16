@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Trophy, Zap, Medal, LogOut, BarChart3, Edit2, Check, X, Gamepad2, Calendar, Flame, Star, User } from 'lucide-react';
 import { leaderboardService, UserProfileData } from '@/services/leaderboardService';
-import { isDailyChallengeCompleted, getDailyStreakDataSync } from '@/services/dailyChallengeService';
+import { getDailyChallengeData, getDailyStreakData, getDailyStreakDataSync } from '@/services/dailyChallengeService';
 import { cn } from '@/lib/utils';
 import { HallOfFame } from './HallOfFame';
 import { PlayerAvatar } from './PlayerAvatar';
@@ -68,9 +68,13 @@ export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, onProfil
       setDisplayName(profile.displayName);
     }
     
-    // Load daily challenge status (sync functions)
-    setDailyCompleted(isDailyChallengeCompleted());
-    setDailyStreak(getDailyStreakDataSync().currentStreak);
+    // Load daily challenge status from API
+    const [dailyData, streakData] = await Promise.all([
+      getDailyChallengeData(userEmail),
+      getDailyStreakData(userEmail)
+    ]);
+    setDailyCompleted(dailyData?.completed ?? false);
+    setDailyStreak(streakData.currentStreak);
     
     setIsLoading(false);
     // Increment key to force HallOfFame to re-render with fresh data
