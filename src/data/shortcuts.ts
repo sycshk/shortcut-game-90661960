@@ -233,6 +233,89 @@ export const shortcutChallenges: ShortcutChallenge[] = [
   { id: 'gen-guru-13', level: 'guru', category: 'general', description: 'Small caps formatting', keys: ['Ctrl', 'Shift', 'K'], hint: 'K for small Kaps' },
   { id: 'gen-guru-14', level: 'guru', category: 'general', description: 'All caps formatting', keys: ['Ctrl', 'Shift', 'A'], hint: 'A for All caps' },
   { id: 'gen-guru-15', level: 'guru', category: 'general', description: 'Insert field code', keys: ['Ctrl', 'F9'], hint: 'F9 for field' },
+
+  // ============ GOOGLE SHEETS ============
+  // Google Sheets - Essentials
+  { id: 'gsheets-ess-1', level: 'essentials', category: 'google-sheets', description: 'Paste values only', keys: ['Ctrl', 'Shift', 'V'], hint: 'Shift+V for values only' },
+  { id: 'gsheets-ess-2', level: 'essentials', category: 'google-sheets', description: 'Fill down', keys: ['Ctrl', 'D'], hint: 'D for Down' },
+  { id: 'gsheets-ess-3', level: 'essentials', category: 'google-sheets', description: 'Fill right', keys: ['Ctrl', 'R'], hint: 'R for Right' },
+  { id: 'gsheets-ess-4', level: 'essentials', category: 'google-sheets', description: 'Insert link', keys: ['Ctrl', 'K'], hint: 'K for linK' },
+  { id: 'gsheets-ess-5', level: 'essentials', category: 'google-sheets', description: 'Select current column', keys: ['Ctrl', 'Space'], hint: 'Space selects column' },
+  { id: 'gsheets-ess-6', level: 'essentials', category: 'google-sheets', description: 'Select current row', keys: ['Shift', 'Space'], hint: 'Shift+Space for row' },
+  
+  // Google Sheets - Implementation
+  { id: 'gsheets-imp-1', level: 'implementation', category: 'google-sheets', description: 'Insert comment', keys: ['Ctrl', 'Alt', 'M'], hint: 'M for comment' },
+  { id: 'gsheets-imp-2', level: 'implementation', category: 'google-sheets', description: 'Move to start of sheet', keys: ['Ctrl', 'Home'], hint: 'Home is beginning' },
+  { id: 'gsheets-imp-3', level: 'implementation', category: 'google-sheets', description: 'Move to end of sheet', keys: ['Ctrl', 'End'], hint: 'End goes to end' },
+  { id: 'gsheets-imp-4', level: 'implementation', category: 'google-sheets', description: 'Move to next sheet tab', keys: ['Ctrl', 'Shift', 'PageDown'], hint: 'PageDown for next tab' },
+  { id: 'gsheets-imp-5', level: 'implementation', category: 'google-sheets', description: 'Move to previous sheet tab', keys: ['Ctrl', 'Shift', 'PageUp'], hint: 'PageUp for previous tab' },
+  { id: 'gsheets-imp-6', level: 'implementation', category: 'google-sheets', description: 'Center align', keys: ['Ctrl', 'Shift', 'E'], hint: 'E for cEnter' },
+  { id: 'gsheets-imp-7', level: 'implementation', category: 'google-sheets', description: 'Left align', keys: ['Ctrl', 'Shift', 'L'], hint: 'L for Left' },
+  { id: 'gsheets-imp-8', level: 'implementation', category: 'google-sheets', description: 'Right align', keys: ['Ctrl', 'Shift', 'R'], hint: 'R for Right' },
+  
+  // Google Sheets - Architect
+  { id: 'gsheets-arc-1', level: 'architect', category: 'google-sheets', description: 'Apply borders', keys: ['Alt', 'Shift', '7'], hint: 'Alt+Shift+7 for borders' },
+  { id: 'gsheets-arc-2', level: 'architect', category: 'google-sheets', description: 'Remove borders', keys: ['Alt', 'Shift', '6'], hint: 'Alt+Shift+6 removes borders' },
+  { id: 'gsheets-arc-3', level: 'architect', category: 'google-sheets', description: 'Format as currency', keys: ['Ctrl', 'Shift', '4'], hint: 'Shift+4 is $ symbol' },
+  { id: 'gsheets-arc-4', level: 'architect', category: 'google-sheets', description: 'Format as percentage', keys: ['Ctrl', 'Shift', '5'], hint: 'Shift+5 is % symbol' },
+  { id: 'gsheets-arc-5', level: 'architect', category: 'google-sheets', description: 'Clear formatting', keys: ['Ctrl', '\\'], hint: 'Backslash clears format' },
+
+  // ============ GOOGLE DOCS ============
+  // Google Docs - Essentials
+  { id: 'gdocs-ess-1', level: 'essentials', category: 'google-docs', description: 'Paste without formatting', keys: ['Ctrl', 'Shift', 'V'], hint: 'Shift+V for plain paste' },
+  { id: 'gdocs-ess-2', level: 'essentials', category: 'google-docs', description: 'Increase font size', keys: ['Ctrl', 'Shift', '>'], hint: 'Greater than = larger' },
+  { id: 'gdocs-ess-3', level: 'essentials', category: 'google-docs', description: 'Decrease font size', keys: ['Ctrl', 'Shift', '<'], hint: 'Less than = smaller' },
+  { id: 'gdocs-ess-4', level: 'essentials', category: 'google-docs', description: 'Clear formatting', keys: ['Ctrl', '\\'], hint: 'Backslash clears format' },
+  { id: 'gdocs-ess-5', level: 'essentials', category: 'google-docs', description: 'Center align', keys: ['Ctrl', 'Shift', 'E'], hint: 'E for cEnter' },
+  { id: 'gdocs-ess-6', level: 'essentials', category: 'google-docs', description: 'Left align', keys: ['Ctrl', 'Shift', 'L'], hint: 'L for Left' },
+  
+  // Google Docs - Implementation
+  { id: 'gdocs-imp-1', level: 'implementation', category: 'google-docs', description: 'Strikethrough', keys: ['Alt', 'Shift', '5'], hint: 'Alt+Shift+5 for strikethrough' },
+  { id: 'gdocs-imp-2', level: 'implementation', category: 'google-docs', description: 'Superscript', keys: ['Ctrl', '.'], hint: 'Period for superscript' },
+  { id: 'gdocs-imp-3', level: 'implementation', category: 'google-docs', description: 'Subscript', keys: ['Ctrl', ','], hint: 'Comma for subscript' },
+  { id: 'gdocs-imp-4', level: 'implementation', category: 'google-docs', description: 'Copy text formatting', keys: ['Ctrl', 'Alt', 'C'], hint: 'Alt+C copies format' },
+  { id: 'gdocs-imp-5', level: 'implementation', category: 'google-docs', description: 'Paste text formatting', keys: ['Ctrl', 'Alt', 'V'], hint: 'Alt+V pastes format' },
+  { id: 'gdocs-imp-6', level: 'implementation', category: 'google-docs', description: 'Apply Heading 1', keys: ['Ctrl', 'Alt', '1'], hint: 'Alt+1 for H1' },
+  { id: 'gdocs-imp-7', level: 'implementation', category: 'google-docs', description: 'Apply Heading 2', keys: ['Ctrl', 'Alt', '2'], hint: 'Alt+2 for H2' },
+  { id: 'gdocs-imp-8', level: 'implementation', category: 'google-docs', description: 'Apply Normal Text', keys: ['Ctrl', 'Alt', '0'], hint: 'Alt+0 for normal' },
+  
+  // Google Docs - Architect
+  { id: 'gdocs-arc-1', level: 'architect', category: 'google-docs', description: 'Numbered list', keys: ['Ctrl', 'Shift', '7'], hint: 'Shift+7 for numbers' },
+  { id: 'gdocs-arc-2', level: 'architect', category: 'google-docs', description: 'Bulleted list', keys: ['Ctrl', 'Shift', '8'], hint: 'Shift+8 for bullets' },
+  { id: 'gdocs-arc-3', level: 'architect', category: 'google-docs', description: 'Right align', keys: ['Ctrl', 'Shift', 'R'], hint: 'R for Right' },
+  { id: 'gdocs-arc-4', level: 'architect', category: 'google-docs', description: 'Justify', keys: ['Ctrl', 'Shift', 'J'], hint: 'J for Justify' },
+  { id: 'gdocs-arc-5', level: 'architect', category: 'google-docs', description: 'Double space', keys: ['Ctrl', '2'], hint: '2 for double spacing' },
+  { id: 'gdocs-arc-6', level: 'architect', category: 'google-docs', description: 'Insert page break', keys: ['Ctrl', 'Enter'], hint: 'Enter for new page' },
+  { id: 'gdocs-arc-7', level: 'architect', category: 'google-docs', description: 'Voice typing', keys: ['Ctrl', 'Shift', 'S'], hint: 'S for Speech' },
+  { id: 'gdocs-arc-8', level: 'architect', category: 'google-docs', description: 'Dictionary', keys: ['Ctrl', 'Shift', 'Y'], hint: 'Y for dictionary' },
+
+  // ============ GOOGLE SLIDES ============
+  // Google Slides - Essentials
+  { id: 'gslides-ess-1', level: 'essentials', category: 'google-slides', description: 'New slide', keys: ['Ctrl', 'M'], hint: 'M for new slide' },
+  { id: 'gslides-ess-2', level: 'essentials', category: 'google-slides', description: 'Duplicate slide', keys: ['Ctrl', 'D'], hint: 'D for Duplicate' },
+  { id: 'gslides-ess-3', level: 'essentials', category: 'google-slides', description: 'Start presentation', keys: ['Ctrl', 'F5'], hint: 'F5 to present' },
+  { id: 'gslides-ess-4', level: 'essentials', category: 'google-slides', description: 'Start from current slide', keys: ['Ctrl', 'Shift', 'F5'], hint: 'Shift+F5 from current' },
+  { id: 'gslides-ess-5', level: 'essentials', category: 'google-slides', description: 'Duplicate object', keys: ['Ctrl', 'D'], hint: 'D for Duplicate' },
+  
+  // Google Slides - Implementation
+  { id: 'gslides-imp-1', level: 'implementation', category: 'google-slides', description: 'Move slide up', keys: ['Ctrl', 'Up'], hint: 'Up moves slide up' },
+  { id: 'gslides-imp-2', level: 'implementation', category: 'google-slides', description: 'Move slide down', keys: ['Ctrl', 'Down'], hint: 'Down moves slide down' },
+  { id: 'gslides-imp-3', level: 'implementation', category: 'google-slides', description: 'Move slide to beginning', keys: ['Ctrl', 'Shift', 'Up'], hint: 'Shift+Up to start' },
+  { id: 'gslides-imp-4', level: 'implementation', category: 'google-slides', description: 'Move slide to end', keys: ['Ctrl', 'Shift', 'Down'], hint: 'Shift+Down to end' },
+  { id: 'gslides-imp-5', level: 'implementation', category: 'google-slides', description: 'Group objects', keys: ['Ctrl', 'Alt', 'G'], hint: 'G for Group' },
+  { id: 'gslides-imp-6', level: 'implementation', category: 'google-slides', description: 'Ungroup objects', keys: ['Ctrl', 'Alt', 'Shift', 'G'], hint: 'Shift+G ungroups' },
+  { id: 'gslides-imp-7', level: 'implementation', category: 'google-slides', description: 'Insert text box', keys: ['Ctrl', 'Alt', 'T'], hint: 'T for Text box' },
+  
+  // Google Slides - Architect
+  { id: 'gslides-arc-1', level: 'architect', category: 'google-slides', description: 'Bring to front', keys: ['Ctrl', 'Shift', 'Up'], hint: 'Shift+Up brings front' },
+  { id: 'gslides-arc-2', level: 'architect', category: 'google-slides', description: 'Send to back', keys: ['Ctrl', 'Shift', 'Down'], hint: 'Shift+Down sends back' },
+  { id: 'gslides-arc-3', level: 'architect', category: 'google-slides', description: 'Bring forward', keys: ['Ctrl', 'Up'], hint: 'Up brings forward' },
+  { id: 'gslides-arc-4', level: 'architect', category: 'google-slides', description: 'Send backward', keys: ['Ctrl', 'Down'], hint: 'Down sends back' },
+  { id: 'gslides-arc-5', level: 'architect', category: 'google-slides', description: 'Rotate by 15 degrees', keys: ['Alt', 'Right'], hint: 'Alt+Right rotates' },
+  { id: 'gslides-arc-6', level: 'architect', category: 'google-slides', description: 'Toggle laser pointer', keys: ['L'], hint: 'L for Laser' },
+  { id: 'gslides-arc-7', level: 'architect', category: 'google-slides', description: 'Black screen toggle', keys: ['B'], hint: 'B for Black' },
+  { id: 'gslides-arc-8', level: 'architect', category: 'google-slides', description: 'White screen toggle', keys: ['W'], hint: 'W for White' },
+  { id: 'gslides-arc-9', level: 'architect', category: 'google-slides', description: 'Open speaker notes', keys: ['S'], hint: 'S for Speaker notes' },
 ];
 
 // Helper function to get shortcuts by level and category

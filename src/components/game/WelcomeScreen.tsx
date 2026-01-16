@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Trophy, Zap, Medal, LogOut, BarChart3, Edit2, Check, X, Gamepad2, Calendar, Flame, Star, User } from 'lucide-react';
+import { Trophy, Zap, Medal, LogOut, BarChart3, Edit2, Check, X, Gamepad2, Calendar, Flame, Star, User, BookOpen } from 'lucide-react';
 import { leaderboardService, UserProfileData } from '@/services/leaderboardService';
 import { getDailyChallengeData, getDailyStreakData, getDailyStreakDataSync } from '@/services/dailyChallengeService';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,7 @@ interface WelcomeScreenProps {
   onDailyChallenge: () => void;
   onProfile: () => void;
   onMiniGames?: () => void;
+  onLearning?: () => void;
   userEmail?: string;
   onLogout?: () => void;
 }
@@ -36,7 +37,7 @@ const ShortcutKeyIcon = () => (
   </div>
 );
 
-export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, onProfile, onMiniGames, userEmail, onLogout }: WelcomeScreenProps) => {
+export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, onProfile, onMiniGames, onLearning, userEmail, onLogout }: WelcomeScreenProps) => {
   const [aggregatedLeaderboard, setAggregatedLeaderboard] = useState<{ name: string; totalScore: number; gamesPlayed: number; avgAccuracy: number }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [displayName, setDisplayName] = useState('');
@@ -235,10 +236,16 @@ export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, onProfil
                   Mini Games
                 </Button>
               )}
+              {onLearning && (
+                <Button onClick={onLearning} variant="outline" size="lg" className="w-full glass-button">
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Shortcuts Library
+                </Button>
+              )}
             </div>
             
             <p className="text-xs text-muted-foreground">
-              Windows • Excel • PowerPoint • General shortcuts
+              Windows • Excel • PowerPoint • Google Apps • General shortcuts
             </p>
           </CardContent>
         </Card>
