@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Play, Pause, Trophy, RefreshCw, ArrowUp, ArrowDown, ArrowLeftIcon, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { apiService } from '@/services/apiService';
 
 interface SnakeGameProps {
   onBack: () => void;
@@ -32,10 +33,25 @@ export const SnakeGame = ({ onBack, onScoreSave, userEmail }: SnakeGameProps) =>
   const directionRef = useRef(direction);
   const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load high score
+  // Load high score from API or localStorage
   useEffect(() => {
-    const saved = localStorage.getItem(`snake-highscore-${userEmail || 'guest'}`);
-    if (saved) setHighScore(parseInt(saved, 10));
+    const loadHighScore = async () => {
+      if (userEmail) {
+        try {
+          const result = await apiService.getMiniGameScores(userEmail);
+          if (result.data?.scores?.snake) {
+            setHighScore(result.data.scores.snake.highScore);
+            return;
+          }
+        } catch (error) {
+          console.warn('Failed to load high score from API:', error);
+        }
+      }
+      // Fallback to localStorage
+      const saved = localStorage.getItem(`snake-highscore-${userEmail || 'guest'}`);
+      if (saved) setHighScore(parseInt(saved, 10));
+    };
+    loadHighScore();
   }, [userEmail]);
 
   // Generate random food position
@@ -99,10 +115,9 @@ export const SnakeGame = ({ onBack, onScoreSave, userEmail }: SnakeGameProps) =>
         if (head.x === food.x && head.y === food.y) {
           setScore(prev => {
             const newScore = prev + 10;
-            // Update high score
+            // Update high score locally (will sync to server on game over)
             if (newScore > highScore) {
               setHighScore(newScore);
-              localStorage.setItem(`snake-highscore-${userEmail || 'guest'}`, newScore.toString());
             }
             return newScore;
           });
@@ -158,12 +173,37 @@ export const SnakeGame = ({ onBack, onScoreSave, userEmail }: SnakeGameProps) =>
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isPlaying, gameOver]);
 
-  // Save score on game over
+  // Save score on game over - sync to server
   useEffect(() => {
-    if (gameOver && score > 0) {
-      onScoreSave(score);
-    }
-  }, [gameOver, score, onScoreSave]);
+    const saveScore = async () => {
+      if (gameOver && score > 0) {
+        // Save to localStorage as backup
+        if (score > highScore) {
+          localStorage.setItem(`snake-highscore-${userEmail || 'guest'}`, score.toString());
+        }
+        
+        // Sync to server API
+        if (userEmail) {
+          try {
+            const result = await apiService.saveMiniGameScore({
+              email: userEmail,
+              game_type: 'snake',
+              score: score
+            });
+            
+            if (result.data?.isNewHighScore) {
+              console.log('🎉 New high score saved to server!');
+            }
+          } catch (error) {
+            console.warn('Failed to save score to server:', error);
+          }
+        }
+        
+        onScoreSave(score);
+      }
+    };
+    saveScore();
+  }, [gameOver, score, onScoreSave, userEmail, highScore]);
 
   // Touch/mobile controls
   const handleDirectionClick = (newDirection: Direction) => {

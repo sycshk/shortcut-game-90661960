@@ -198,6 +198,7 @@ class ApiService {
       email: string;
       display_name: string;
       organization: string | null;
+      avatar: string | null;
       created_at: string;
       last_active: string;
     }>(`/users/${encodeURIComponent(email)}`);
@@ -207,6 +208,7 @@ class ApiService {
     email: string;
     display_name?: string;
     organization?: string;
+    avatar?: string;
   }) {
     return this.request<any>('/users', {
       method: 'POST',

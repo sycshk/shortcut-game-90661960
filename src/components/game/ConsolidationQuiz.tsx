@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, Trophy, Brain, CheckCircle, XCircle, Lightbulb, Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { apiService } from '@/services/apiService';
 import { 
   QuizQuestion, 
   CONSOLIDATION_QUESTIONS, 
@@ -53,10 +54,25 @@ export const ConsolidationQuiz = ({ onBack, onScoreSave, userEmail }: Consolidat
   const [timeRemaining, setTimeRemaining] = useState(TIME_PER_QUESTION);
   const [highScore, setHighScore] = useState(0);
 
-  // Load high score
+  // Load high score from API or localStorage
   useEffect(() => {
-    const saved = localStorage.getItem(`epm-quiz-highscore-${userEmail || 'guest'}`);
-    if (saved) setHighScore(parseInt(saved, 10));
+    const loadHighScore = async () => {
+      if (userEmail) {
+        try {
+          const result = await apiService.getMiniGameScores(userEmail);
+          if (result.data?.scores?.epm) {
+            setHighScore(result.data.scores.epm.highScore);
+            return;
+          }
+        } catch (error) {
+          console.warn('Failed to load high score from API:', error);
+        }
+      }
+      // Fallback to localStorage
+      const saved = localStorage.getItem(`epm-quiz-highscore-${userEmail || 'guest'}`);
+      if (saved) setHighScore(parseInt(saved, 10));
+    };
+    loadHighScore();
   }, [userEmail]);
 
   // Start quiz
@@ -123,8 +139,26 @@ export const ConsolidationQuiz = ({ onBack, onScoreSave, userEmail }: Consolidat
       const finalAccuracy = Math.round((correctAnswers / questions.length) * 100);
       if (score > highScore) {
         setHighScore(score);
+        // Save to localStorage as backup
         localStorage.setItem(`epm-quiz-highscore-${userEmail || 'guest'}`, score.toString());
       }
+      
+      // Sync to server API
+      if (userEmail) {
+        apiService.saveMiniGameScore({
+          email: userEmail,
+          game_type: 'epm',
+          score: score,
+          accuracy: finalAccuracy
+        }).then(result => {
+          if (result.data?.isNewHighScore) {
+            console.log('🎉 New EPM high score saved to server!');
+          }
+        }).catch(error => {
+          console.warn('Failed to save EPM score to server:', error);
+        });
+      }
+      
       onScoreSave(score, finalAccuracy);
       setStage('results');
     } else {

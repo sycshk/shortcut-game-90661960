@@ -5,6 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Trophy, Award, User, Gamepad2, Target, Flame, Calendar, Crown, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { leaderboardService } from '@/services/leaderboardService';
+import { apiService } from '@/services/apiService';
+import { getDailyStreakData } from '@/services/dailyChallengeService';
 import { AchievementBadge } from './AchievementBadge';
 import { ACHIEVEMENTS, AVATARS, RARITY_COLORS, Avatar } from '@/data/achievements';
 import { getUserMiniGameStats } from './UnifiedLeaderboard';
@@ -61,9 +63,9 @@ export const ProfilePage = ({ onBack, userEmail, displayName, onAvatarChange }: 
           ? Math.round(sessions.reduce((sum, s) => sum + s.accuracy, 0) / gamesPlayed)
           : 0;
         
-        // Get daily streak from localStorage (or API)
-        const dailyData = localStorage.getItem('daily-streak');
-        const dailyStreak = dailyData ? JSON.parse(dailyData).currentStreak || 0 : 0;
+        // Get daily streak from API
+        const streakData = await getDailyStreakData(userEmail);
+        const dailyStreak = streakData.currentStreak;
         
         // Get mini game stats
         const miniGameStats = await getUserMiniGameStats(userEmail);
@@ -81,9 +83,15 @@ export const ProfilePage = ({ onBack, userEmail, displayName, onAvatarChange }: 
           epmBestAccuracy: miniGameStats.epmAccuracy || 0
         });
         
-        // Load saved avatar
-        const savedAvatar = localStorage.getItem(`avatar-${userEmail}`);
-        if (savedAvatar) setSelectedAvatar(savedAvatar);
+        // Load saved avatar - try API first, fallback to localStorage
+        const userResult = await apiService.getUser(userEmail);
+        if (userResult.data?.avatar) {
+          setSelectedAvatar(userResult.data.avatar);
+        } else {
+          // Fallback to localStorage
+          const savedAvatar = localStorage.getItem(`avatar-${userEmail}`);
+          if (savedAvatar) setSelectedAvatar(savedAvatar);
+        }
         
       } catch (error) {
         console.error('Failed to load stats:', error);
@@ -188,11 +196,24 @@ export const ProfilePage = ({ onBack, userEmail, displayName, onAvatarChange }: 
     }
   };
 
-  const handleAvatarSelect = (avatarId: string) => {
+  const handleAvatarSelect = async (avatarId: string) => {
     const avatar = AVATARS.find(a => a.id === avatarId);
     if (avatar && isAvatarUnlocked(avatar)) {
       setSelectedAvatar(avatarId);
+      
+      // Save to localStorage as backup
       localStorage.setItem(`avatar-${userEmail}`, avatarId);
+      
+      // Save to server if API is available
+      try {
+        await apiService.createOrUpdateUser({
+          email: userEmail,
+          avatar: avatarId
+        });
+      } catch (error) {
+        console.warn('Failed to save avatar to server:', error);
+      }
+      
       onAvatarChange?.(avatarId);
     }
   };
