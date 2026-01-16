@@ -125,17 +125,19 @@ function updateStreak(email, userId, qualifiesForStreak) {
   let streak = db.prepare('SELECT * FROM daily_streaks WHERE email = ?').get(email);
   
   if (!streak) {
-    // Create new streak record
+    // Create new streak record with first_daily badge
+    const initialBadges = qualifiesForStreak ? ['first_daily'] : [];
     db.prepare(`
       INSERT INTO daily_streaks (user_id, email, current_streak, longest_streak, last_completed_date, total_days, badges)
-      VALUES (?, ?, ?, ?, ?, ?, '[]')
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(
       userId,
       email,
       qualifiesForStreak ? 1 : 0,
       qualifiesForStreak ? 1 : 0,
       today,
-      1
+      1,
+      JSON.stringify(initialBadges)
     );
     return;
   }
@@ -144,6 +146,11 @@ function updateStreak(email, userId, qualifiesForStreak) {
   let newLongestStreak = streak.longest_streak;
   let newTotalDays = streak.total_days + 1;
   let badges = JSON.parse(streak.badges || '[]');
+  
+  // Award first_daily badge if not already earned
+  if (!badges.includes('first_daily')) {
+    badges.push('first_daily');
+  }
   
   if (qualifiesForStreak) {
     if (streak.last_completed_date === yesterday) {
@@ -159,7 +166,7 @@ function updateStreak(email, userId, qualifiesForStreak) {
       newLongestStreak = newCurrentStreak;
     }
     
-    // Award badges
+    // Award streak badges
     const streakMilestones = [3, 7, 14, 30, 60, 100];
     for (const milestone of streakMilestones) {
       const badgeId = `streak_${milestone}`;
@@ -168,11 +175,15 @@ function updateStreak(email, userId, qualifiesForStreak) {
       }
     }
     
-    const dayMilestones = [10, 25, 50, 100, 250, 500];
+    // Award total days badges (using dedicated_ prefix to match frontend)
+    const dayMilestones = [
+      { days: 10, id: 'dedicated_10' },
+      { days: 50, id: 'dedicated_50' },
+      { days: 100, id: 'dedicated_100' }
+    ];
     for (const milestone of dayMilestones) {
-      const badgeId = `days_${milestone}`;
-      if (newTotalDays >= milestone && !badges.includes(badgeId)) {
-        badges.push(badgeId);
+      if (newTotalDays >= milestone.days && !badges.includes(milestone.id)) {
+        badges.push(milestone.id);
       }
     }
   } else {
