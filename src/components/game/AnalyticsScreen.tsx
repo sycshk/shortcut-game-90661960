@@ -315,7 +315,7 @@ export const AnalyticsScreen = ({ onBack, userEmail }: AnalyticsScreenProps) => 
                     No answer history yet. Play some games to see your history!
                   </div>
                 ) : (
-                  <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                  <div className="space-y-2">
                     {filteredHistory.slice(0, 50).map((record, index) => (
                       <div 
                         key={index} 
@@ -520,7 +520,7 @@ export const AnalyticsScreen = ({ onBack, userEmail }: AnalyticsScreenProps) => 
             </Card>
 
             {/* Shortcuts List */}
-            <div className="space-y-4 max-h-[500px] overflow-y-auto">
+            <div className="space-y-4">
               {Object.entries(groupedShortcuts).map(([category, shortcuts]) => (
                 <Card key={category} className="glass-card">
                   <CardHeader className="py-3 px-4">

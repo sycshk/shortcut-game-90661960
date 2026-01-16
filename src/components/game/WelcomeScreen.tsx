@@ -267,7 +267,7 @@ export const WelcomeScreen = ({ onStart, onAnalytics, onDailyChallenge, onProfil
                 <p className="text-xs">Be the first to complete a challenge.</p>
               </div>
             ) : (
-              <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 scrollbar-thin">
+              <div className="space-y-2">
                 {aggregatedLeaderboard.map((entry, index) => (
                   <div
                     key={entry.name}
