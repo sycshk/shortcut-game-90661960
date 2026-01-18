@@ -20,7 +20,17 @@ interface GameplayScreenProps {
 export const GameplayScreen = ({ state, feedback, onAnswer, onMultipleChoiceAnswer, onToggleHint, onPause }: GameplayScreenProps) => {
   const [isPaused, setIsPaused] = useState(false);
   const [pauseReason, setPauseReason] = useState<'focus' | 'manual' | null>(null);
+  const [isMac, setIsMac] = useState(false);
   const lastStreakRef = useRef(0);
+
+  // Detect Mac OS
+  useEffect(() => {
+    const platform = window.navigator?.platform || '';
+    const userAgent = window.navigator?.userAgent || '';
+    if (platform.toUpperCase().indexOf('MAC') >= 0 || userAgent.toUpperCase().indexOf('MAC') >= 0) {
+      setIsMac(true);
+    }
+  }, []);
 
   // Trigger confetti on 10x streak
   useEffect(() => {
@@ -474,6 +484,14 @@ export const GameplayScreen = ({ state, feedback, onAnswer, onMultipleChoiceAnsw
                   </div>
                 )}
               </div>
+            )}
+            
+            {/* Mac User Hint */}
+            {isMac && !isMultipleChoice && !feedback && (
+              <p className="mt-6 text-xs text-muted-foreground/70 bg-muted/30 px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                 <span className="text-base">⌘</span> 
+                 <span>Mac users: Use <b>Ctrl</b> key instead of Cmd for shortcuts</span>
+              </p>
             )}
           </div>
         </CardContent>

@@ -56,6 +56,9 @@ const isOSReservedShortcut = (keys: string[]): boolean => {
   
   // Alt+F4 closes windows
   if (upperKeys.includes('ALT') && upperKeys.includes('F4')) return true;
+
+  // Browser reserved keys that are dangerous/interruptive (Ctrl+W/N/T)
+  if (upperKeys.includes('CTRL') && (upperKeys.includes('W') || upperKeys.includes('N') || upperKeys.includes('T'))) return true;
   
   return false;
 };
@@ -179,9 +182,22 @@ export const useGameState = (userEmail?: string) => {
     const normalizedPressed = pressedKeys.map(k => k.toUpperCase()).sort();
     const normalizedExpected = currentShortcut.keys.map(k => k.toUpperCase()).sort();
     
-    const isCorrect = 
+    // Primary strict check
+    let isCorrect = 
       normalizedPressed.length === normalizedExpected.length &&
       normalizedPressed.every((key, index) => key === normalizedExpected[index]);
+
+    // Secondary check for "Implicit Shift" (TC-SHORT-007)
+    // If strict check fails, user pressed SHIFT, but expected answer doesn't have SHIFT
+    // This happens when user presses Shift to access a symbol (e.g. Ctrl + Shift + = for Ctrl + +)
+    if (!isCorrect && normalizedPressed.includes('SHIFT') && !normalizedExpected.includes('SHIFT')) {
+      const pressedWithoutShift = normalizedPressed.filter(k => k !== 'SHIFT');
+      
+      if (pressedWithoutShift.length === normalizedExpected.length &&
+          pressedWithoutShift.every((key, index) => key === normalizedExpected[index])) {
+        isCorrect = true;
+      }
+    }
 
     // Record the answer
     recordAnswer(isCorrect, pressedKeys);
@@ -328,6 +344,20 @@ export const useGameState = (userEmail?: string) => {
       // Already saved via saveToLeaderboard
     }
   }, [state.status, playerName, state.score]);
+
+  // Warn on tab close if game is playing
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (state.status === 'playing') {
+        e.preventDefault();
+        e.returnValue = ''; // Required for Chrome/Edge legacy support
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [state.status]);
 
   // Timer effect - pauses when isPaused is true
   useEffect(() => {

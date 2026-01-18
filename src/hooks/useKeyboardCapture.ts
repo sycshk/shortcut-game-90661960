@@ -122,6 +122,13 @@ export const useKeyboardCapture = (isActive: boolean, onCombination: (keys: stri
       e.stopPropagation();
     };
 
+    // Clear state on window blur (Alt+Tab, clicking away) to prevent stuck keys
+    const handleBlur = () => {
+      pressedKeysRef.current.clear();
+      lastSubmittedSigRef.current = '';
+      setState({ pressedKeys: new Set(), lastCombination: [] });
+    };
+
     // Block Alt key menu activation in browsers (best-effort)
     const handleAltKey = (e: KeyboardEvent) => {
       if (e.key === 'Alt' || e.altKey) {
@@ -132,12 +139,14 @@ export const useKeyboardCapture = (isActive: boolean, onCombination: (keys: stri
     window.addEventListener('keydown', handleKeyDown, { capture: true });
     window.addEventListener('keyup', handleKeyUp, { capture: true });
     window.addEventListener('contextmenu', handleContextMenu, { capture: true });
+    window.addEventListener('blur', handleBlur);
     document.addEventListener('keydown', handleAltKey, { capture: true });
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown, { capture: true });
       window.removeEventListener('keyup', handleKeyUp, { capture: true });
       window.removeEventListener('contextmenu', handleContextMenu, { capture: true });
+      window.removeEventListener('blur', handleBlur);
       document.removeEventListener('keydown', handleAltKey, { capture: true });
     };
   }, [isActive, submitCombination]);

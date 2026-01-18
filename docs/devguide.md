@@ -34,6 +34,12 @@
 ## Change Log
 *This section tracks updates, new features, and architectural changes per build.*
 
+### [Sun Jan 18 2026] - Keyboard Handling & UX Improvements
+- **Feature:** Added Mac user detection to display a helper note ("Use Ctrl instead of Cmd") during gameplay.
+- **Fix:** Implemented "Implicit Shift" logic to correctly handle character keys that require Shift (e.g., `Ctrl`+`Shift`+`=` is now accepted for `Ctrl`+`+`).
+- **Fix:** Improved system interruption handling; game now clears pressed keys on window blur (Alt+Tab) to prevent "stuck" keys.
+- **Docs:** Updated `docs/testcases.md` with new cases `TC-SHORT-006` and `TC-SHORT-007`.
+
 ### [Sun Jan 18 2026] - Initial Documentation
 - Created `docs/devguide.md`.
 - Verified existing project structure and `package.json` scripts.
