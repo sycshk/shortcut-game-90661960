@@ -22,3 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+agents-S14-STEVE.md
+docs/AgentUpdates-S14-STEVE.md
+docs/devguide-S14-STEVE.md
+docs/ideas-S14-STEVE.md
+docs/potentialbugs-S14-STEVE.md
+docs/testcases-S14-STEVE.md
+src/components/game/GameplayScreen-S14-STEVE.tsx
+src/hooks/useGameState-S14-STEVE.ts
+src/hooks/useKeyboardCapture-S14-STEVE.ts
